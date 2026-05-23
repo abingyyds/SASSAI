@@ -68,6 +68,19 @@ function proxyPath(baseUrl, reqUrl, reqHost) {
   return `${basePath}${incoming.pathname}${incoming.search}`;
 }
 
+function formatProxyError(error, baseUrl) {
+  const parts = [
+    error?.code,
+    error?.message,
+    error?.syscall,
+    error?.address,
+    error?.port,
+  ].filter(Boolean);
+  const detail = parts.join(' ');
+  const target = baseUrl ? `${baseUrl.protocol}//${baseUrl.host}` : subrouterBase;
+  return detail || error?.name || String(error) || `unknown network error while connecting to ${target}`;
+}
+
 function proxySubRouter(req, res) {
   let baseUrl;
   try {
@@ -106,13 +119,24 @@ function proxySubRouter(req, res) {
   );
 
   upstreamReq.on('error', (error) => {
+    const detail = formatProxyError(error, baseUrl);
+    console.error('[subrouter-proxy] request failed', {
+      upstream: `${baseUrl.protocol}//${baseUrl.host}`,
+      method: req.method,
+      path: req.url,
+      code: error?.code,
+      message: error?.message,
+      syscall: error?.syscall,
+      address: error?.address,
+      port: error?.port,
+    });
     if (res.headersSent) {
       res.destroy(error);
       return;
     }
     sendJson(res, 502, {
       success: false,
-      message: `SubRouter proxy failed: ${error.message}`,
+      message: `SubRouter proxy failed: ${detail}`,
     });
   });
 
