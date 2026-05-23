@@ -5,6 +5,10 @@ const ThemeContext = createContext(null);
 
 // Theme registry — lazy-loaded per-theme Home & Layout components
 const themeRegistry = {
+  saas: {
+    Home: React.lazy(() => import('../themes/saas/Home')),
+    Layout: React.lazy(() => import('../themes/saas/Layout')),
+  },
   starter: {
     Home: React.lazy(() => import('../themes/starter/Home')),
     Layout: React.lazy(() => import('../themes/starter/Layout')),
@@ -70,7 +74,7 @@ export function ThemeProvider({ children }) {
     return <ThemeLoading />;
   }
 
-  const themeName = site?.theme_template || 'starter';
+  const themeName = site?.theme_template || 'saas';
 
   return (
     <ThemeInner themeName={themeName}>
@@ -82,7 +86,7 @@ export function ThemeProvider({ children }) {
 // Inner component to keep useMemo stable after loading completes
 function ThemeInner({ themeName, children }) {
   const theme = useMemo(() => {
-    const t = themeRegistry[themeName] || themeRegistry.starter;
+    const t = themeRegistry[themeName] || themeRegistry.saas;
     return { name: themeName, ...t };
   }, [themeName]);
 

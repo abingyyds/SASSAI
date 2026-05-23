@@ -4,48 +4,57 @@ import toast from 'react-hot-toast';
 export const Q = 500000; // QuotaPerUnit — single source of truth
 
 const previewModels = [
-  { id: 'preview-1', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', enabled: true },
-  { id: 'preview-2', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', enabled: true },
-  { id: 'preview-3', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', enabled: true },
-  { id: 'preview-4', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', enabled: true },
-  { id: 'preview-5', model_name: 'qwen-max', display_name: 'Qwen Max', enabled: true },
-  { id: 'preview-6', model_name: 'grok-4', display_name: 'Grok 4', enabled: true },
-  { id: 'preview-7', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', enabled: true },
-  { id: 'preview-8', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', enabled: true },
+  { id: 'preview-1', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', vendor_name: 'OpenAI', input_price: 0.00015, output_price: 0.0006, cache_read_price: 0.000075, cache_creation_price: 0.00015, status: 'healthy', enabled: true },
+  { id: 'preview-2', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', vendor_name: 'Anthropic', input_price: 0.003, output_price: 0.015, cache_read_price: 0.0003, cache_creation_price: 0.00375, cache_creation_price_1h: 0.006, status: 'healthy', enabled: true },
+  { id: 'preview-3', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', vendor_name: 'Google', input_price: 0.00125, output_price: 0.005, cache_read_price: 0.00031, cache_creation_price: 0.00125, status: 'healthy', enabled: true },
+  { id: 'preview-4', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', vendor_name: 'DeepSeek', input_price: 0.00014, output_price: 0.00028, cache_read_price: 0.000014, cache_creation_price: 0.00014, status: 'healthy', enabled: true },
+  { id: 'preview-5', model_name: 'qwen-max', display_name: 'Qwen Max', vendor_name: 'Alibaba Cloud', input_price: 0.0016, output_price: 0.0064, cache_read_price: 0.00016, cache_creation_price: 0.0016, status: 'healthy', enabled: true },
+  { id: 'preview-6', model_name: 'grok-4', display_name: 'Grok 4', vendor_name: 'xAI', input_price: 0.003, output_price: 0.015, cache_read_price: 0.00075, cache_creation_price: 0.003, status: 'healthy', enabled: true },
+  { id: 'preview-7', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', vendor_name: 'Anthropic', input_price: 0.0008, output_price: 0.004, cache_read_price: 0.00008, cache_creation_price: 0.001, cache_creation_price_1h: 0.0016, status: 'healthy', enabled: true },
+  { id: 'preview-8', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', vendor_name: 'OpenAI', input_price: 0.00025, output_price: 0.002, cache_read_price: 0.000025, cache_creation_price: 0.00025, status: 'healthy', enabled: true },
 ];
 
 const previewPackages = [
   {
     id: 'preview-basic',
-    name: 'Starter Pack',
-    description: '适合个人试用和轻量 API 调用。',
+    name: 'Launch',
+    description: 'For solo builders shipping AI features with predictable monthly usage.',
     price: 29,
-    original_price: 49,
+    original_price: 39,
+    currency: 'USD',
+    billing_interval: 'month',
+    creem_product_id: 'prod_launch_monthly',
     duration: 30,
-    quota_amount: Q * 6,
-    quota_reset_period: 'never',
+    quota_amount: Q * 35,
+    quota_reset_period: 'monthly',
     enabled: true,
   },
   {
     id: 'preview-pro',
-    name: 'Pro Relay',
-    description: '高频调用、自动路由、失败重试的主力套餐。',
+    name: 'Scale',
+    description: 'For production teams that need higher throughput, priority routing, and renewal-safe credits.',
     price: 99,
-    original_price: 149,
+    original_price: 129,
+    currency: 'USD',
+    billing_interval: 'month',
+    creem_product_id: 'prod_scale_monthly',
     duration: 30,
-    quota_amount: Q * 24,
-    quota_reset_period: 'never',
+    quota_amount: Q * 140,
+    quota_reset_period: 'monthly',
     enabled: true,
   },
   {
     id: 'preview-team',
-    name: 'Team Scale',
-    description: '适合团队共享密钥、模型分组和稳定生产调用。',
+    name: 'Enterprise',
+    description: 'For high-volume workspaces with governance, dedicated onboarding, and custom limits.',
     price: 299,
     original_price: 399,
+    currency: 'USD',
+    billing_interval: 'month',
+    creem_product_id: 'prod_enterprise_monthly',
     duration: 30,
-    quota_amount: Q * 90,
-    quota_reset_period: 'never',
+    quota_amount: Q * 500,
+    quota_reset_period: 'monthly',
     enabled: true,
   },
 ];
@@ -55,7 +64,27 @@ const getPreviewTheme = () => {
   return new URLSearchParams(window.location.search).get('preview_theme') || '';
 };
 
+const shouldUseDevMock = () =>
+  import.meta.env.DEV && import.meta.env.VITE_USE_BACKEND !== 'true';
+
 const previewResponse = (data) => Promise.resolve({ data: { success: true, data } });
+
+const previewSite = (theme = 'saas') => ({
+  name: 'AstraLayer',
+  theme_template: theme || 'saas',
+  enable_topup: true,
+  top_up_link: 'https://example.com/redeem-codes',
+  allow_sub_dist: false,
+  currency: {
+    code: 'USD',
+    symbol: '$',
+    exchange_rate: 1,
+    usd_exchange_rate: 7,
+  },
+});
+
+const devPublicResponse = (requestFn, data) =>
+  shouldUseDevMock() ? previewResponse(data) : requestFn();
 
 const api = axios.create({
   baseURL: '',
@@ -109,28 +138,26 @@ api.interceptors.response.use(
 export const getSiteInfo = () => {
   const theme = getPreviewTheme();
   if (theme) {
-    return previewResponse({
-      name: 'SubRouter Preview',
-      theme_template: theme,
-      enable_topup: true,
-      top_up_link: 'https://example.com/redeem-codes',
-      allow_sub_dist: true,
-      currency: {
-        code: 'CNY',
-        symbol: '¥',
-        exchange_rate: 7,
-        usd_exchange_rate: 7,
-      },
-    });
+    return previewResponse(previewSite(theme));
   }
-  return api.get('/api/dist/site/info');
+  return devPublicResponse(() => api.get('/api/dist/site/info'), previewSite('saas'));
 };
-export const getSiteModels = () => getPreviewTheme() ? previewResponse(previewModels) : api.get('/api/dist/site/models');
-export const getSitePricing = () => api.get('/api/dist/site/pricing');
-export const getSitePackages = () => getPreviewTheme() ? previewResponse(previewPackages) : api.get('/api/dist/site/packages');
-export const getSiteKeyGroups = () => api.get('/api/dist/site/key-groups');
+export const getSiteModels = () => getPreviewTheme()
+  ? previewResponse(previewModels)
+  : devPublicResponse(() => api.get('/api/dist/site/models'), previewModels);
+export const getSitePricing = () => (shouldUseDevMock()
+  ? previewResponse([])
+  : api.get('/api/dist/site/pricing'));
+export const getSitePackages = () => getPreviewTheme()
+  ? previewResponse(previewPackages)
+  : devPublicResponse(() => api.get('/api/dist/site/packages'), previewPackages);
+export const getSiteKeyGroups = () => (shouldUseDevMock()
+  ? previewResponse([])
+  : api.get('/api/dist/site/key-groups'));
 export const getSiteKeyGroupPricing = (id) => api.get(`/api/dist/site/key-groups/${id}/pricing`);
-export const getSubDistributorInfo = () => api.get('/api/dist/site/sub-distributor/info');
+export const getSubDistributorInfo = () => (shouldUseDevMock()
+  ? previewResponse({})
+  : api.get('/api/dist/site/sub-distributor/info'));
 
 // ===== Auth =====
 export const register = (data) => api.post('/api/dist/user/register', data);
@@ -157,7 +184,6 @@ export const redeemCode = (key) => api.post('/api/dist/topup/redeem', { key }); 
 export const subscribePackage = (packageId) => api.post('/api/dist/package/subscribe', { package_id: packageId });
 export const getActiveSubscriptions = (config) =>
   api.get('/api/dist/package/subscriptions', config);
-
 // ===== Online Topup =====
 export const getTopupInfo = () => api.get('/api/dist/topup/info');
 export const calculateAmount = (data) => api.post('/api/dist/topup/amount', data);
@@ -167,6 +193,27 @@ export const createCreemOrder = (data) => api.post('/api/dist/topup/creem/pay', 
 export const createCryptoOrder = (data) => api.post('/api/dist/topup/crypto/pay', data);
 export const getCryptoOrderStatus = (tradeNo) => api.get(`/api/dist/topup/crypto/status?trade_no=${tradeNo}`);
 export const getTopupHistory = (params) => api.get('/api/dist/topup/history', { params });
+
+// ===== Site-owned SaaS billing =====
+// These endpoints belong to this distributor site, not to SubRouter.
+// The site SaaS backend owns Creem checkout, webhook handling, and redemption code pools.
+export const getSiteSaasSubscriptions = (config) =>
+  api.get('/api/site/saas/subscriptions', config);
+export const createSiteSaasCheckout = (data) =>
+  api.post('/api/site/saas/checkout', data);
+export const getSiteSaasAdminState = (token) =>
+  api.get('/api/site/admin/saas/state', {
+    skipErrorHandler: true,
+    headers: { 'X-Site-Admin-Token': token },
+  });
+export const updateSiteSaasAdminConfig = (token, data) =>
+  api.put('/api/site/admin/saas/config', data, {
+    headers: { 'X-Site-Admin-Token': token },
+  });
+export const importSiteSaasCodes = (token, data) =>
+  api.post('/api/site/admin/saas/codes/import', data, {
+    headers: { 'X-Site-Admin-Token': token },
+  });
 
 // ===== Affiliate / Invitation =====
 export const getAffCode = () => api.get('/api/dist/aff');

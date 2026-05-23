@@ -5,6 +5,7 @@ const SiteContext = createContext(null);
 
 // Map theme template name → CSS class(es) to apply on <body>
 const themeClassMap = {
+  saas: 'theme-light theme-saas',
   starter: 'theme-light theme-starter',
   default: 'theme-light theme-starter',
   dark: 'theme-dark',
@@ -83,15 +84,15 @@ export function SiteProvider({ children }) {
     const previewTheme = getDevPreviewTheme();
     if (previewTheme) {
       const previewSite = {
-        name: 'SubRouter Preview',
+        name: 'AstraLayer',
         theme_template: previewTheme,
         enable_topup: true,
         top_up_link: 'https://example.com/redeem-codes',
-        allow_sub_dist: true,
+        allow_sub_dist: false,
         currency: {
-          code: 'CNY',
-          symbol: '¥',
-          exchange_rate: 7,
+          code: 'USD',
+          symbol: '$',
+          exchange_rate: 1,
           usd_exchange_rate: 7,
         },
       };
@@ -136,9 +137,9 @@ export function useSite() {
 export function useCurrency() {
   const { site } = useSite();
   const currency = site?.currency;
-  const symbol = currency?.symbol || '¥';
-  const rate = currency?.exchange_rate || 7;
-  const code = currency?.code || 'CNY';
+  const symbol = currency?.symbol || '$';
+  const rate = currency?.exchange_rate || 1;
+  const code = currency?.code || 'USD';
   const usdRate = currency?.usd_exchange_rate || 7;
 
   const fmt = (usdValue, decimals = 4) => {
@@ -154,5 +155,17 @@ export function useCurrency() {
     return symbol + converted.toFixed(decimals);
   };
 
-  return { symbol, rate, code, fmt, fmtCNY, usdRate };
+  const fmtPlanPrice = (value, packageCurrency, decimals = 2) => {
+    if (value == null || isNaN(value)) return '-';
+    const v = Number(value);
+    if ((packageCurrency || '').toUpperCase() === 'USD') {
+      return '$' + v.toFixed(decimals);
+    }
+    if (code === 'USD') {
+      return '$' + (v / usdRate).toFixed(decimals);
+    }
+    return fmtCNY(v, decimals);
+  };
+
+  return { symbol, rate, code, fmt, fmtCNY, fmtPlanPrice, usdRate };
 }

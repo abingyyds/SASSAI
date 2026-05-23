@@ -1,13 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../context/AuthContext';
-import { getSitePackages, getSiteModels, subscribePackage, getActiveSubscriptions, Q } from '../api';
-import { useCurrency } from '../context/SiteContext';
-import SpotlightCard from '../components/bits/SpotlightCard';
-import { calcOfficialEquivList } from '../utils/officialEquiv';
-import RotatingEquiv from '../components/bits/RotatingEquiv';
 import toast from 'react-hot-toast';
+import {
+  ArrowRight,
+  BadgeCheck,
+  CalendarClock,
+  CreditCard,
+  Loader2,
+  RefreshCcw,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useCurrency } from '../context/SiteContext';
+import {
+  createSiteSaasCheckout,
+  getSiteSaasSubscriptions,
+  getSiteModels,
+  getSitePackages,
+  Q,
+} from '../api';
 
 const resetLabelKeys = {
   never: 'packages.resetNever',
@@ -16,25 +29,58 @@ const resetLabelKeys = {
   monthly: 'packages.resetMonthly',
 };
 
-function formatDate(unix) {
-  if (!unix) return '';
-  return new Date(unix * 1000).toLocaleDateString();
+function formatDate(value) {
+  if (!value) return '—';
+  const numeric = Number(value);
+  const date = Number.isFinite(numeric)
+    ? (numeric > 10000000000 ? new Date(numeric) : new Date(numeric * 1000))
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function normalizeInterval(pkg) {
+  const interval = pkg.billing_interval || pkg.interval || pkg.period || '';
+  if (interval) return String(interval).replace(/^every_/, '');
+  if (pkg.duration >= 365) return 'year';
+  if (pkg.duration >= 90) return 'quarter';
+  return 'month';
+}
+
+function getSubscriptionStatus(sub) {
+  return String(sub.status || sub.subscription_status || 'active').toLowerCase();
+}
+
+function BillingStep({ icon: Icon, title, desc }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5">
+      <Icon size={20} className="text-cyan-700" />
+      <h3 className="mt-4 text-sm font-semibold text-slate-950">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
+    </div>
+  );
 }
 
 export default function Packages() {
   const { t } = useTranslation();
-  const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
-  const { symbol, rate, fmtCNY } = useCurrency();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, refreshUser } = useAuth();
+  const { fmtPlanPrice, symbol, rate } = useCurrency();
+
   const [packages, setPackages] = useState([]);
   const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [subscribing, setSubscribing] = useState(null);
   const [activeSubs, setActiveSubs] = useState([]);
-
-  const [confirmPkg, setConfirmPkg] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [checkoutLoading, setCheckoutLoading] = useState(null);
 
   const getResetLabel = (period) => t(resetLabelKeys[period] || resetLabelKeys.never);
+
+  const loadSubscriptions = async () => {
+    if (!user) return;
+    const res = await getSiteSaasSubscriptions({ skipErrorHandler: true }).catch(() => null);
+    if (res?.data?.success) setActiveSubs(res.data.data || []);
+  };
 
   useEffect(() => {
     Promise.all([
@@ -43,287 +89,296 @@ export default function Packages() {
     ]).finally(() => setLoading(false));
   }, []);
 
-  // Load active subscriptions
   useEffect(() => {
-    if (user) {
-      getActiveSubscriptions()
-        .then((r) => { if (r.data.success) setActiveSubs(r.data.data || []); })
-        .catch(() => {});
-    }
+    loadSubscriptions();
   }, [user]);
+
+  useEffect(() => {
+    const checkoutStatus = searchParams.get('checkout_status') || searchParams.get('status') || searchParams.get('payment');
+    if (!user || !checkoutStatus) return;
+
+    const sync = async () => {
+      if (checkoutStatus === 'success' || checkoutStatus === 'return') {
+        toast.success('Checkout completed. Your subscription will activate automatically after payment confirmation.');
+      } else if (checkoutStatus === 'cancelled' || checkoutStatus === 'cancel') {
+        toast.error('Checkout was cancelled.');
+      }
+      await Promise.all([refreshUser({ skipErrorHandler: true }), loadSubscriptions()]);
+      setSearchParams({}, { replace: true });
+    };
+
+    sync();
+  }, [user, searchParams, setSearchParams, refreshUser]);
+
+  const enabledPackages = useMemo(
+    () => packages.filter((pkg) => pkg.enabled !== false),
+    [packages],
+  );
+  const enabledModels = useMemo(
+    () => models.filter((model) => model.enabled !== false),
+    [models],
+  );
+
+  const packageById = useMemo(() => {
+    const map = new Map();
+    enabledPackages.forEach((pkg) => map.set(String(pkg.id), pkg));
+    return map;
+  }, [enabledPackages]);
 
   const handleSubscribe = async (pkg) => {
     if (!user) {
       navigate('/register');
       return;
     }
-    setConfirmPkg(pkg);
-  };
 
-  const confirmSubscribe = async () => {
-    if (!confirmPkg) return;
-    const pkgId = confirmPkg.id;
-    setSubscribing(pkgId);
+    setCheckoutLoading(pkg.id);
     try {
-      const res = await subscribePackage(pkgId);
-      if (res.data.success) {
-        toast.success(t('packages.subscribedSuccess'));
-        setConfirmPkg(null);
-        // Background refresh errors shouldn't override a successful purchase toast.
-        await refreshUser({ skipErrorHandler: true }).catch(() => null);
-        const subsRes = await getActiveSubscriptions({
-          skipErrorHandler: true,
-        }).catch(() => null);
-        if (subsRes?.data?.success) {
-          setActiveSubs(subsRes.data.data || []);
-        }
-      } else {
-        toast.error(res.data.message || t('common.requestFailed'));
-      }
-    } catch (e) {
-      // Error already shown by axios interceptor
-    }
-    setSubscribing(null);
-  };
+      const returnUrl = `${window.location.origin}/packages?checkout_status=success`;
+      const productId = pkg.creem_product_id || pkg.product_id || pkg.creemProductId || pkg.creem_product || pkg.id;
+      const res = await createSiteSaasCheckout({
+        product_id: productId,
+        package_id: pkg.id,
+        package_name: pkg.name,
+        billing_interval: normalizeInterval(pkg),
+        return_url: returnUrl,
+      });
 
-  // Precompute official equivalents for each package
-  const enabledModels = useMemo(() => models.filter((m) => m.enabled !== false), [models]);
+      const checkoutUrl = res.data?.data?.checkout_url || res.data?.data?.pay_link || res.data?.checkout_url;
+      if ((res.data?.success || res.data?.message === 'success') && checkoutUrl) {
+        window.location.href = checkoutUrl;
+      } else {
+        toast.error(res.data?.message || 'Site SaaS billing is not configured yet.');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Site SaaS billing is not configured yet.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-8 h-8 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-slate-400" size={28} />
       </div>
     );
   }
 
-  const enabled = packages.filter((p) => p.enabled);
-
-  const spotlightColors = [
-    'rgba(129,140,248,0.15)',
-    'rgba(192,132,252,0.15)',
-    'rgba(244,114,182,0.15)',
-    'rgba(34,197,94,0.15)',
-  ];
-
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <div className="text-center mb-12">
-        <h1 className="text-3xl font-heading font-bold text-page mb-3">{t('packages.title')}</h1>
-        <p className="text-page-secondary max-w-xl mx-auto">
-          {t('packages.subtitle')}
-        </p>
-      </div>
+    <div className="bg-slate-50">
+      <section className="border-b border-slate-200 bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-800">
+              <RefreshCcw size={16} />
+              SaaS subscription billing
+            </div>
+            <h1 className="text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl">
+              Subscribe once. Credits renew automatically.
+            </h1>
+            <p className="mt-5 text-lg leading-8 text-slate-600">
+              Pick a plan, complete Creem checkout, and the subscription activates automatically. Renewals keep your credits flowing without manual top-ups or extra purchase steps.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {/* Active Subscriptions */}
       {activeSubs.length > 0 && (
-        <div className="max-w-3xl mx-auto mb-10">
-          <h2 className="text-lg font-semibold text-page mb-4">
-            {t('packages.mySubscriptions')}
-          </h2>
-          <div className="space-y-3">
-            {activeSubs.map((sub) => {
-              const total = sub.amount_total || 0;
-              const used = sub.amount_used || 0;
-              const remain = Math.max(0, total - used);
-              const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
-              return (
-                <div key={sub.id} className="glass rounded-xl p-4 border border-page-divider">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-page">
-                      {t('packages.subscriptionId', { id: sub.id })}
-                    </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-page-success border border-green-500/20">
-                      {t('packages.active')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-page-secondary mb-3">
-                    <span>{t('packages.expires')}: {formatDate(sub.end_time)}</span>
-                    {sub.next_reset_time > 0 && (
-                      <span>{t('packages.nextReset')}: {formatDate(sub.next_reset_time)}</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <div className="flex-1 h-2 bg-page-surface rounded-full overflow-hidden">
-                      <div className="h-full rounded-full bg-gradient-to-r from-brand-500 to-purple-500 transition-all"
-                        style={{ width: `${pct}%` }} />
+        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-950">{t('packages.mySubscriptions')}</h2>
+                <p className="mt-1 text-sm text-slate-500">Your active plans, renewal windows, and available credits are managed automatically.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {activeSubs.map((sub) => {
+                const pkg = packageById.get(String(sub.package_id));
+                const total = sub.amount_total || sub.quota_amount || pkg?.quota_amount || 0;
+                const used = sub.amount_used || sub.used_quota || 0;
+                const remain = Math.max(0, total - used);
+                const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+                const status = getSubscriptionStatus(sub);
+
+                return (
+                  <div key={sub.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-slate-950">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
+                        <p className="mt-1 text-xs text-slate-500">Site subscription #{sub.id}</p>
+                      </div>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        ['active', 'trialing'].includes(status)
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : status.includes('cancel')
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {status}
+                      </span>
                     </div>
-                    <span className="text-xs text-page-secondary whitespace-nowrap">
-                      {symbol}{(remain / Q * rate).toFixed(2)} / {symbol}{(total / Q * rate).toFixed(2)}
-                    </span>
+                    <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-slate-500">Current period ends</p>
+                        <p className="mt-1 font-medium text-slate-950">{formatDate(sub.current_period_end || sub.end_time)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Next renewal</p>
+                        <p className="mt-1 font-medium text-slate-950">{formatDate(sub.next_renewal_time || sub.next_reset_time || sub.current_period_end)}</p>
+                      </div>
+                    </div>
+                    <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                      <span>Credit used</span>
+                      <span>{symbol}{(remain / Q * rate).toFixed(2)} remaining</span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div className="h-full rounded-full bg-cyan-600" style={{ width: `${pct}%` }} />
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {enabledPackages.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+            <p className="text-slate-600">{t('packages.noPackages')}</p>
+            <Link to="/pricing" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700">
+              {t('packages.checkPricing')} <ArrowRight size={16} />
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-5 lg:grid-cols-3">
+            {enabledPackages.map((pkg, index) => {
+              const resetPeriod = pkg.quota_reset_period || 'monthly';
+              const isSubscription = resetPeriod !== 'never' || pkg.creem_product_id || pkg.billing_interval;
+              const monthlyCredit = pkg.quota_amount > 0 ? pkg.quota_amount / Q : 0;
+              const interval = normalizeInterval(pkg);
+              const isFeatured = index === 1 || pkg.recommended || pkg.is_popular;
+              return (
+                <div
+                  key={pkg.id}
+                  className={`relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${
+                    isFeatured ? 'border-slate-950 shadow-lg shadow-slate-200' : 'border-slate-200'
+                  }`}
+                >
+                  {isFeatured && (
+                    <span className="mb-5 inline-flex w-fit rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold text-white">
+                      Recommended
+                    </span>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-slate-950">{pkg.name}</h3>
+                    {pkg.description && (
+                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-600">{pkg.description}</p>
+                    )}
+
+                    <div className="mt-7 flex items-end gap-2">
+                      <span className="text-4xl font-semibold tracking-normal text-slate-950">
+                        {fmtPlanPrice(pkg.price, pkg.currency)}
+                      </span>
+                      <span className="pb-1 text-sm text-slate-500">/ {interval}</span>
+                    </div>
+                    {pkg.original_price > 0 && pkg.original_price > pkg.price && (
+                      <p className="mt-1 text-sm text-slate-400 line-through">
+                        {fmtPlanPrice(pkg.original_price, pkg.currency)}
+                      </p>
+                    )}
+
+                    <div className="mt-6 rounded-xl border border-cyan-100 bg-cyan-50 p-4">
+                      <div className="flex items-start gap-3">
+                        <RefreshCcw className="mt-0.5 text-cyan-700" size={18} />
+                        <div>
+                          <p className="text-sm font-semibold text-cyan-950">
+                           {isSubscription ? 'Auto-renewing subscription' : 'One-time plan'}
+                          </p>
+                          <p className="mt-1 text-sm leading-6 text-cyan-800">
+                            {isSubscription
+                              ? 'Checkout, activation, and future renewals are handled automatically.'
+                              : 'This plan can be activated immediately after checkout.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ul className="mt-6 space-y-3 text-sm text-slate-600">
+                      <li className="flex items-center gap-2">
+                        <BadgeCheck size={16} className="text-cyan-700" />
+                        {monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <BadgeCheck size={16} className="text-cyan-700" />
+                        {enabledModels.length || 50}+ model routing catalog
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <BadgeCheck size={16} className="text-cyan-700" />
+                        Automatic plan activation
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <BadgeCheck size={16} className="text-cyan-700" />
+                        OpenAI-compatible API keys
+                      </li>
+                    </ul>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSubscribe(pkg)}
+                    disabled={checkoutLoading === pkg.id}
+                    className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isFeatured
+                        ? 'bg-slate-950 text-white hover:bg-slate-800'
+                        : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                    }`}
+                  >
+                    {checkoutLoading === pkg.id ? (
+                      <>
+                        <Loader2 className="animate-spin" size={17} />
+                        Creating checkout
+                      </>
+                    ) : (
+                      <>
+                        {user ? 'Pay with Creem' : t('packages.signUpToSubscribe')}
+                        <ArrowRight size={17} />
+                      </>
+                    )}
+                  </button>
                 </div>
               );
             })}
           </div>
+        )}
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+        <div className="grid gap-4 md:grid-cols-4">
+          <BillingStep
+            icon={CreditCard}
+            title="Subscribe"
+            desc="Choose a recurring plan and complete secure Creem checkout."
+          />
+          <BillingStep
+            icon={ShieldCheck}
+            title="Confirm"
+            desc="Payment confirmation is processed by the subscription system."
+          />
+          <BillingStep
+            icon={Sparkles}
+            title="Activate"
+            desc="Your credits and API access are applied automatically."
+          />
+          <BillingStep
+            icon={CalendarClock}
+            title="Renewal applied"
+            desc="Successful renewals extend the plan without manual action."
+          />
         </div>
-      )}
-
-      {enabled.length === 0 ? (
-        <div className="text-center py-12 text-page-secondary">
-          <p>{t('packages.noPackages')}</p>
-          <Link to="/pricing" className="text-page-link hover:text-page-link transition-colors mt-2 inline-block">
-            {t('packages.checkPricing')} &rarr;
-          </Link>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {enabled.map((pkg, i) => {
-            const resetPeriod = pkg.quota_reset_period || 'never';
-            const isSubscription = resetPeriod !== 'never';
-            // For subscription packages, calculate TOTAL quota over the entire duration
-            // e.g. daily reset + 30 day duration = 30x single-period quota
-            const singleQuotaDollars = pkg.quota_amount > 0 ? pkg.quota_amount / Q : 0;
-            let totalQuotaDollars = singleQuotaDollars;
-            if (isSubscription && pkg.duration > 0 && singleQuotaDollars > 0) {
-              let resetCount = 1;
-              if (resetPeriod === 'daily') resetCount = pkg.duration;
-              else if (resetPeriod === 'weekly') resetCount = Math.floor(pkg.duration / 7);
-              else if (resetPeriod === 'monthly') resetCount = Math.floor(pkg.duration / 30);
-              if (resetCount < 1) resetCount = 1;
-              totalQuotaDollars = singleQuotaDollars * resetCount;
-            }
-            const equivList = calcOfficialEquivList(enabledModels, totalQuotaDollars);
-
-            return (
-            <div
-              key={pkg.id}
-              className="glass rounded-2xl flex flex-col"
-            >
-              <div className="p-6 flex-1 flex flex-col">
-                {/* Header */}
-                <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-semibold text-page">{pkg.name}</h3>
-                    {isSubscription && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-page-info border border-purple-500/20">
-                        {getResetLabel(resetPeriod)}
-                      </span>
-                    )}
-                  </div>
-                  {pkg.description && (
-                    <p className="text-sm text-page-secondary mt-1">{pkg.description}</p>
-                  )}
-                </div>
-
-                {/* Price */}
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-page">{fmtCNY(pkg.price)}</span>
-                    {pkg.original_price > 0 && pkg.original_price > pkg.price && (
-                      <span className="text-lg text-page-muted line-through">{fmtCNY(pkg.original_price)}</span>
-                    )}
-                  </div>
-                  {pkg.duration > 0 && (
-                    <p className="text-sm text-page-muted mt-1">{t('packages.daysAccess', { count: pkg.duration })}</p>
-                  )}
-                </div>
-
-                {/* Official Equiv Banner */}
-                {equivList.length > 0 && (
-                  <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-3 mb-4">
-                    <p className="text-xs text-page-warning font-medium">
-                      🔥 <RotatingEquiv
-                        items={equivList}
-                        text={(item) => t('packages.officialEquiv', { model: item.label, amount: item.equivDollars })}
-                      />
-                    </p>
-                  </div>
-                )}
-
-                {/* Features */}
-                <ul className="space-y-2 mb-6 flex-1">
-                  {pkg.quota_amount > 0 && (
-                    <li className="flex items-center gap-2 text-sm text-page-label">
-                      <svg className="w-4 h-4 text-page-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      {isSubscription
-                        ? t('packages.periodicQuota', { symbol, amount: (pkg.quota_amount / Q * rate).toFixed(2), period: getResetLabel(resetPeriod) })
-                        : t('packages.creditIncluded', { symbol, amount: (pkg.quota_amount / Q * rate).toFixed(2) })
-                      }
-                    </li>
-                  )}
-                  {isSubscription && (
-                    <li className="flex items-center gap-2 text-sm text-page-label">
-                      <svg className="w-4 h-4 text-page-warning flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {t('packages.unusedQuotaExpires')}
-                    </li>
-                  )}
-                  <li className="flex items-center gap-2 text-sm text-page-label">
-                    <svg className="w-4 h-4 text-page-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {t('packages.allModels')}
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-page-label">
-                    <svg className="w-4 h-4 text-page-success flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    {t('packages.openaiApi')}
-                  </li>
-                </ul>
-
-                {/* CTA */}
-                <button
-                  onClick={() => handleSubscribe(pkg)}
-                  disabled={subscribing === pkg.id}
-                  className="btn-primary mt-2 w-full text-center"
-                >
-                  {subscribing === pkg.id ? t('packages.processing') : user ? t('packages.subscribeNow') : t('packages.signUpToSubscribe')}
-                </button>
-              </div>
-            </div>
-          )})}
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {confirmPkg && (() => {
-        const userBalance = (user?.quota || 0) / Q * rate;
-        const pkgPrice = Number(confirmPkg.price);
-        const insufficient = userBalance < pkgPrice;
-        const resetPeriod = confirmPkg.quota_reset_period || 'never';
-        const isSubscription = resetPeriod !== 'never';
-        return (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => !subscribing && setConfirmPkg(null)}>
-          <div className="glass rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-page mb-3">{t('packages.confirmTitle')}</h2>
-            <p className="text-sm text-page-secondary mb-2">
-              {t('packages.confirmDesc', { name: confirmPkg.name, price: fmtCNY(pkgPrice) })}
-            </p>
-            {isSubscription && (
-              <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl p-3 mb-3">
-                <p className="text-xs text-page-info">
-                  {t('packages.subscriptionInfo', {
-                    symbol,
-                    period: getResetLabel(resetPeriod),
-                    days: confirmPkg.duration || 30,
-                    amount: (confirmPkg.quota_amount / Q * rate).toFixed(2),
-                  })}
-                </p>
-              </div>
-            )}
-            <p className="text-sm text-page-secondary mb-4">
-              {t('packages.yourBalance')} <span className={`font-medium ${insufficient ? 'text-page-danger' : 'text-page-success'}`}>{symbol}{userBalance.toFixed(2)}</span>
-            </p>
-            {insufficient && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-4">
-                <p className="text-sm text-page-danger">{t('packages.insufficientBalance')}</p>
-              </div>
-            )}
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmPkg(null)} disabled={subscribing} className="btn-secondary">{t('tokens.cancel')}</button>
-              <button onClick={confirmSubscribe} disabled={insufficient || subscribing} className="btn-primary">
-                {subscribing ? t('packages.processing') : t('packages.confirm')}
-              </button>
-            </div>
-          </div>
-        </div>
-        );
-      })()}
+      </section>
     </div>
   );
 }
