@@ -52,6 +52,6 @@ Details: `docs/site-owned-saas-billing.md`.
 
 ## Railway Deployment
 
-Railway should run this repository as two services: `sassai-web` for the frontend gateway and API proxy, and `sassai-saas` for Creem webhooks, code pools, and automatic activation.
+Railway now needs only one service. `npm start` serves the frontend, the site-owned SaaS backend, and the SubRouter API proxy.
 
 See `docs/railway-deploy.md`.

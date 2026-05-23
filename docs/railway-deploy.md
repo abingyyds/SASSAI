@@ -1,31 +1,49 @@
 # Railway Deployment
 
-This project should run as two Railway services from the same GitHub repository.
+This project is designed to run as one Railway service.
 
-## Services
+The single service does three things:
 
-### 1. `sassai-saas`
+- serves the built React frontend;
+- handles this site's SaaS endpoints under `/api/site/*`;
+- proxies SubRouter endpoints under `/api/*`.
 
-This is the site-owned SaaS backend for Creem checkout, webhooks, code pools, and automatic SubRouter activation.
+## Deploy
 
-Use the default Railway Node/Nixpacks build. Do not set a Dockerfile path for this service.
+Create one Railway service from this GitHub repository:
 
-Start command:
-
-```bash
-npm run saas:server
+```text
+New Project -> Deploy from GitHub repo -> abingyyds/SASSAI
 ```
 
-Variables:
+Railway will use the root `Dockerfile`. No Caddy service and no second Node service are needed.
+
+## Variables
+
+Minimum variables:
 
 ```env
-PORT=8787
 SITE_ADMIN_TOKEN=change_me
-SITE_SAAS_STORE=/data/site-saas-store.json
+SUBROUTER_API_BASE=https://your-subrouter-backend.com
+PUBLIC_SITE_URL=https://your-saas-domain.com
+```
+
+Optional variables:
+
+```env
 CREEM_API_KEY=creem_key
 CREEM_WEBHOOK_SECRET=creem_webhook_secret
-SUBROUTER_API_BASE=https://your-saas-domain.com
+SUBROUTER_INTERNAL_TOKEN=optional_internal_token
+SITE_SAAS_STORE=/data/site-saas-store.json
 ```
+
+`SUBROUTER_API_BASE` must point to the real SubRouter backend, not to this SASSAI domain. The app preserves the public host when proxying `/api/*`, so SubRouter can still identify the distributor site by domain.
+
+`PUBLIC_SITE_URL` should be the domain users open in their browser. It is also used when the SaaS backend calls SubRouter during automatic activation.
+
+`SITE_SAAS_STORE` already defaults to `/data/site-saas-store.json` in Docker, so you normally do not need to set it manually.
+
+## Volume
 
 Attach a Railway volume mounted at:
 
@@ -33,42 +51,17 @@ Attach a Railway volume mounted at:
 /data
 ```
 
-The volume keeps the code pool, order records, and subscription records across redeploys.
+This keeps the code pool, order records, and subscription records across redeploys.
 
-### 2. `sassai-web`
+## Domain
 
-This is the public frontend gateway. It serves the Vite build with Caddy and proxies API traffic.
+Bind your custom domain directly to this one Railway service.
 
-Set this service variable so Railway uses the frontend gateway Dockerfile:
+Then configure the same domain in the SubRouter distributor-site settings, for example:
 
-```env
-RAILWAY_DOCKERFILE_PATH=railway.web.Dockerfile
+```text
+ai.yourdomain.com
 ```
-
-Variables:
-
-```env
-SAAS_BACKEND_URL=http://sassai-saas.railway.internal:8787
-SUBROUTER_API_BASE=http://subrouter.railway.internal:3000
-```
-
-If SubRouter is not deployed inside the same Railway project, use its public backend URL instead:
-
-```env
-SUBROUTER_API_BASE=https://your-subrouter-backend.com
-```
-
-Bind the custom domain to `sassai-web`, not to `sassai-saas`.
-
-## Routing
-
-`Caddyfile` routes requests like this:
-
-- `/api/site/*` goes to `sassai-saas`.
-- `/api/*` goes to SubRouter.
-- everything else serves the React SPA from `/srv`, with fallback to `index.html`.
-
-The SubRouter proxy preserves the public request host, so SubRouter can identify the distributor site by domain.
 
 ## Site Admin
 
@@ -85,3 +78,13 @@ Creem webhook URL:
 ```text
 https://your-saas-domain.com/api/site/saas/webhooks/creem
 ```
+
+## Routing
+
+The production entrypoint is `npm start`, which runs `server/railway-app.js`.
+
+Request routing:
+
+- `/api/site/*` is handled by this site's SaaS backend.
+- `/api/*` is proxied to `SUBROUTER_API_BASE`.
+- everything else serves the React SPA from `dist`.

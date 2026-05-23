@@ -8,6 +8,8 @@
   "scripts": {
     "dev": "vite",
     "saas:server": "node server/site-saas-server.js",
+    "start": "node server/railway-app.js",
+    "start:railway": "node server/railway-app.js",
     "build": "vite build",
     "preview": "vite preview"
   },

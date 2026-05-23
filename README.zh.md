@@ -52,6 +52,6 @@ npm run saas:server
 
 ## Railway 部署
 
-Railway 需要用两个服务部署：`sassai-web` 负责前端和 API 代理，`sassai-saas` 负责 Creem 回调、码池和自动激活。
+Railway 现在只需要一个服务：`npm start` 会同时提供前端、本站 SaaS 后台和 SubRouter API 代理。
 
 详细步骤见 `docs/railway-deploy.md`。

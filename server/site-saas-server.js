@@ -1,11 +1,14 @@
 import { createServer } from 'node:http';
+import http from 'node:http';
+import https from 'node:https';
 import crypto from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 const port = Number(process.env.PORT || process.env.SITE_SAAS_PORT || 8787);
 const storePath = process.env.SITE_SAAS_STORE || path.join(rootDir, 'data', 'site-saas-store.json');
@@ -18,6 +21,7 @@ const defaultStore = {
     creem_webhook_secret: '',
     subrouter_base_url: 'http://localhost:3000',
     subrouter_internal_token: '',
+    site_public_url: '',
     package_mappings: {},
   },
   codes: [],
@@ -58,6 +62,7 @@ function getConfig(store) {
     creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
+    site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
   };
 }
 
@@ -74,6 +79,20 @@ function requireAdmin(req) {
 
 function userIdFromRequest(req) {
   return String(req.headers['new-api-user'] || req.headers['x-subrouter-user'] || '').trim();
+}
+
+function siteForwardHeaders(config) {
+  if (!config.site_public_url) return {};
+  try {
+    const publicUrl = new URL(config.site_public_url);
+    return {
+      Host: publicUrl.host,
+      'X-Forwarded-Host': publicUrl.host,
+      'X-Forwarded-Proto': publicUrl.protocol.replace(':', '') || 'https',
+    };
+  } catch {
+    return {};
+  }
 }
 
 function sendJson(res, status, payload) {
@@ -95,6 +114,44 @@ async function readRawBody(req) {
 function parseJson(raw) {
   if (!raw?.length) return {};
   return JSON.parse(raw.toString('utf8'));
+}
+
+function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(url);
+    const transport = target.protocol === 'https:' ? https : http;
+    const req = transport.request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || undefined,
+        path: `${target.pathname}${target.search}`,
+        method,
+        headers,
+      },
+      (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => {
+          const text = Buffer.concat(chunks).toString('utf8');
+          let json = {};
+          try {
+            json = text ? JSON.parse(text) : {};
+          } catch {
+            json = { raw: text };
+          }
+          resolve({
+            ok: Number(res.statusCode) >= 200 && Number(res.statusCode) < 300,
+            status: res.statusCode || 0,
+            data: json,
+          });
+        });
+      },
+    );
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
 }
 
 function publicState(store) {
@@ -271,24 +328,18 @@ async function redeemSubRouterCode(store, { userId, code }) {
   const headers = {
     'Content-Type': 'application/json',
     'New-Api-User': String(userId),
+    ...siteForwardHeaders(config),
   };
   if (config.subrouter_internal_token) {
     headers.Authorization = `Bearer ${config.subrouter_internal_token}`;
   }
-  const response = await fetch(url, {
+  const response = await requestJson(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ key: code }),
   });
-  const text = await response.text();
-  let json = {};
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = { raw: text };
-  }
-  const success = response.ok && (json.success === true || json.message === 'success');
-  return { success, status: response.status, data: json };
+  const success = response.ok && (response.data.success === true || response.data.message === 'success');
+  return { success, status: response.status, data: response.data };
 }
 
 async function subscribeSubRouterPackage(store, { userId, packageId }) {
@@ -297,24 +348,18 @@ async function subscribeSubRouterPackage(store, { userId, packageId }) {
   const headers = {
     'Content-Type': 'application/json',
     'New-Api-User': String(userId),
+    ...siteForwardHeaders(config),
   };
   if (config.subrouter_internal_token) {
     headers.Authorization = `Bearer ${config.subrouter_internal_token}`;
   }
-  const response = await fetch(url, {
+  const response = await requestJson(url, {
     method: 'POST',
     headers,
     body: JSON.stringify({ package_id: packageId }),
   });
-  const text = await response.text();
-  let json = {};
-  try {
-    json = text ? JSON.parse(text) : {};
-  } catch {
-    json = { raw: text };
-  }
-  const success = response.ok && (json.success === true || json.message === 'success');
-  return { success, status: response.status, data: json };
+  const success = response.ok && (response.data.success === true || response.data.message === 'success');
+  return { success, status: response.status, data: response.data };
 }
 
 async function activateSubscriptionCycle(store, { order, event }) {
@@ -419,7 +464,7 @@ function upsertSubscription(store, input) {
   return sub;
 }
 
-async function handleRequest(req, res) {
+export async function handleSiteSaasRequest(req, res) {
   if (req.method === 'OPTIONS') return sendJson(res, 204, {});
 
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -454,6 +499,7 @@ async function handleRequest(req, res) {
         'creem_webhook_secret',
         'subrouter_base_url',
         'subrouter_internal_token',
+        'site_public_url',
       ];
       for (const key of keys) {
         if (Object.prototype.hasOwnProperty.call(body, key)) {
@@ -579,7 +625,13 @@ async function handleRequest(req, res) {
   }
 }
 
-createServer(handleRequest).listen(port, '0.0.0.0', () => {
-  console.log(`Site SaaS backend listening on http://127.0.0.1:${port}`);
-  console.log(`Store: ${storePath}`);
-});
+export function startSiteSaasServer() {
+  return createServer(handleSiteSaasRequest).listen(port, '0.0.0.0', () => {
+    console.log(`Site SaaS backend listening on http://127.0.0.1:${port}`);
+    console.log(`Store: ${storePath}`);
+  });
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  startSiteSaasServer();
+}
