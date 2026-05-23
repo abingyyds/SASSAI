@@ -12,6 +12,7 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(process.env.STATIC_DIR || path.join(rootDir, 'dist'));
 const port = Number(process.env.PORT || 8080);
 const subrouterBase = process.env.SUBROUTER_API_BASE || 'http://localhost:3000';
+const subrouterSiteHost = String(process.env.SUBROUTER_SITE_HOST || '').trim();
 
 const hopByHopHeaders = new Set([
   'connection',
@@ -93,11 +94,13 @@ function proxySubRouter(req, res) {
   }
 
   const publicHost = req.headers.host || baseUrl.host;
+  const upstreamHost = subrouterSiteHost || publicHost;
   const headers = filteredHeaders(req.headers);
   delete headers.host;
   Object.assign(headers, {
-    Host: publicHost,
-    'X-Forwarded-Host': publicHost,
+    Host: upstreamHost,
+    'X-Forwarded-Host': upstreamHost,
+    'X-SASSAI-Public-Host': publicHost,
     'X-Forwarded-Proto': req.headers['x-forwarded-proto'] || 'https',
     'X-Forwarded-For': [req.headers['x-forwarded-for'], req.socket.remoteAddress].filter(Boolean).join(', '),
   });
@@ -122,6 +125,8 @@ function proxySubRouter(req, res) {
     const detail = formatProxyError(error, baseUrl);
     console.error('[subrouter-proxy] request failed', {
       upstream: `${baseUrl.protocol}//${baseUrl.host}`,
+      upstreamHost,
+      publicHost,
       method: req.method,
       path: req.url,
       code: error?.code,
@@ -212,4 +217,5 @@ createServer(async (req, res) => {
   console.log(`SASSAI single-service app listening on http://0.0.0.0:${port}`);
   console.log(`Static dir: ${distDir}`);
   console.log(`SubRouter upstream: ${subrouterBase}`);
+  console.log(`SubRouter site host: ${subrouterSiteHost || '(public request host)'}`);
 });

@@ -63,6 +63,7 @@ function getConfig(store) {
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
     site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
+    subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
   };
 }
 
@@ -82,6 +83,14 @@ function userIdFromRequest(req) {
 }
 
 function siteForwardHeaders(config) {
+  const explicitHost = String(config.subrouter_site_host || '').trim();
+  if (explicitHost) {
+    return {
+      Host: explicitHost,
+      'X-Forwarded-Host': explicitHost,
+      'X-Forwarded-Proto': 'https',
+    };
+  }
   if (!config.site_public_url) return {};
   try {
     const publicUrl = new URL(config.site_public_url);
@@ -500,6 +509,7 @@ export async function handleSiteSaasRequest(req, res) {
         'subrouter_base_url',
         'subrouter_internal_token',
         'site_public_url',
+        'subrouter_site_host',
       ];
       for (const key of keys) {
         if (Object.prototype.hasOwnProperty.call(body, key)) {

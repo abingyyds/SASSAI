@@ -106,7 +106,8 @@ export function SiteProvider({ children }) {
     getSiteInfo()
       .then((res) => {
         if (res.data.success) {
-          const siteData = { ...res.data.data, theme_template: 'saas' };
+          const publicDomain = typeof window !== 'undefined' ? window.location.origin : res.data.data?.domain;
+          const siteData = { ...res.data.data, domain: publicDomain, theme_template: 'saas' };
           setSite(siteData);
           applyThemeClass('saas');
           applySiteDocumentMeta(siteData);

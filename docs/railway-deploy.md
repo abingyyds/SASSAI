@@ -26,6 +26,7 @@ Minimum variables:
 SITE_ADMIN_TOKEN=change_me
 SUBROUTER_API_BASE=https://your-subrouter-backend.com
 PUBLIC_SITE_URL=https://your-saas-domain.com
+SUBROUTER_SITE_HOST=your-site.subrouter.ai
 ```
 
 Optional variables:
@@ -37,9 +38,11 @@ SUBROUTER_INTERNAL_TOKEN=optional_internal_token
 SITE_SAAS_STORE=/data/site-saas-store.json
 ```
 
-`SUBROUTER_API_BASE` must point to the real SubRouter backend, not to this SASSAI domain. The app preserves the public host when proxying `/api/*`, so SubRouter can still identify the distributor site by domain.
+`SUBROUTER_API_BASE` must point to the real SubRouter backend, not to this SASSAI domain.
 
 `PUBLIC_SITE_URL` should be the domain users open in their browser. It is also used when the SaaS backend calls SubRouter during automatic activation.
+
+`SUBROUTER_SITE_HOST` is the domain SASSAI sends to SubRouter for distributor-site lookup. Use the system domain from SubRouter, for example `okdoki.subrouter.ai`, when your public DNS points to Railway instead of `subrouter.ai`.
 
 `SITE_SAAS_STORE` already defaults to `/data/site-saas-store.json` in Docker, so you normally do not need to set it manually.
 
