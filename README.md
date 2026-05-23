@@ -49,3 +49,9 @@ Open `/site-admin/saas` to configure:
 7. Frontend shows the active subscription as a normal SaaS plan.
 
 Details: `docs/site-owned-saas-billing.md`.
+
+## Railway Deployment
+
+Railway should run this repository as two services: `sassai-web` for the frontend gateway and API proxy, and `sassai-saas` for Creem webhooks, code pools, and automatic activation.
+
+See `docs/railway-deploy.md`.

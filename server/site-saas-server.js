@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
-const port = Number(process.env.SITE_SAAS_PORT || 8787);
+const port = Number(process.env.PORT || process.env.SITE_SAAS_PORT || 8787);
 const storePath = process.env.SITE_SAAS_STORE || path.join(rootDir, 'data', 'site-saas-store.json');
 
 const defaultStore = {
@@ -579,7 +579,7 @@ async function handleRequest(req, res) {
   }
 }
 
-createServer(handleRequest).listen(port, () => {
+createServer(handleRequest).listen(port, '0.0.0.0', () => {
   console.log(`Site SaaS backend listening on http://127.0.0.1:${port}`);
   console.log(`Store: ${storePath}`);
 });

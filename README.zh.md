@@ -49,3 +49,9 @@ npm run saas:server
 7. 前台展示为正常 SaaS 订阅。
 
 详细说明见 `docs/site-owned-saas-billing.md`。
+
+## Railway 部署
+
+Railway 需要用两个服务部署：`sassai-web` 负责前端和 API 代理，`sassai-saas` 负责 Creem 回调、码池和自动激活。
+
+详细步骤见 `docs/railway-deploy.md`。
