@@ -19,6 +19,7 @@ npm run saas:server
 Variables:
 
 ```env
+PORT=8787
 SITE_ADMIN_TOKEN=change_me
 SITE_SAAS_STORE=/data/site-saas-store.json
 CREEM_API_KEY=creem_key
