@@ -106,10 +106,10 @@ export function SiteProvider({ children }) {
     getSiteInfo()
       .then((res) => {
         if (res.data.success) {
-          setSite(res.data.data);
-          // Apply theme class to body immediately
-          applyThemeClass(res.data.data?.theme_template);
-          applySiteDocumentMeta(res.data.data);
+          const siteData = { ...res.data.data, theme_template: 'saas' };
+          setSite(siteData);
+          applyThemeClass('saas');
+          applySiteDocumentMeta(siteData);
         }
       })
       .catch(() => {})

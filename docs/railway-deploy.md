@@ -63,6 +63,12 @@ Then configure the same domain in the SubRouter distributor-site settings, for e
 ai.yourdomain.com
 ```
 
+If the SubRouter admin page tells you to point DNS to `subrouter.ai`, ignore that DNS step for this SASSAI deployment. That instruction belongs to the original SubRouter-hosted distributor frontend.
+
+For SASSAI, DNS must point to the Railway service running this repository. SubRouter only needs the custom domain saved in its distributor-site settings so the backend can identify the site.
+
+The SubRouter theme dropdown can stay on any value. SASSAI always renders the dedicated `saas` theme.
+
 ## Site Admin
 
 After deployment, open:

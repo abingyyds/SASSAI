@@ -74,7 +74,7 @@ export function ThemeProvider({ children }) {
     return <ThemeLoading />;
   }
 
-  const themeName = site?.theme_template || 'saas';
+  const themeName = 'saas';
 
   return (
     <ThemeInner themeName={themeName}>
