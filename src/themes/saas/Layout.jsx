@@ -5,7 +5,6 @@ import {
   BarChart3,
   BookOpen,
   Boxes,
-  Building2,
   Home,
   LayoutDashboard,
   LogOut,
@@ -32,7 +31,6 @@ export default function SaasLayout() {
   const navItems = [
     { to: '/', label: 'Home', icon: Home, exact: true },
     { to: '/models', label: 'Models', icon: Boxes, prefix: '/models' },
-    { to: '/providers', label: 'Providers', icon: Building2 },
     { to: '/rankings', label: 'Rankings', icon: Trophy },
     { to: '/chat', label: 'Chat', icon: MessageSquareText, aliases: ['/playground'] },
     { to: '/pricing', label: t('nav.pricing'), icon: BarChart3 },
@@ -176,7 +174,6 @@ export default function SaasLayout() {
           <p>&copy; {new Date().getFullYear()} {siteName}. AI model marketplace and API gateway.</p>
           <div className="flex flex-wrap items-center gap-4">
             <Link to="/models" className="hover:text-slate-950">Models</Link>
-            <Link to="/providers" className="hover:text-slate-950">Providers</Link>
             <Link to="/rankings" className="hover:text-slate-950">Rankings</Link>
             <Link to="/docs/quickstart" className="hover:text-slate-950">Docs</Link>
             <Link to="/pricing" className="hover:text-slate-950">{t('nav.pricing')}</Link>

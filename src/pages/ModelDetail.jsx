@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, KeyRound, Play, Server } from 'lucide-react';
+import { ArrowLeft, KeyRound, Play, Server } from 'lucide-react';
 import { getMarketplaceModels, getSiteModels } from '../api';
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
@@ -20,11 +20,12 @@ import {
   getModelCategory,
   getModelDisplayName,
   getModelId,
-  getModelRoute,
+  getModelSummary,
   getOutputPrice,
   getPreferredMode,
   isPerCallModel,
   mergeModelCatalog,
+  PUBLIC_MODEL_FIELDS,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/SiteContext';
@@ -42,7 +43,7 @@ export default function ModelDetail() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 300 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
       .then((res) => {
         if (!cancelled) setModels(mergeModelCatalog(extractCollection(res, ['models'])));
       })
@@ -64,14 +65,6 @@ export default function ModelDetail() {
   const model = useMemo(() => models.find((item) => (
     [getModelId(item), item.model_name, item.display_name, String(item.id || '')].filter(Boolean).includes(decodedId)
   )), [models, decodedId]);
-
-  const related = useMemo(() => {
-    if (!model) return [];
-    const family = getModelCategory(model);
-    return models
-      .filter((item) => item.enabled !== false && getModelId(item) !== getModelId(model) && getModelCategory(item) === family)
-      .slice(0, 4);
-  }, [models, model]);
 
   if (loading) {
     return (
@@ -97,7 +90,6 @@ export default function ModelDetail() {
 
   const modelName = getModelDisplayName(model);
   const id = getModelId(model);
-  const channels = [];
   const perCall = isPerCallModel(model);
   const preferredMode = getPreferredMode(model);
 
@@ -120,6 +112,7 @@ export default function ModelDetail() {
                 </span>
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">{modelName}</h1>
+              <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
               <div className="mt-4 flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <code className="min-w-0 flex-1 truncate font-mono text-sm text-slate-700">{id}</code>
                 <CopyButton text={id} label="Copy model id" />
@@ -144,14 +137,14 @@ export default function ModelDetail() {
               <div className="mt-3"><ModelPrice model={model} /></div>
               <dl className="mt-4 space-y-3 text-sm">
                 <MetaRow label="Base URL" value={baseUrl} copy />
-                <MetaRow label="Display only" value="Single public model card" />
+                <MetaRow label="Model ID" value={id} copy />
               </dl>
             </aside>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-6">
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-center gap-2">
@@ -206,22 +199,6 @@ export default function ModelDetail() {
             </div>
           </div>
         </div>
-
-        <aside className="space-y-6">
-          {related.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-semibold text-slate-950">Related models</h2>
-              <div className="mt-4 space-y-3">
-                {related.map((item) => (
-                  <Link key={getModelId(item)} to={getModelRoute(item)} className="block rounded-lg border border-slate-200 bg-slate-50 p-3 hover:bg-white">
-                    <p className="font-medium text-slate-950">{getModelDisplayName(item)}</p>
-                    <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(item)}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </aside>
       </section>
     </div>
   );

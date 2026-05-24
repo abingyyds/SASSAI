@@ -5,12 +5,13 @@ import { getMarketplaceModels, getSiteModels } from '../api';
 import ModelPrice from '../components/ModelPrice';
 import {
   extractCollection,
-  formatCompactNumber,
+  formatUsageValue,
   getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
   mergeModelCatalog,
+  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -31,7 +32,7 @@ export default function Rankings() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 300 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
       .then((res) => {
         if (cancelled) return;
         setModels(mergeModelCatalog(extractCollection(res, ['models'])));
@@ -91,7 +92,7 @@ export default function Rankings() {
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Rankings</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
-                Browse the public model leaderboard without exposing route-level provider details or noisy usage metrics.
+                Browse the public model leaderboard by family, category, usage, and price.
               </p>
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                 <Database size={13} />
@@ -158,14 +159,14 @@ export default function Rankings() {
             {filteredModels.length} ranked models · {sortOptions.find((item) => item.key === sort)?.label || 'Popular'}
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[800px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-white text-left text-slate-500">
                   <th className="px-5 py-3 font-medium">#</th>
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-5 py-3 font-medium">Category</th>
+                  <th className="px-5 py-3 text-right font-medium">Usage</th>
                   <th className="px-5 py-3 text-right font-medium">Price</th>
-                  <th className="px-5 py-3 text-right font-medium">Try</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,15 +177,10 @@ export default function Rankings() {
                       <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-sky-700">
                         {getModelDisplayName(model)}
                       </Link>
-                      <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
                     </td>
                     <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
+                    <td className="px-5 py-4 text-right font-mono text-slate-700">{formatUsageValue(model)}</td>
                     <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
-                    <td className="px-5 py-4 text-right">
-                      <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
-                        Try
-                      </Link>
-                    </td>
                   </tr>
                 ))}
               </tbody>

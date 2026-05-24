@@ -12,6 +12,8 @@ import {
   getModelCategory,
   getModelId,
   getSupportedModes,
+  mergeModelCatalog,
+  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
@@ -19,10 +21,10 @@ import { useAuth } from '../context/AuthContext';
 const navItems = [
   { id: 'api-key', label: 'Get API key' },
   { id: 'base-url', label: 'Base URL' },
+  { id: 'selection', label: 'Model selection' },
   { id: 'chat', label: 'Chat completions' },
-  { id: 'image', label: 'Image generation' },
-  { id: 'video', label: 'Video generation' },
-  { id: 'audio', label: 'Audio' },
+  { id: 'streaming', label: 'Streaming' },
+  { id: 'multimodal', label: 'Multimodal' },
   { id: 'models', label: 'Models' },
   { id: 'pricing', label: 'Pricing' },
   { id: 'errors', label: 'Errors' },
@@ -37,14 +39,14 @@ export default function DocsQuickstart() {
   useEffect(() => {
     let cancelled = false;
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100, fields: PUBLIC_MODEL_FIELDS })
       .then((res) => {
         if (cancelled) return;
-        setModels(sortModels(extractCollection(res, ['models']).filter((model) => model.enabled !== false), 'popular'));
+        setModels(sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular'));
       })
       .catch(() => getSiteModels().then((res) => {
         if (cancelled) return;
-        setModels(sortModels(extractCollection(res, ['models']).filter((model) => model.enabled !== false), 'popular'));
+        setModels(sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular'));
       }))
       .catch(() => {});
 
@@ -55,9 +57,7 @@ export default function DocsQuickstart() {
 
   const picked = useMemo(() => pickDocsModels(models), [models]);
   const chatModelId = getModelId(picked.chat || models[0] || { model_name: 'gpt-4o-mini' });
-  const imageModelId = getModelId(picked.image || picked.chat || { model_name: 'image-model-id' });
-  const videoModelId = getModelId(picked.video || picked.chat || { model_name: 'video-model-id' });
-  const audioModelId = getModelId(picked.audio || picked.chat || { model_name: 'audio-model-id' });
+  const visionModelId = getModelId(picked.image || picked.chat || { model_name: 'vision-model-id' });
   const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
   const envSnippet = `SUBROUTER_API_KEY=sk-your-api-key
@@ -78,23 +78,27 @@ const completion = await client.chat.completions.create({
 
 console.log(completion.choices[0].message.content);`;
 
-  const imageBody = {
-    model: imageModelId,
-    prompt: 'A clean product screenshot of an AI model marketplace dashboard',
-    size: '1024x1024',
-    n: 1,
-  };
-  const videoBody = {
-    model: videoModelId,
-    prompt: 'A short product demo showing a developer testing an AI model',
-    aspect_ratio: '16:9',
-    duration: 6,
-  };
-  const audioBody = {
-    model: audioModelId,
-    input: 'SubRouter routes requests to compatible AI models through one API key.',
-    voice: 'alloy',
-    response_format: 'mp3',
+  const streamingJs = `const stream = await client.chat.completions.create({
+  model: "${chatModelId}",
+  stream: true,
+  messages: [{ role: "user", content: "Write a short launch checklist." }]
+});
+
+for await (const part of stream) {
+  process.stdout.write(part.choices?.[0]?.delta?.content || "");
+}`;
+
+  const multimodalBody = {
+    model: visionModelId,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Describe this image in one sentence.' },
+          { type: 'image_url', image_url: { url: 'https://example.com/image.png' } },
+        ],
+      },
+    ],
   };
 
   return (
@@ -108,7 +112,10 @@ console.log(completion.choices[0].message.content);`;
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-slate-950">SubRouter API quickstart</h1>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Use a SubRouter API key with the same-origin /v1 base URL, choose a marketplace model id, and send OpenAI-compatible requests where the selected model supports that modality.
+              Use a SubRouter API key with the same-origin /v1 base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
+            </p>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
+              The quickstart focuses on what users need to start building: key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link to={user ? '/tokens' : '/register'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
@@ -168,18 +175,36 @@ console.log(completion.choices[0].message.content);`;
 
             <DocCard id="base-url" icon={Server} title="Base URL">
               <p className="text-sm leading-6 text-slate-600">
-                Use this site origin plus /v1. The frontend avoids hardcoded SubRouter hosts so the same docs work on subrouter.com, subrouter.ai, or a custom distributor domain.
+                Use this site origin plus /v1. The frontend avoids hardcoded hosts so the same docs work on this domain or a custom distributor domain.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
                 <CopyRow label="API key" value="sk-your-api-key" />
                 <CopyRow label="Base URL" value={baseUrl} />
                 <CopyRow label="API root" value={`${appOrigin}/v1`} />
               </div>
+              <CodeBlock
+                title="Endpoint"
+                language="bash"
+                code={`POST ${baseUrl}/chat/completions
+Authorization: Bearer $SUBROUTER_API_KEY
+Content-Type: application/json`}
+              />
             </DocCard>
 
-            <DocCard id="chat" icon={TerminalSquare} title="Chat completions">
+            <DocCard id="selection" icon={Layers3} title="Model selection">
               <p className="text-sm leading-6 text-slate-600">
-                Chat uses the OpenAI-compatible chat completions shape. Replace the model id with any compatible model from the marketplace.
+                Pick model ids from the public catalog, then match the request shape to the model category. Public listings are deduped by model family, so users choose a model rather than a route.
+              </p>
+              <div className="grid gap-3 md:grid-cols-3">
+                <CopyRow label="Chat example" value={chatModelId} />
+                <CopyRow label="Vision example" value={visionModelId} />
+                <CopyRow label="Catalog size" value={`${models.length || 0} listed`} />
+              </div>
+            </DocCard>
+
+            <DocCard id="chat" icon={TerminalSquare} title="Requests: chat completions">
+              <p className="text-sm leading-6 text-slate-600">
+                Chat uses the OpenAI-compatible chat completions shape. Replace the model id with any compatible model from the public catalog.
               </p>
               <div className="grid gap-5">
                 <CodeBlock title="cURL" language="bash" code={buildCurlSnippet({ baseUrl, modelId: chatModelId })} />
@@ -189,51 +214,36 @@ console.log(completion.choices[0].message.content);`;
               </div>
             </DocCard>
 
-            <DocCard id="image" icon={Layers3} title="Image generation">
+            <DocCard id="streaming" icon={RefreshCw} title="Streaming responses">
               <p className="text-sm leading-6 text-slate-600">
-                For image-capable models, use an OpenAI-compatible image generation request when the selected route supports it. The example is a request shape, not a browser-side generation call.
+                Enable streaming for chat completions when your client can consume incremental deltas. The base URL, bearer token, and model id stay the same.
               </p>
-              <CodeBlock title="Image request" language="bash" code={jsonCurl(`${baseUrl}/images/generations`, imageBody)} />
+              <CodeBlock title="OpenAI JavaScript SDK streaming" language="js" code={streamingJs} />
             </DocCard>
 
-            <DocCard id="video" icon={Layers3} title="Video generation">
+            <DocCard id="multimodal" icon={Layers3} title="Multimodal request patterns">
               <p className="text-sm leading-6 text-slate-600">
-                Video routes are model and provider dependent. Use the marketplace model details and provider documentation before relying on a video endpoint. This snippet shows a common JSON request builder shape for a video-capable model.
+                For vision-capable chat models, send message content as an array of typed parts. Keep the same /chat/completions endpoint and choose a model whose catalog entry supports the needed modality.
               </p>
-              <CodeBlock title="Video request shape" language="bash" code={jsonCurl(`${baseUrl}/videos/generations`, videoBody)} />
-            </DocCard>
-
-            <DocCard id="audio" icon={Layers3} title="Audio, TTS, and transcription">
-              <p className="text-sm leading-6 text-slate-600">
-                Text-to-speech models commonly use JSON input. Transcription models usually require multipart file upload. Use these only with audio-capable models.
-              </p>
-              <div className="grid gap-5">
-                <CodeBlock title="Text to speech request" language="bash" code={jsonCurl(`${baseUrl}/audio/speech`, audioBody)} />
-                <CodeBlock
-                  title="Transcription request shape"
-                  language="bash"
-                  code={`curl -X POST ${baseUrl}/audio/transcriptions \\
-  -H "Authorization: Bearer $SUBROUTER_API_KEY" \\
-  -F "model=${audioModelId}" \\
-  -F "file=@sample.mp3"`}
-                />
+              <CodeBlock title="Vision request" language="bash" code={jsonCurl(`${baseUrl}/chat/completions`, multimodalBody)} />
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                Text-only models should continue to send a string <code className="font-mono text-slate-900">content</code>. Use typed content parts only for models that support image or other multimodal inputs.
               </div>
             </DocCard>
 
             <DocCard id="models" icon={Layers3} title="Model IDs and marketplace">
               <p className="text-sm leading-6 text-slate-600">
-                Model IDs are copied from the marketplace and used exactly in API requests. The public marketplace endpoints are same-origin for frontend use.
+                Model IDs are copied from the public catalog and used exactly in API requests. Duplicate routes are shown as one public model family.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
                 <LinkCard to="/models" title="Models" text="Filter by chat, image, audio, video, embedding, and rerank." />
-                <LinkCard to="/providers" title="Providers" text="Review provider availability, ratings, and links." />
-                <LinkCard to="/rankings" title="Rankings" text="Sort by marketplace order and exposed metrics." />
+                <LinkCard to="/rankings" title="Rankings" text="Review public model rank, category, and price." />
+                <LinkCard to="/playground" title="Playground" text="Build request payloads and copy code samples." />
               </div>
               <CodeBlock
-                title="Marketplace endpoints"
+                title="Public catalog endpoint"
                 language="bash"
-                code={`GET /api/marketplace/models?sort=popular&page=1&page_size=100
-GET /api/marketplace/providers?page=1&page_size=100`}
+                code="GET /api/marketplace/models?sort=popular&page=1&page_size=100"
               />
             </DocCard>
 
@@ -242,18 +252,18 @@ GET /api/marketplace/providers?page=1&page_size=100`}
                 Model cards show input and output prices per 1M tokens when token pricing is available. Per-call models show a call price. Cache read and cache creation prices are shown on model details when the catalog exposes them.
               </p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                Always check the selected model details before production rollout because prices and provider route availability can differ by model and channel.
+                Always check the selected model details before production rollout because catalog pricing can change.
               </div>
             </DocCard>
 
             <DocCard id="errors" icon={ShieldAlert} title="Errors and troubleshooting">
               <div className="grid gap-3 md:grid-cols-2">
                 <Trouble title="401 Unauthorized" text="Check that Authorization is Bearer sk-your-api-key and the key belongs to this site." />
-                <Trouble title="404 model not found" text="Copy the model id from /models or /rankings and keep provider prefixes intact." />
+                <Trouble title="404 model not found" text="Copy the model id from /models or /rankings and send it exactly as listed." />
                 <Trouble title="429 rate limited" text="Reduce concurrency or check account limits and package quota." />
                 <Trouble title="402 or quota errors" text="Top up, subscribe, or use a model with lower per-token cost." />
                 <Trouble title="Unsupported modality" text="Switch to a model whose category includes image, video, or audio." />
-                <Trouble title="Provider failure" text="Retry, select another route/model, or inspect logs in your dashboard." />
+                <Trouble title="Temporary failure" text="Retry with backoff, choose another public model, or inspect logs in your dashboard." />
               </div>
             </DocCard>
 

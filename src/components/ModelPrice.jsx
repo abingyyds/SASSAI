@@ -25,8 +25,8 @@ export default function ModelPrice({ model, compact = false }) {
 
   if (compact) {
     return (
-      <span className="font-mono text-sm text-slate-900">
-        {input} <span className="text-slate-400">/</span> {output}
+      <span className="font-mono text-sm text-slate-900" title="Input and output prices per 1M tokens">
+        <span className="text-xs text-slate-500">In</span> {input} <span className="text-slate-400">/</span> <span className="text-xs text-slate-500">Out</span> {output} <span className="text-xs text-slate-500">/1M</span>
       </span>
     );
   }

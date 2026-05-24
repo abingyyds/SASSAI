@@ -17,7 +17,6 @@ import { getMarketplaceModels, getSiteModels } from '../api';
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
 import ModelPrice from '../components/ModelPrice';
-import { AvailabilityBadge } from '../components/ModelBadges';
 import {
   extractCollection,
   getModelCategory,
@@ -25,8 +24,9 @@ import {
   getModelId,
   getModelRoute,
   getPreferredMode,
-  getProviderName,
   getSupportedModes,
+  mergeModelCatalog,
+  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -69,16 +69,16 @@ export default function Playground() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
       .then((res) => {
         if (cancelled) return;
-        const list = sortModels(extractCollection(res, ['models']).filter((model) => model.enabled !== false), 'popular');
+        const list = sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular');
         setModels(list);
         setSelectedId((current) => current || (list[0] ? getModelId(list[0]) : ''));
       })
       .catch(() => getSiteModels().then((res) => {
         if (cancelled) return;
-        const list = sortModels(extractCollection(res, ['models']).filter((model) => model.enabled !== false), 'popular');
+        const list = sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular');
         setModels(list);
         setSelectedId((current) => current || (list[0] ? getModelId(list[0]) : ''));
       }))
@@ -208,7 +208,7 @@ export default function Playground() {
                   >
                     {models.map((model) => (
                       <option key={getModelId(model)} value={getModelId(model)}>
-                        {getModelDisplayName(model)} - {getProviderName(model)}
+                        {getModelDisplayName(model)}
                       </option>
                     ))}
                   </select>
@@ -320,7 +320,6 @@ export default function Playground() {
                   <h2 className="truncate font-semibold text-slate-950">{getModelDisplayName(selectedModel)}</h2>
                   <p className="mt-1 truncate font-mono text-xs text-slate-500">{modelId}</p>
                 </div>
-                <AvailabilityBadge model={selectedModel} />
               </div>
               <div className="mb-4 flex flex-wrap gap-1.5">
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{getModelCategory(selectedModel)}</span>
@@ -654,7 +653,7 @@ function toPythonLiteral(value) {
 
 function getModeDescription(mode) {
   if (mode === 'image') return 'Image models use a prompt, output size, and image count in the request body.';
-  if (mode === 'video') return 'Video models use a prompt plus duration and aspect ratio when the provider route supports those fields.';
+  if (mode === 'video') return 'Video models use a prompt plus duration and aspect ratio when the selected model supports those fields.';
   if (mode === 'audio') return 'Audio mode builds a text-to-speech request body for compatible speech models.';
   return 'Chat/Text mode builds an OpenAI-compatible chat completions request.';
 }

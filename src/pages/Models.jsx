@@ -13,8 +13,10 @@ import {
   getModelDisplayName,
   getModelId,
   getModelRoute,
+  getModelSummary,
   getSupportedModes,
   mergeModelCatalog,
+  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -38,7 +40,7 @@ export default function Models() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 300 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
       .then((res) => {
         if (cancelled) return;
         setModels(mergeModelCatalog(extractCollection(res, ['models'])));
@@ -103,7 +105,10 @@ export default function Models() {
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Models</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
-                Browse the public catalog grouped by model family. Duplicate vendor routes are merged into one visible model entry, and internal routing details stay hidden.
+                Browse the public catalog grouped by model family. Duplicate routes are merged into one visible model entry, and internal routing details stay hidden.
+              </p>
+              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500">
+                Each card can include a short model description, so users can understand what the model is for before opening the detail or playground page.
               </p>
               <div className="mt-5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                 {dataSource === 'marketplace' ? 'Live marketplace data' : 'Site catalog fallback'}
@@ -206,6 +211,9 @@ export default function Models() {
                           <code className="truncate font-mono text-xs text-slate-500">{getModelId(model)}</code>
                           <CopyButton text={getModelId(model)} label="Copy id" iconOnly className="h-7 w-7 px-0 py-0" />
                         </div>
+                        <p className="mt-2 line-clamp-2 max-w-2xl text-xs leading-5 text-slate-500">
+                          {getModelSummary(model)}
+                        </p>
                       </td>
                       <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
@@ -232,6 +240,7 @@ export default function Models() {
                     {getModelDisplayName(model)}
                   </Link>
                   <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                  <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
                   <div className="mt-3"><ModelBadges model={model} /></div>
                   <div className="mt-4"><ModelPrice model={model} /></div>
                   <div className="mt-4 flex gap-2">

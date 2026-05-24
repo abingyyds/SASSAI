@@ -18,6 +18,55 @@ const uniqueText = (values) => {
 
 const primaryModeOrder = ['chat', 'image', 'video', 'audio'];
 const textLikeCategories = ['Chat', 'Reasoning', 'Coding', 'Embedding', 'Rerank'];
+const categorySummaries = {
+  Chat: 'General-purpose chat model for text generation, assistants, and conversation.',
+  Reasoning: 'Reasoning-focused model for complex analysis, planning, and multi-step tasks.',
+  Coding: 'Coding model for software development, debugging, and code explanation.',
+  Image: 'Image-capable model for visual understanding or generation workflows.',
+  Video: 'Video-capable model for generation or analysis workflows.',
+  Audio: 'Audio-capable model for speech, transcription, and voice workflows.',
+  Embedding: 'Embedding model for search, retrieval, and semantic matching.',
+  Rerank: 'Rerank model for improving retrieval result ordering.',
+};
+
+export const PUBLIC_MODEL_FIELDS = [
+  'id',
+  'name',
+  'model_name',
+  'display_name',
+  'upstream_model',
+  'canonical',
+  'canonical_model_name',
+  'description',
+  'summary',
+  'category',
+  'type',
+  'modality',
+  'mode',
+  'modalities',
+  'capabilities',
+  'input_modalities',
+  'output_modalities',
+  'tags',
+  'context_length',
+  'context_window',
+  'max_context_tokens',
+  'max_context',
+  'max_tokens',
+  'max_input_tokens',
+  'input_price',
+  'output_price',
+  'fixed_price',
+  'cache_read_price',
+  'cache_creation_price',
+  'enabled',
+  'public_rank',
+  'rank',
+  'sort_order',
+  'position',
+  'order',
+  ...REQUEST_FIELDS,
+].join(',');
 
 export const asNumber = (value) => {
   if (value === null || value === undefined || value === '') return null;
@@ -144,6 +193,13 @@ export const getModelCategory = (model) => {
   return 'Chat';
 };
 
+export const getModelSummary = (model) => {
+  const summary = normalizeText(model?.description || model?.summary);
+  if (summary) return summary;
+  const category = getModelCategory(model);
+  return categorySummaries[category] || `${category || 'Public'} model available in the public catalog.`;
+};
+
 export const getAvailability = (model) => {
   if (model?.enabled === false) {
     return { label: 'Disabled', tone: 'muted', score: 0 };
@@ -173,7 +229,6 @@ export const getModelTags = (model) => {
   if (output !== null && output > 0 && output <= 0.001) tags.add('Fast');
   if (getCacheReadPrice(model) !== null || getCacheCreationPrice(model) !== null) tags.add('Cache');
   if (context >= 100000 || /128k|200k|1m|long/.test(name)) tags.add('Long context');
-  if (getChannels(model).length > 1) tags.add('Multi-provider');
   if (/video|text-to-video|image-to-video|sora|kling|runway|luma/.test(name)) tags.add('Video');
   if (/audio|tts|speech|voice|whisper/.test(name)) tags.add('Audio');
   if (/vision|image|dall-e|multimodal|omni/.test(name)) tags.add('Vision');
@@ -230,6 +285,26 @@ export const getPreferredMode = (model) => {
   return 'chat';
 };
 
+const getCanonicalModelName = (model) => normalizeText(
+  model?.upstream_model ||
+  model?.canonical ||
+  model?.canonical_model_name ||
+  model?.model_name ||
+  model?.display_name ||
+  model?.name ||
+  model?.id,
+);
+
+const getPublicDisplayName = (model) => normalizeText(
+  model?.display_name ||
+  model?.name ||
+  model?.upstream_model ||
+  model?.canonical ||
+  model?.canonical_model_name ||
+  model?.model_name ||
+  model?.id,
+);
+
 const uniqueByKey = (items, keyFn) => {
   const seen = new Set();
   return items.filter((item) => {
@@ -246,51 +321,79 @@ const mergePrice = (values, reducer = Math.min) => {
   return reducer(...nums);
 };
 
+const mergeUsage = (current, next) => {
+  const currentValue = asNumber(current);
+  const nextValue = asNumber(next);
+  if (currentValue === null && nextValue === null) return null;
+  return (currentValue ?? 0) + (nextValue ?? 0);
+};
+
 export const getModelFamilyKey = (model) => {
-  const raw = normalizeText(model?.upstream_model || model?.canonical_model_name || model?.model_name || model?.display_name || model?.name || model?.id);
+  const raw = getCanonicalModelName(model);
   return normalizeLower(raw);
 };
 
 export const mergeModelCatalog = (models = []) => {
   const groups = new Map();
 
-  models.forEach((model) => {
+  models.forEach((model, index) => {
     if (!model || model.enabled === false) return;
     const key = getModelFamilyKey(model) || normalizeLower(getModelId(model));
+    const publicModelName = getCanonicalModelName(model) || getModelId(model);
+    const displayName = getPublicDisplayName(model) || publicModelName;
+    const category = getModelCategory(model);
+    const publicRank = firstNumber(model, ['public_rank', 'rank', 'sort_order', 'position', 'order']) ?? index;
+
     if (!groups.has(key)) {
       groups.set(key, {
-        ...model,
-        model_name: model?.upstream_model || model?.canonical_model_name || model?.model_name || model?.display_name || model?.id,
-        display_name: model?.display_name || model?.name || model?.model_name || model?.upstream_model || model?.id,
-        description: model?.description || '',
-        enabled: model?.enabled !== false,
-        sources: [],
-        channels: [],
+        id: publicModelName,
+        model_name: publicModelName,
+        display_name: displayName,
+        description: model?.description || model?.summary || '',
+        category,
+        type: model?.type,
+        modality: model?.modality,
+        mode: model?.mode,
+        modalities: Array.isArray(model?.modalities) ? model.modalities : [],
+        capabilities: Array.isArray(model?.capabilities) ? model.capabilities : [],
+        input_modalities: Array.isArray(model?.input_modalities) ? model.input_modalities : [],
+        output_modalities: Array.isArray(model?.output_modalities) ? model.output_modalities : [],
+        tags: Array.isArray(model?.tags) ? model.tags : [],
+        context_length: firstNumber(model, ['context_length', 'context_window', 'max_context_tokens', 'max_context', 'max_input_tokens']),
+        max_tokens: firstNumber(model, ['max_tokens']),
         input_price: asNumber(model?.input_price),
         output_price: asNumber(model?.output_price),
         fixed_price: asNumber(model?.fixed_price),
         cache_read_price: asNumber(model?.cache_read_price),
         cache_creation_price: asNumber(model?.cache_creation_price),
+        enabled: true,
+        public_rank: publicRank,
+        usage_count: null,
+        request_count: null,
       });
     }
 
     const group = groups.get(key);
-    group.sources.push(model);
     group.enabled = group.enabled || model?.enabled !== false;
-    group.description = [group.description, model?.description].filter(Boolean).sort((a, b) => b.length - a.length)[0] || group.description;
+    group.description = [group.description, model?.description, model?.summary].filter(Boolean).sort((a, b) => b.length - a.length)[0] || group.description;
     group.input_price = mergePrice([group.input_price, model?.input_price]);
     group.output_price = mergePrice([group.output_price, model?.output_price]);
     group.fixed_price = mergePrice([group.fixed_price, model?.fixed_price]);
     group.cache_read_price = mergePrice([group.cache_read_price, model?.cache_read_price]);
     group.cache_creation_price = mergePrice([group.cache_creation_price, model?.cache_creation_price]);
+    group.usage_count = mergeUsage(group.usage_count, getUsageCount(model));
+    group.request_count = group.usage_count;
+
+    group.public_rank = Math.min(group.public_rank, publicRank);
+    group.modalities = uniqueText([...(group.modalities || []), ...(Array.isArray(model?.modalities) ? model.modalities : [])]);
+    group.capabilities = uniqueText([...(group.capabilities || []), ...(Array.isArray(model?.capabilities) ? model.capabilities : [])]);
+    group.input_modalities = uniqueText([...(group.input_modalities || []), ...(Array.isArray(model?.input_modalities) ? model.input_modalities : [])]);
+    group.output_modalities = uniqueText([...(group.output_modalities || []), ...(Array.isArray(model?.output_modalities) ? model.output_modalities : [])]);
+    group.context_length = Math.max(group.context_length || 0, firstNumber(model, ['context_length', 'context_window', 'max_context_tokens', 'max_context', 'max_input_tokens']) || 0) || null;
+    group.max_tokens = Math.max(group.max_tokens || 0, firstNumber(model, ['max_tokens']) || 0) || null;
 
     if (!group.display_name || group.display_name === group.model_name) {
-      group.display_name = model?.display_name || model?.name || model?.model_name || model?.upstream_model || group.display_name;
-    }
-
-    const nextChannels = getChannels(model);
-    if (nextChannels.length) {
-      group.channels = uniqueByKey([...group.channels, ...nextChannels], (channel) => [channel?.provider_slug, channel?.provider_name, channel?.channel_name, channel?.id].filter(Boolean).join('::').toLowerCase());
+      group.display_name = displayName || group.display_name;
     }
 
     const currentTags = Array.isArray(group.tags) ? group.tags : [];
@@ -298,19 +401,19 @@ export const mergeModelCatalog = (models = []) => {
     group.tags = uniqueText([...currentTags, ...nextTags]);
   });
 
-  return Array.from(groups.values()).map((group) => ({
-    ...group,
-    channels: uniqueByKey(group.channels || [], (channel) => [channel?.provider_slug, channel?.provider_name, channel?.channel_name, channel?.id].filter(Boolean).join('::').toLowerCase()),
-  }));
+  return Array.from(groups.values()).sort((a, b) => a.public_rank - b.public_rank);
 };
 
 export const hasUsageMetrics = (models) =>
   models.some((model) =>
-    [...REQUEST_FIELDS, ...TOKEN_FIELDS, ...RATING_FIELDS].some((key) => model?.[key] != null)
+    REQUEST_FIELDS.some((key) => model?.[key] != null)
   );
 
+export const getUsageCount = (model) =>
+  firstNumber(model, REQUEST_FIELDS);
+
 export const getRequestCount = (model) =>
-  firstNumber(model, REQUEST_FIELDS) || 0;
+  getUsageCount(model) ?? 0;
 
 export const getTokenUsage = (model) =>
   firstNumber(model, TOKEN_FIELDS) || 0;
@@ -336,6 +439,8 @@ export const getMarketplaceScore = (model) => {
   return availability + channelScore + priceScore;
 };
 
+const getPublicRank = (model) => firstNumber(model, ['public_rank', 'rank', 'sort_order', 'position', 'order']);
+
 export const sortModels = (models, sortKey = 'popular') => {
   const list = [...models];
   return list.sort((a, b) => {
@@ -345,8 +450,17 @@ export const sortModels = (models, sortKey = 'popular') => {
     if (sortKey === 'requests') return getRequestCount(b) - getRequestCount(a);
     if (sortKey === 'tokens') return getTokenUsage(b) - getTokenUsage(a);
     if (sortKey === 'rating') return (getRating(b) || 0) - (getRating(a) || 0);
-    const usageDelta = getRequestCount(b) - getRequestCount(a) || getTokenUsage(b) - getTokenUsage(a);
-    if (usageDelta) return usageDelta;
+    const usageA = getUsageCount(a);
+    const usageB = getUsageCount(b);
+    if (usageA !== null || usageB !== null) {
+      const usageDelta = (usageB ?? -1) - (usageA ?? -1);
+      if (usageDelta) return usageDelta;
+    }
+    const rankA = getPublicRank(a);
+    const rankB = getPublicRank(b);
+    if (rankA !== null || rankB !== null) {
+      return (rankA ?? Number.POSITIVE_INFINITY) - (rankB ?? Number.POSITIVE_INFINITY);
+    }
     return getMarketplaceScore(b) - getMarketplaceScore(a) || getModelDisplayName(a).localeCompare(getModelDisplayName(b));
   });
 };
@@ -372,13 +486,10 @@ export const filterModels = (models, { search = '', provider = '', category = ''
       model.model_name,
       model.display_name,
       model.description,
-      model.vendor_name,
-      model.vendor,
-      model.provider_name,
-      model.provider,
       getModelCategory(model),
-      ...getProviderFields(model),
-      ...getChannels(model).flatMap((channel) => [channel.provider_name, channel.provider_slug, channel.channel_name, channel.provider_description]),
+      ...(Array.isArray(model.tags) ? model.tags : []),
+      ...(Array.isArray(model.capabilities) ? model.capabilities : []),
+      ...(Array.isArray(model.modalities) ? model.modalities : []),
     ].filter(Boolean).join(' ').toLowerCase();
     return haystack.includes(query);
   });
@@ -432,6 +543,11 @@ export const formatCompactNumber = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return '0';
   return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+};
+
+export const formatUsageValue = (modelOrValue) => {
+  const value = typeof modelOrValue === 'object' ? getUsageCount(modelOrValue) : asNumber(modelOrValue);
+  return value === null ? '-' : formatCompactNumber(value);
 };
 
 const jsonString = (value) => JSON.stringify(String(value));
