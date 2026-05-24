@@ -167,17 +167,17 @@ export default function Playground() {
   }
 
   return (
-    <ConsolePage>
+    <ConsolePage className="overflow-x-hidden">
       <ConsoleHero
         eyebrow="Request builder"
         title="Test requests"
         subtitle="Compose chat, image, video, or audio requests for the selected model and copy them to run with an API key."
         actions={[
-          <Link key="docs" to="/docs/quickstart" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+          <Link key="docs" to="/docs/quickstart" className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 py-2.5 sm:w-auto">
             <Code2 className="h-4 w-4" />
             View docs
           </Link>,
-          <Link key="keys" to="/tokens" className="btn-primary inline-flex items-center gap-2 px-4 py-2.5">
+          <Link key="keys" to="/tokens" className="btn-primary inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 py-2.5 sm:w-auto">
             <KeyRound className="h-4 w-4" />
             API keys
           </Link>,
@@ -188,11 +188,11 @@ export default function Playground() {
         ]}
       />
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="space-y-5">
+      <section className="mt-6 grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(320px,420px)] lg:gap-6">
+        <div className="min-w-0 space-y-4 lg:space-y-5">
           <ConsoleFrame>
-            <div className="border-b border-page-divider bg-page-surface/40 p-4">
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="border-b border-page-divider bg-page-surface/40 p-3 sm:p-4">
+              <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <ConsoleField label="Model">
                   <select
                     value={modelId}
@@ -201,7 +201,7 @@ export default function Playground() {
                       setModeTouched(false);
                       setPrepared(false);
                     }}
-                    className="input h-11"
+                    className="input h-11 min-w-0 touch-manipulation"
                   >
                     {models.map((model) => (
                       <option key={getModelId(model)} value={getModelId(model)}>
@@ -210,17 +210,17 @@ export default function Playground() {
                     ))}
                   </select>
                 </ConsoleField>
-                <label className="inline-flex items-center gap-2 rounded-xl border border-page-divider bg-white px-3 py-2 text-sm font-semibold text-page-secondary">
+                <label className="inline-flex min-h-11 w-full cursor-pointer items-center gap-2 rounded-xl border border-page-divider bg-white px-3 py-2 text-sm font-semibold text-page-secondary sm:w-auto">
                   <input
                     type="checkbox"
                     checked={showAllModes}
                     onChange={(event) => setShowAllModes(event.target.checked)}
-                    className="h-4 w-4 rounded border-page-divider accent-slate-950"
+                    className="h-5 w-5 rounded border-page-divider accent-slate-950"
                   />
                   Show all builders
                 </label>
               </div>
-              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+              <div className="mt-4 flex min-w-0 gap-1 overflow-x-auto rounded-xl border border-page-divider bg-page-surface/50 p-1 [-webkit-overflow-scrolling:touch]">
                 {visibleModes.map((mode) => {
                   const Icon = mode.icon;
                   const supported = mode.key === 'chat' || supportedModes.includes(mode.key);
@@ -229,7 +229,7 @@ export default function Playground() {
                       key={mode.key}
                       type="button"
                       onClick={() => selectMode(mode.key)}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                      className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
                         activeMode === mode.key
                           ? 'border-slate-950 bg-slate-950 text-white'
                           : 'border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover hover:text-page'
@@ -244,13 +244,13 @@ export default function Playground() {
               </div>
             </div>
 
-            <div className="grid min-h-[520px] grid-rows-[1fr_auto] lg:min-h-[600px]">
-              <div className="space-y-5 overflow-auto p-5">
-                <div className="flex gap-3">
+            <div className="grid grid-rows-[auto_auto] lg:min-h-[600px] lg:grid-rows-[1fr_auto]">
+              <div className="space-y-4 overflow-visible p-3 sm:space-y-5 sm:p-5 lg:overflow-auto">
+                <div className="flex min-w-0 gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
                     <Bot size={17} />
                   </div>
-                  <div className="max-w-3xl rounded-xl border border-page-divider bg-page-surface/50 p-4 text-sm leading-6 text-page-secondary">
+                  <div className="min-w-0 max-w-3xl rounded-xl border border-page-divider bg-page-surface/50 p-3 text-sm leading-6 text-page-secondary sm:p-4">
                     <p className="font-semibold text-page">Request builder mode</p>
                     <p className="mt-1">
                       {getModeDescription(activeMode)} Browser execution is disabled because this frontend does not expose a session-safe inference endpoint. Use an API key and copy a request.
@@ -267,26 +267,26 @@ export default function Playground() {
                 />
               </div>
 
-              <div className="border-t border-page-divider bg-white p-4">
+              <div className="border-t border-page-divider bg-white p-3 sm:p-4">
                 <ConsoleField label={activeMode === 'audio' ? 'Input text' : 'Prompt'}>
                   <textarea
                     value={prompt}
                     onChange={(event) => updatePrompt(event.target.value)}
-                    className="input min-h-[128px] resize-y px-4 py-3 leading-6"
+                    className="input min-h-[112px] resize-y px-4 py-3 leading-6 lg:min-h-[128px]"
                     placeholder="Enter a prompt"
                   />
                 </ConsoleField>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs text-page-muted">{request.endpoint}</p>
+                    <p className="break-all font-mono text-xs text-page-muted">{request.endpoint}</p>
                     <p className="mt-1 text-xs text-page-muted">Requires Authorization: Bearer $SUBROUTER_API_KEY</p>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <CopyButton text={request.curl} label="Copy cURL" />
+                  <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
+                    <CopyButton text={request.curl} label="Copy cURL" className="min-h-11 w-full px-4 text-sm sm:w-auto" />
                     <button
                       type="button"
                       disabled={!runAvailable}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-page-divider bg-page-surface px-4 py-2 text-sm font-semibold text-page-muted disabled:cursor-not-allowed"
+                      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-page-divider bg-page-surface px-4 py-2 text-sm font-semibold text-page-muted disabled:cursor-not-allowed sm:w-auto"
                       title="Use API key / copy request"
                     >
                       <PlayCircle size={15} />
@@ -295,7 +295,7 @@ export default function Playground() {
                     <button
                       type="button"
                       onClick={() => setPrepared(true)}
-                      className="btn-primary inline-flex items-center justify-center gap-2 px-4 py-2 disabled:opacity-50"
+                      className="btn-primary inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 py-2 disabled:opacity-50 sm:w-auto"
                       disabled={!prompt.trim()}
                     >
                       <Send size={15} />
@@ -308,13 +308,13 @@ export default function Playground() {
           </ConsoleFrame>
         </div>
 
-        <aside className="space-y-5">
+        <aside className="min-w-0 space-y-4 lg:space-y-5">
           {selectedModel && (
-            <ConsoleFrame className="p-5">
+            <ConsoleFrame className="p-4 sm:p-5">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate font-semibold text-page">{getModelDisplayName(selectedModel)}</h2>
-                  <p className="mt-1 truncate font-mono text-xs text-page-muted">{modelId}</p>
+                  <h2 className="break-words font-semibold text-page [overflow-wrap:anywhere]">{getModelDisplayName(selectedModel)}</h2>
+                  <p className="mt-1 break-all font-mono text-xs text-page-muted">{modelId}</p>
                 </div>
               </div>
               <div className="mb-4 flex flex-wrap gap-1.5">
@@ -328,16 +328,16 @@ export default function Playground() {
                 <Link to={getModelRoute(selectedModel)} className="btn-secondary flex-1 px-3 py-2 text-center">
                   Details
                 </Link>
-                <CopyButton text={modelId} label="Copy id" className="flex-1" />
+                <CopyButton text={modelId} label="Copy id" className="min-h-10 flex-1" />
               </div>
             </ConsoleFrame>
           )}
 
-          <ConsoleFrame className="p-5">
-            <div className="flex items-center gap-2">
-              <Settings2 size={17} className="text-page-muted" />
-              <h2 className="font-semibold text-page">Request settings</h2>
-            </div>
+          <ConsoleFrame className="p-4 sm:p-5">
+              <div className="flex min-w-0 items-center gap-2">
+                <Settings2 size={17} className="text-page-muted" />
+                <h2 className="font-semibold text-page">Request settings</h2>
+              </div>
             <div className="mt-5 space-y-5">
               {activeMode === 'chat' && (
                 <>
@@ -359,7 +359,7 @@ export default function Playground() {
                       max="32000"
                       value={maxTokens}
                       onChange={(event) => setMaxTokens(Number(event.target.value))}
-                      className="input h-10"
+                      className="input h-11"
                     />
                   </Control>
                 </>
@@ -374,7 +374,7 @@ export default function Playground() {
                       max="4"
                       value={imageCount}
                       onChange={(event) => setImageCount(Number(event.target.value))}
-                      className="input h-10"
+                      className="input h-11"
                     />
                   </Control>
                 </>
@@ -389,7 +389,7 @@ export default function Playground() {
                       max="30"
                       value={videoDuration}
                       onChange={(event) => setVideoDuration(Number(event.target.value))}
-                      className="input h-10"
+                      className="input h-11"
                     />
                   </Control>
                 </>
@@ -409,13 +409,13 @@ export default function Playground() {
 
           <ConsoleFrame>
             <div className="border-b border-page-divider p-3">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex min-w-0 flex-wrap gap-2">
                 {['curl', 'javascript', 'python'].map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setCodeTab(tab)}
-                    className={`rounded-lg px-3 py-2 text-xs font-semibold ${
+                    className={`min-h-10 rounded-lg px-3 py-2 text-xs font-semibold ${
                       codeTab === tab
                         ? 'bg-slate-950 text-white'
                         : 'border border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover'
@@ -426,7 +426,7 @@ export default function Playground() {
                 ))}
               </div>
             </div>
-            <div className="p-3">
+            <div className="min-w-0 p-3">
               <CodeBlock
                 title={`${activeDefinition.label} request`}
                 language={codeTab}
@@ -435,13 +435,13 @@ export default function Playground() {
             </div>
           </ConsoleFrame>
 
-          <ConsoleFrame className="p-5">
+          <ConsoleFrame className="p-4 sm:p-5">
             <div className="flex items-center gap-2">
               <FileJson size={17} className="text-page-muted" />
               <h2 className="font-semibold text-page">JSON body</h2>
             </div>
-            <pre className="mt-4 max-h-[320px] overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
-              <code>{JSON.stringify(request.body, null, 2)}</code>
+            <pre className="mt-4 max-h-[260px] max-w-full overflow-x-auto overflow-y-auto whitespace-pre-wrap break-words rounded-xl bg-slate-950 p-3 text-[11px] leading-5 text-slate-100 [overflow-wrap:anywhere] sm:max-h-[320px] sm:p-4 sm:text-xs">
+              <code className="break-words">{JSON.stringify(request.body, null, 2)}</code>
             </pre>
           </ConsoleFrame>
         </aside>
@@ -455,20 +455,20 @@ function PreviewPanel({ mode, prompt, prepared, endpoint, icon: Icon }) {
     return (
       <>
         {prepared && (
-          <div className="flex justify-end">
-            <div className="max-w-2xl rounded-xl bg-slate-950 p-4 text-sm leading-6 text-white">
+          <div className="flex min-w-0 justify-end">
+            <div className="min-w-0 max-w-full rounded-xl bg-slate-950 p-3 text-sm leading-6 text-white sm:max-w-2xl sm:p-4">
               <p className="font-semibold">User</p>
-              <p className="mt-2 text-slate-200">{prompt}</p>
+              <p className="mt-2 break-words text-slate-200 [overflow-wrap:anywhere]">{prompt}</p>
             </div>
           </div>
         )}
         {prepared && (
-          <div className="flex gap-3">
+          <div className="flex min-w-0 gap-3">
             <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-page-divider bg-page-surface text-page-secondary">
               <Bot size={17} />
             </div>
-            <div className="max-w-3xl rounded-xl border border-page-divider bg-white p-4 text-sm leading-6 text-page-secondary">
-              The chat request is composed for <span className="font-mono text-page">{endpoint}</span>. No assistant answer is fabricated in the browser preview.
+            <div className="min-w-0 max-w-full rounded-xl border border-page-divider bg-white p-3 text-sm leading-6 text-page-secondary sm:max-w-3xl sm:p-4">
+              The chat request is composed for <span className="break-all font-mono text-page">{endpoint}</span>. No assistant answer is fabricated in the browser preview.
             </div>
           </div>
         )}
@@ -477,17 +477,17 @@ function PreviewPanel({ mode, prompt, prepared, endpoint, icon: Icon }) {
   }
 
   return (
-    <div className="rounded-xl border border-page-divider bg-white p-5">
-      <div className="flex items-start gap-3">
+    <div className="min-w-0 max-w-full rounded-xl border border-page-divider bg-white p-4 sm:p-5">
+      <div className="flex min-w-0 items-start gap-3">
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
           <Icon size={19} />
         </div>
-        <div>
+        <div className="min-w-0">
           <h2 className="font-semibold text-page">{modeLabel(mode)} request preview</h2>
           <p className="mt-2 text-sm leading-6 text-page-secondary">
             {prepared ? prompt : 'Compose a prompt to preview the request body. Generation results are not simulated here.'}
           </p>
-          <p className="mt-3 font-mono text-xs text-page-muted">{endpoint}</p>
+          <p className="mt-3 break-all font-mono text-xs text-page-muted">{endpoint}</p>
         </div>
       </div>
     </div>
@@ -513,7 +513,7 @@ function SelectControl({ label, value, onChange, options }) {
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="input h-10"
+        className="input h-11"
       >
         {options.map((option) => (
           <option key={option} value={option}>{option}</option>

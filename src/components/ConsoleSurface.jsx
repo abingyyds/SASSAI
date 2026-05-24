@@ -13,7 +13,7 @@ const toneStyles = {
 
 export function ConsolePage({ children, className = '' }) {
   return (
-    <div className={`mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 ${className}`}>
+    <div className={`mx-auto min-w-0 max-w-7xl px-3 py-5 sm:px-6 sm:py-8 lg:px-8 ${className}`}>
       {children}
     </div>
   );
@@ -29,7 +29,7 @@ export function ConsoleHero({
   className = '',
 }) {
   return (
-    <section className={`glass relative overflow-hidden border border-page-divider p-4 shadow-sm sm:p-5 lg:p-6 ${className}`}>
+    <section className={`glass relative min-w-0 max-w-full overflow-hidden border border-page-divider p-4 shadow-sm sm:p-5 lg:p-6 ${className}`}>
       <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.95fr)]">
         <div className="min-w-0">
           {eyebrow && (
@@ -71,7 +71,7 @@ export function ConsoleStat({ icon: Icon, label, value, helper, tone = 'brand' }
           <div className="mt-2 break-words text-xl font-semibold tracking-tight text-page sm:text-2xl">
             {value}
           </div>
-          {helper && <p className="mt-1 text-xs leading-5 text-page-secondary">{helper}</p>}
+          {helper && <p className="mt-1 break-words text-xs leading-5 text-page-secondary [overflow-wrap:anywhere]">{helper}</p>}
         </div>
         {Icon && (
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
@@ -141,7 +141,7 @@ export function ConsoleBadge({ tone = 'slate', children, className = '' }) {
 
 export function ConsoleFrame({ children, className = '' }) {
   return (
-    <div className={`glass overflow-hidden border border-page-divider shadow-sm ${className}`}>
+    <div className={`glass min-w-0 max-w-full overflow-hidden border border-page-divider shadow-sm ${className}`}>
       {children}
     </div>
   );

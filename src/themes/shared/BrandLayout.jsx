@@ -84,6 +84,7 @@ export default function BrandLayout({ variant }) {
   const navItems = [
     { to: '/', label: t('nav.home'), auth: false },
     { to: '/packages', label: t('nav.packages'), auth: false },
+    { to: '/playground', label: 'Playground', auth: false, aliases: ['/chat'] },
     ...(site?.allow_sub_dist ? [{ to: '/sub-site', label: t('subDist.nav'), auth: false }] : []),
     { to: '/dashboard', label: t('nav.dashboard'), auth: true },
     { to: '/tokens', label: t('nav.apiKeys'), auth: true },
@@ -91,7 +92,11 @@ export default function BrandLayout({ variant }) {
     ...(site?.enable_topup ? [{ to: '/topup', label: t('nav.topup'), auth: true }] : []),
   ];
   const visibleNavItems = navItems.filter((n) => !n.auth || user);
-  const isNavActive = (to) => location.pathname === to || (to === '/logs' && location.pathname === '/tasks');
+  const isNavActive = (item) => (
+    location.pathname === item.to
+    || item.aliases?.some((alias) => location.pathname === alias || location.pathname.startsWith(`${alias}/`))
+    || (item.to === '/logs' && location.pathname === '/tasks')
+  );
 
   const handleLogout = async () => {
     await logout();
@@ -133,7 +138,7 @@ export default function BrandLayout({ variant }) {
                 key={n.to}
                 to={n.to}
                 className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors ${
-                  isNavActive(n.to) ? cfg.navActive : cfg.navIdle
+                  isNavActive(n) ? cfg.navActive : cfg.navIdle
                 }`}
               >
                 {n.label}
@@ -188,7 +193,7 @@ export default function BrandLayout({ variant }) {
                   to={n.to}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                    isNavActive(n.to) ? cfg.mobileActive : cfg.mobileIdle
+                    isNavActive(n) ? cfg.mobileActive : cfg.mobileIdle
                   }`}
                 >
                   {n.label}

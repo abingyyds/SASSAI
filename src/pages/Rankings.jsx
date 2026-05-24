@@ -15,7 +15,7 @@ import {
 } from '../components/public/CossLayout';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
 import {
-  formatUsageValue,
+  formatTokenUsageValue,
   getModelCategory,
   getModelDisplayName,
   getModelId,
@@ -83,8 +83,8 @@ export default function Rankings() {
         eyebrow="Model rankings"
         icon={Trophy}
         title="Rankings"
-        description="Compare public model families by catalog rank, category, real usage when available, and official pricing."
-        secondary="Usage is shown only when the public catalog returns a usage field. Missing values are displayed as unavailable."
+        description="Compare public model families by token usage, catalog rank, category, and official pricing."
+        secondary="Popularity uses token totals when the public catalog returns them. Missing values are displayed as unavailable."
         actions={(
           <div className="space-y-3">
             <CossSearchInput
@@ -132,7 +132,7 @@ export default function Rankings() {
                   <th className="px-5 py-3 font-medium">#</th>
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-5 py-3 font-medium">Category</th>
-                  <th className="px-5 py-3 text-right font-medium">Usage</th>
+                  <th className="px-5 py-3 text-right font-medium">Usage (tokens)</th>
                   <th className="px-5 py-3 text-right font-medium">Official price</th>
                 </tr>
               </thead>
@@ -150,7 +150,7 @@ export default function Rankings() {
                         <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
                       </td>
                       <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatUsageValue(model)}</td>
+                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatTokenUsageValue(model)}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
                     </tr>
                   ))}
@@ -181,7 +181,8 @@ export default function Rankings() {
                       <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="font-mono text-xs text-slate-700">{formatUsageValue(model)}</p>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Token usage</p>
+                      <p className="mt-1 font-mono text-xs text-slate-700">{formatTokenUsageValue(model)}</p>
                       <div className="mt-2"><ModelPrice model={model} compact /></div>
                     </div>
                   </div>

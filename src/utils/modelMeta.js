@@ -181,6 +181,7 @@ export const PUBLIC_MODEL_FIELDS = [
   'position',
   'order',
   ...REQUEST_FIELDS,
+  ...TOKEN_FIELDS,
 ].join(',');
 
 export const asNumber = (value) => {
@@ -634,14 +635,23 @@ export const mergeModelCatalog = (models = []) => {
         public_rank: publicRank,
         usage_count: null,
         request_count: null,
+        total_requests: null,
+        token_usage: null,
+        total_tokens: null,
       });
     }
 
     const group = groups.get(key);
+    const requestUsage = getUsageCount(model);
+    const tokenUsage = getTokenUsageValue(model);
+
     group.enabled = group.enabled || model?.enabled !== false;
     group.description = getGeneratedModelText(group, false);
-    group.usage_count = mergeUsage(group.usage_count, getUsageCount(model));
+    group.usage_count = mergeUsage(group.usage_count, requestUsage);
     group.request_count = group.usage_count;
+    group.total_requests = group.usage_count;
+    group.token_usage = mergeUsage(group.token_usage, tokenUsage);
+    group.total_tokens = group.token_usage;
 
     group.public_rank = Math.min(group.public_rank, publicRank);
     group.modalities = uniqueText([...(group.modalities || []), ...(Array.isArray(model?.modalities) ? model.modalities : [])]);
@@ -688,7 +698,8 @@ export const mergePublicModelCatalog = (models = [], pricingRows = []) =>
 
 export const hasUsageMetrics = (models) =>
   models.some((model) =>
-    REQUEST_FIELDS.some((key) => model?.[key] != null)
+    REQUEST_FIELDS.some((key) => model?.[key] != null) ||
+    TOKEN_FIELDS.some((key) => model?.[key] != null)
   );
 
 export const getUsageCount = (model) =>
@@ -697,8 +708,11 @@ export const getUsageCount = (model) =>
 export const getRequestCount = (model) =>
   getUsageCount(model) ?? 0;
 
+export const getTokenUsageValue = (model) =>
+  firstNumber(model, TOKEN_FIELDS);
+
 export const getTokenUsage = (model) =>
-  firstNumber(model, TOKEN_FIELDS) || 0;
+  getTokenUsageValue(model) ?? 0;
 
 export const getRating = (model) => {
   return firstNumber(model, RATING_FIELDS);
@@ -727,6 +741,12 @@ export const sortModels = (models, sortKey = 'popular') => {
     if (sortKey === 'requests') return getRequestCount(b) - getRequestCount(a);
     if (sortKey === 'tokens') return getTokenUsage(b) - getTokenUsage(a);
     if (sortKey === 'rating') return (getRating(b) || 0) - (getRating(a) || 0);
+    const tokenUsageA = getTokenUsageValue(a);
+    const tokenUsageB = getTokenUsageValue(b);
+    if (tokenUsageA !== null || tokenUsageB !== null) {
+      const tokenUsageDelta = (tokenUsageB ?? -1) - (tokenUsageA ?? -1);
+      if (tokenUsageDelta) return tokenUsageDelta;
+    }
     const usageA = getUsageCount(a);
     const usageB = getUsageCount(b);
     if (usageA !== null || usageB !== null) {
@@ -824,6 +844,11 @@ export const formatCompactNumber = (value) => {
 
 export const formatUsageValue = (modelOrValue) => {
   const value = typeof modelOrValue === 'object' ? getUsageCount(modelOrValue) : asNumber(modelOrValue);
+  return value === null ? '-' : formatCompactNumber(value);
+};
+
+export const formatTokenUsageValue = (modelOrValue) => {
+  const value = typeof modelOrValue === 'object' ? getTokenUsageValue(modelOrValue) : asNumber(modelOrValue);
   return value === null ? '-' : formatCompactNumber(value);
 };
 

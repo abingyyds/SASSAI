@@ -42,7 +42,7 @@ export default function SaasLayout() {
     { to: '/', label: 'Home', icon: Home, exact: true },
     { to: '/models', label: 'Models', icon: Boxes, prefix: '/models' },
     { to: '/rankings', label: 'Rankings', icon: Trophy },
-    { to: '/chat', label: 'Chat', icon: MessageSquareText, aliases: ['/playground'] },
+    { to: '/playground', label: 'Playground', icon: MessageSquareText, aliases: ['/chat'] },
     { to: '/docs/quickstart', label: 'Docs', icon: BookOpen, prefix: '/docs' },
   ];
   const consoleMenuItems = [

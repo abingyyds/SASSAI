@@ -139,7 +139,7 @@ export default function Register() {
               <span className="text-sm font-semibold text-slate-950">Docs</span>
               <ArrowRight size={17} className="shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
             </Link>
-            <Link to="/chat" className="group coss-card flex items-center justify-between gap-3 p-4">
+            <Link to="/playground" className="group coss-card flex items-center justify-between gap-3 p-4">
               <span className="text-sm font-semibold text-slate-950">Playground</span>
               <ArrowRight size={17} className="shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-slate-700" />
             </Link>
