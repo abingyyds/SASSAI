@@ -144,8 +144,8 @@ for await (const part of stream) {
       </CossPageHeader>
 
       <CossSection>
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-          <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <aside className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
             <CossCardFrame className="p-3">
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
                 {navItems.map((item) => (
@@ -159,7 +159,7 @@ for await (const part of stream) {
               <p className="text-sm font-semibold text-slate-950">Current example model</p>
               <p className="mt-2 truncate font-mono text-xs text-slate-500">{chatModelId}</p>
               <div className="mt-3 flex gap-2">
-                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary min-h-9 flex-1 px-3 py-2 text-xs">
+                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary min-h-9 min-w-0 flex-1 px-3 py-2 text-xs">
                   Playground
                 </Link>
                 <CopyButton text={chatModelId} iconOnly className="h-9 w-9 px-0 py-0" />
@@ -167,7 +167,7 @@ for await (const part of stream) {
             </CossCardFrame>
           </aside>
 
-          <div className="space-y-6">
+          <div className="min-w-0 space-y-6">
             <DocCard id="api-key" icon={KeyRound} title="Get API key">
               <p className="text-sm leading-6 text-slate-600">
                 Create an account, open API Keys, and generate a key. Send it as a bearer token on every request to the API subdomain.
@@ -314,20 +314,20 @@ function CopyRow({ label, value }) {
 
 function DocCard({ id, icon: Icon, title, children }) {
   return (
-    <CossCardFrame as="section" id={id} className="scroll-mt-8 p-4 sm:p-6">
-      <div className="mb-4 flex items-center gap-2">
+    <CossCardFrame as="section" id={id} className="min-w-0 scroll-mt-8 overflow-hidden p-4 sm:p-6">
+      <div className="mb-4 flex min-w-0 items-center gap-2">
         <CossIconTile icon={Icon} />
-        <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
+        <h2 className="min-w-0 break-words text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
       </div>
-      <div className="space-y-5">{children}</div>
+      <div className="min-w-0 space-y-5">{children}</div>
     </CossCardFrame>
   );
 }
 
 function LinkCard({ to, title, text }) {
   return (
-    <Link to={to} className="block rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
-      <p className="font-semibold text-slate-950">{title}</p>
+    <Link to={to} className="block min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
+      <p className="break-words font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
     </Link>
   );
@@ -335,8 +335,8 @@ function LinkCard({ to, title, text }) {
 
 function Trouble({ title, text }) {
   return (
-    <CossCard className="bg-slate-50 p-4">
-      <p className="font-semibold text-slate-950">{title}</p>
+    <CossCard className="min-w-0 bg-slate-50 p-4">
+      <p className="break-words font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
     </CossCard>
   );
