@@ -3,33 +3,34 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpDown, Boxes, ExternalLink, Search, SlidersHorizontal } from 'lucide-react';
 import { getMarketplaceModels, getSiteModels } from '../api';
 import CopyButton from '../components/CopyButton';
-import ModelBadges, { AvailabilityBadge } from '../components/ModelBadges';
+import ModelBadges from '../components/ModelBadges';
 import ModelPrice from '../components/ModelPrice';
 import {
-  filterModels,
   extractCollection,
+  filterModels,
   formatCompactNumber,
   getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
-  getProviderGroups,
-  getProviderName,
-  getRequestCount,
-  getTokenUsage,
+  getSupportedModes,
+  mergeModelCatalog,
   sortModels,
 } from '../utils/modelMeta';
 
 const primaryCategories = ['Chat', 'Image', 'Audio', 'Video', 'Embedding', 'Rerank'];
+const sortOptions = [
+  { key: 'popular', label: 'Popular' },
+  { key: 'price', label: 'Lowest price' },
+  { key: 'name', label: 'Name' },
+];
 
 export default function Models() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [models, setModels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('q') || '');
-  const [provider, setProvider] = useState(searchParams.get('vendor') || searchParams.get('provider') || '');
   const [category, setCategory] = useState(searchParams.get('category') || '');
-  const [status, setStatus] = useState(searchParams.get('status') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || 'popular');
   const [dataSource, setDataSource] = useState('marketplace');
 
@@ -37,15 +38,15 @@ export default function Models() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 300 })
       .then((res) => {
         if (cancelled) return;
-        setModels(extractCollection(res, ['models']));
+        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
         setDataSource('marketplace');
       })
       .catch(() => getSiteModels().then((res) => {
         if (cancelled) return;
-        setModels(extractCollection(res, ['models']));
+        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
         setDataSource('fallback');
       }))
       .catch(() => {
@@ -66,26 +67,21 @@ export default function Models() {
   useEffect(() => {
     const next = new URLSearchParams();
     if (search) next.set('q', search);
-    if (provider) next.set('vendor', provider);
     if (category) next.set('category', category);
-    if (status) next.set('status', status);
     if (sort !== 'popular') next.set('sort', sort);
     setSearchParams(next, { replace: true });
-  }, [search, provider, category, status, sort, setSearchParams]);
+  }, [search, category, sort, setSearchParams]);
 
   const enabledModels = useMemo(() => models.filter((model) => model.enabled !== false), [models]);
-  const providerGroups = useMemo(() => getProviderGroups(enabledModels), [enabledModels]);
   const categories = useMemo(() => (
     Array.from(new Set([...primaryCategories, ...enabledModels.map(getModelCategory)])).filter(Boolean)
   ), [enabledModels]);
+  const modeCount = useMemo(() => new Set(enabledModels.flatMap((model) => getSupportedModes(model))).size, [enabledModels]);
 
   const filteredModels = useMemo(() => {
-    const filtered = filterModels(enabledModels, { search, provider, category, status });
+    const filtered = filterModels(enabledModels, { search, category });
     return sortModels(filtered, sort);
-  }, [enabledModels, search, provider, category, status, sort]);
-
-  const totalRequests = useMemo(() => enabledModels.reduce((sum, model) => sum + getRequestCount(model), 0), [enabledModels]);
-  const totalTokens = useMemo(() => enabledModels.reduce((sum, model) => sum + getTokenUsage(model), 0), [enabledModels]);
+  }, [enabledModels, search, category, sort]);
 
   if (loading) {
     return (
@@ -103,20 +99,20 @@ export default function Models() {
             <div className="max-w-3xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
                 <Boxes size={15} />
-                AI model marketplace
+                Public model catalog
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Models</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
-                Search every listed model, compare live marketplace pricing, and jump directly into docs or the playground with the model id already selected.
+                Browse the public catalog grouped by model family. Duplicate vendor routes are merged into one visible model entry, and internal routing details stay hidden.
               </p>
               <div className="mt-5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                 {dataSource === 'marketplace' ? 'Live marketplace data' : 'Site catalog fallback'}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 lg:min-w-[420px]">
-              <Stat label="Models" value={enabledModels.length} />
-              <Stat label="Providers" value={providerGroups.length} />
-              <Stat label={totalRequests > 0 ? 'Requests' : 'Token rows'} value={totalRequests > 0 ? formatCompactNumber(totalRequests) : totalTokens > 0 ? formatCompactNumber(totalTokens) : categories.length} />
+              <Stat label="Models" value={formatCompactNumber(enabledModels.length)} />
+              <Stat label="Categories" value={formatCompactNumber(categories.length)} />
+              <Stat label="Modes" value={formatCompactNumber(modeCount)} />
             </div>
           </div>
         </div>
@@ -131,36 +127,20 @@ export default function Models() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-950 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                placeholder="Search model, provider, vendor, capability"
+                placeholder="Search model or capability"
               />
             </label>
 
-            <Select label="Provider" value={provider} onChange={setProvider}>
-              <option value="">All providers</option>
-              {providerGroups.map((group) => (
-                <option key={group.key} value={group.name}>{group.name}</option>
-              ))}
-            </Select>
             <Select label="Category" value={category} onChange={setCategory}>
               <option value="">All categories</option>
               {categories.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
             </Select>
-            <Select label="Availability" value={status} onChange={setStatus}>
-              <option value="">Any status</option>
-              <option value="Online">Online</option>
-              <option value="Limited">Limited</option>
-              <option value="Listed">Listed</option>
-            </Select>
             <Select label="Sort" value={sort} onChange={setSort} icon={ArrowUpDown}>
-              <option value="popular">Popularity</option>
-              <option value="price">Lowest price</option>
-              <option value="availability">Availability</option>
-              <option value="name">Name</option>
-              <option value="requests">Requests</option>
-              <option value="tokens">Token usage</option>
-              <option value="rating">Rating</option>
+              {sortOptions.map((item) => (
+                <option key={item.key} value={item.key}>{item.label}</option>
+              ))}
             </Select>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -210,10 +190,8 @@ export default function Models() {
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
                     <th className="px-5 py-3 font-medium">Model</th>
-                    <th className="px-5 py-3 font-medium">Provider</th>
-                    <th className="px-5 py-3 font-medium">Capabilities</th>
+                    <th className="px-5 py-3 font-medium">Category</th>
                     <th className="px-5 py-3 text-right font-medium">Price</th>
-                    <th className="px-5 py-3 text-center font-medium">Availability</th>
                     <th className="px-5 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -229,10 +207,8 @@ export default function Models() {
                           <CopyButton text={getModelId(model)} label="Copy id" iconOnly className="h-7 w-7 px-0 py-0" />
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-slate-700">{getProviderName(model)}</td>
-                      <td className="px-5 py-4"><ModelBadges model={model} /></td>
+                      <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
-                      <td className="px-5 py-4 text-center"><AvailabilityBadge model={model} /></td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
@@ -252,15 +228,10 @@ export default function Models() {
             <div className="grid gap-4 lg:hidden">
               {filteredModels.map((model) => (
                 <article key={getModelId(model)} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
-                        {getModelDisplayName(model)}
-                      </Link>
-                      <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
-                    </div>
-                    <AvailabilityBadge model={model} />
-                  </div>
+                  <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
+                    {getModelDisplayName(model)}
+                  </Link>
+                  <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
                   <div className="mt-3"><ModelBadges model={model} /></div>
                   <div className="mt-4"><ModelPrice model={model} /></div>
                   <div className="mt-4 flex gap-2">

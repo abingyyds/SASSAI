@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, KeyRound, Play, Server } from 'lucide-react';
 import { getMarketplaceModels, getSiteModels } from '../api';
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
-import ModelBadges, { AvailabilityBadge } from '../components/ModelBadges';
+import ModelBadges from '../components/ModelBadges';
 import ModelPrice from '../components/ModelPrice';
 import {
   buildCurlSnippet,
@@ -22,8 +22,9 @@ import {
   getModelId,
   getModelRoute,
   getOutputPrice,
-  getProviderName,
+  getPreferredMode,
   isPerCallModel,
+  mergeModelCatalog,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/SiteContext';
@@ -41,12 +42,12 @@ export default function ModelDetail() {
     let cancelled = false;
     setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100 })
+    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 300 })
       .then((res) => {
-        if (!cancelled) setModels(extractCollection(res, ['models']));
+        if (!cancelled) setModels(mergeModelCatalog(extractCollection(res, ['models'])));
       })
       .catch(() => getSiteModels().then((res) => {
-        if (!cancelled) setModels(extractCollection(res, ['models']));
+        if (!cancelled) setModels(mergeModelCatalog(extractCollection(res, ['models'])));
       }))
       .catch(() => {
         if (!cancelled) setModels([]);
@@ -66,9 +67,9 @@ export default function ModelDetail() {
 
   const related = useMemo(() => {
     if (!model) return [];
-    const provider = getProviderName(model);
+    const family = getModelCategory(model);
     return models
-      .filter((item) => item.enabled !== false && getModelId(item) !== getModelId(model) && getProviderName(item) === provider)
+      .filter((item) => item.enabled !== false && getModelId(item) !== getModelId(model) && getModelCategory(item) === family)
       .slice(0, 4);
   }, [models, model]);
 
@@ -96,8 +97,9 @@ export default function ModelDetail() {
 
   const modelName = getModelDisplayName(model);
   const id = getModelId(model);
-  const channels = Array.isArray(model.channels) ? model.channels : [];
+  const channels = [];
   const perCall = isPerCallModel(model);
+  const preferredMode = getPreferredMode(model);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -110,12 +112,11 @@ export default function ModelDetail() {
           <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
             <div className="min-w-0">
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <AvailabilityBadge model={model} />
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
                   {getModelCategory(model)}
                 </span>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600">
-                  {getProviderName(model)}
+                  {preferredMode.toUpperCase()}
                 </span>
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">{modelName}</h1>
@@ -142,9 +143,8 @@ export default function ModelDetail() {
               <h2 className="text-sm font-semibold text-slate-950">Pricing</h2>
               <div className="mt-3"><ModelPrice model={model} /></div>
               <dl className="mt-4 space-y-3 text-sm">
-                <MetaRow label="Provider" value={getProviderName(model)} />
                 <MetaRow label="Base URL" value={baseUrl} copy />
-                <MetaRow label="Channels" value={channels.length ? channels.length : 'Catalog default'} />
+                <MetaRow label="Display only" value="Single public model card" />
               </dl>
             </aside>
           </div>
@@ -205,97 +205,9 @@ export default function ModelDetail() {
               </table>
             </div>
           </div>
-
-          {channels.length > 0 && (
-            <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-slate-950">Provider route pricing</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Channel prices are shown when the catalog exposes provider-level economics.
-              </p>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full min-w-[760px] text-sm">
-                  <thead>
-                    <tr className="border-b border-slate-200 text-left text-slate-500">
-                      <th className="px-3 py-3 font-medium">Provider</th>
-                      <th className="px-3 py-3 text-right font-medium">Input</th>
-                      <th className="px-3 py-3 text-right font-medium">Output</th>
-                      <th className="px-3 py-3 text-right font-medium">Cache read</th>
-                      <th className="px-3 py-3 text-right font-medium">Cache write</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {channels.map((channel, index) => {
-                      const channelPerCall = isPerCallModel(channel);
-                      return (
-                        <tr key={`${channel.provider_slug || channel.provider_name || index}`} className="border-b border-slate-100 last:border-0">
-                          <td className="px-3 py-3">
-                            <div className="flex items-center gap-3">
-                              {channel.provider_logo ? (
-                                <img src={channel.provider_logo} alt="" className="h-7 w-7 rounded-md object-cover" loading="lazy" />
-                              ) : (
-                                <span className="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md bg-slate-100 text-xs font-semibold text-slate-500">
-                                  {channel.channel_index || index + 1}
-                                </span>
-                              )}
-                              <div className="min-w-0">
-                                <p className="truncate font-medium text-slate-950">
-                                  {channel.provider_name || channel.provider_slug || `Route ${index + 1}`}
-                                </p>
-                                {channel.provider_website && (
-                                  <a href={channel.provider_website} target="_blank" rel="noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-xs text-sky-700 hover:text-sky-900">
-                                    Provider site
-                                    <ExternalLink size={12} />
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-700">
-                            {channelPerCall ? 'Per call' : formatTokenPrice(getInputPrice(channel), symbol, rate)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-700">
-                            {channelPerCall ? formatPerCallPrice(getFixedPrice(channel), symbol, rate) : formatTokenPrice(getOutputPrice(channel), symbol, rate)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-700">
-                            {channelPerCall ? '-' : formatTokenPrice(getCacheReadPrice(channel), symbol, rate)}
-                          </td>
-                          <td className="px-3 py-3 text-right font-mono text-slate-700">
-                            {channelPerCall ? '-' : formatTokenPrice(getCacheCreationPrice(channel), symbol, rate)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
         </div>
 
         <aside className="space-y-6">
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="font-semibold text-slate-950">Provider routes</h2>
-            <div className="mt-4 space-y-3">
-              {channels.length > 0 ? channels.slice(0, 8).map((channel, index) => (
-                <div key={`${channel.provider_slug || channel.provider_name || index}`} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-slate-950">{channel.provider_name || channel.provider_slug || `Route ${index + 1}`}</p>
-                    {channel.provider_website && (
-                      <a href={channel.provider_website} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-950">
-                        <ExternalLink size={14} />
-                      </a>
-                    )}
-                  </div>
-                  {channel.provider_description && (
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{channel.provider_description}</p>
-                  )}
-                </div>
-              )) : (
-                <p className="text-sm text-slate-600">No channel-level provider data was returned for this model.</p>
-              )}
-            </div>
-          </div>
-
           {related.length > 0 && (
             <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="font-semibold text-slate-950">Related models</h2>

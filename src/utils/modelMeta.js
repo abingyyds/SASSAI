@@ -230,6 +230,80 @@ export const getPreferredMode = (model) => {
   return 'chat';
 };
 
+const uniqueByKey = (items, keyFn) => {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = keyFn(item);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const mergePrice = (values, reducer = Math.min) => {
+  const nums = values.map(asNumber).filter((value) => value !== null);
+  if (nums.length === 0) return null;
+  return reducer(...nums);
+};
+
+export const getModelFamilyKey = (model) => {
+  const raw = normalizeText(model?.upstream_model || model?.canonical_model_name || model?.model_name || model?.display_name || model?.name || model?.id);
+  return normalizeLower(raw);
+};
+
+export const mergeModelCatalog = (models = []) => {
+  const groups = new Map();
+
+  models.forEach((model) => {
+    if (!model || model.enabled === false) return;
+    const key = getModelFamilyKey(model) || normalizeLower(getModelId(model));
+    if (!groups.has(key)) {
+      groups.set(key, {
+        ...model,
+        model_name: model?.upstream_model || model?.canonical_model_name || model?.model_name || model?.display_name || model?.id,
+        display_name: model?.display_name || model?.name || model?.model_name || model?.upstream_model || model?.id,
+        description: model?.description || '',
+        enabled: model?.enabled !== false,
+        sources: [],
+        channels: [],
+        input_price: asNumber(model?.input_price),
+        output_price: asNumber(model?.output_price),
+        fixed_price: asNumber(model?.fixed_price),
+        cache_read_price: asNumber(model?.cache_read_price),
+        cache_creation_price: asNumber(model?.cache_creation_price),
+      });
+    }
+
+    const group = groups.get(key);
+    group.sources.push(model);
+    group.enabled = group.enabled || model?.enabled !== false;
+    group.description = [group.description, model?.description].filter(Boolean).sort((a, b) => b.length - a.length)[0] || group.description;
+    group.input_price = mergePrice([group.input_price, model?.input_price]);
+    group.output_price = mergePrice([group.output_price, model?.output_price]);
+    group.fixed_price = mergePrice([group.fixed_price, model?.fixed_price]);
+    group.cache_read_price = mergePrice([group.cache_read_price, model?.cache_read_price]);
+    group.cache_creation_price = mergePrice([group.cache_creation_price, model?.cache_creation_price]);
+
+    if (!group.display_name || group.display_name === group.model_name) {
+      group.display_name = model?.display_name || model?.name || model?.model_name || model?.upstream_model || group.display_name;
+    }
+
+    const nextChannels = getChannels(model);
+    if (nextChannels.length) {
+      group.channels = uniqueByKey([...group.channels, ...nextChannels], (channel) => [channel?.provider_slug, channel?.provider_name, channel?.channel_name, channel?.id].filter(Boolean).join('::').toLowerCase());
+    }
+
+    const currentTags = Array.isArray(group.tags) ? group.tags : [];
+    const nextTags = Array.isArray(model?.tags) ? model.tags : [];
+    group.tags = uniqueText([...currentTags, ...nextTags]);
+  });
+
+  return Array.from(groups.values()).map((group) => ({
+    ...group,
+    channels: uniqueByKey(group.channels || [], (channel) => [channel?.provider_slug, channel?.provider_name, channel?.channel_name, channel?.id].filter(Boolean).join('::').toLowerCase()),
+  }));
+};
+
 export const hasUsageMetrics = (models) =>
   models.some((model) =>
     [...REQUEST_FIELDS, ...TOKEN_FIELDS, ...RATING_FIELDS].some((key) => model?.[key] != null)
