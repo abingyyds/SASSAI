@@ -1,0 +1,15 @@
+Implemented the auth visual refresh for only:
+
+- [src/pages/Login.jsx](/Users/minihanshi/project/SASSAI/src/pages/Login.jsx)
+- [src/pages/Register.jsx](/Users/minihanshi/project/SASSAI/src/pages/Register.jsx)
+
+What changed: both pages now use a premium two-column SaaS layout with dark SubRouter-style hero panels, gradient/grid background, glass form cards, API base URL context, model catalog/quickstart/playground cues, and mobile stacking. Auth logic, form fields, validation, redirects, affiliate behavior, toasts, API calls, and existing translation keys were kept intact.
+
+Verification:
+- `npm run build` passed.
+- `git diff --check` passed.
+- Regression grep on touched files found no Chinese text, merchant/internal wording, localhost/wrong API base, or OpenRouter API base references.
+
+Dev server is running for review at `http://127.0.0.1:3002/`.
+
+Remaining visual caveats: none known from build/static checks; final polish should be reviewed in-browser on login/register desktop and mobile widths.
