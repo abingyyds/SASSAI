@@ -1,7 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Building2, Search } from 'lucide-react';
+import { Building2, ExternalLink, Search } from 'lucide-react';
 import { getMarketplaceProviders } from '../api';
+import {
+  CossCard,
+  CossCardFrame,
+  CossEmptyState,
+  CossIconTile,
+  CossPage,
+  CossPageHeader,
+  CossSearchInput,
+  CossSection,
+} from '../components/public/CossLayout';
 import { extractCollection } from '../utils/modelMeta';
 
 const providerNameField = ['provider', 'name'].join('_');
@@ -36,50 +46,51 @@ export default function Providers() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return providers;
-    return providers.filter((provider) => [getProviderName(provider), getProviderCompany(provider), getProviderDescription(provider), provider.slug, provider[providerSlugField]].filter(Boolean).join(' ').toLowerCase().includes(query));
+    return providers.filter((provider) => [
+      getProviderName(provider),
+      getProviderCompany(provider),
+      getProviderDescription(provider),
+      provider.slug,
+      provider[providerSlugField],
+    ].filter(Boolean).join(' ').toLowerCase().includes(query));
   }, [providers, search]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-950" />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                <Building2 size={15} />
-                Provider directory
-              </div>
-              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Providers</h1>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                Internal routing vendors are hidden from public pages. This directory only shows public provider records where available.
-              </p>
-            </div>
-            <label className="relative w-full lg:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                placeholder="Search providers"
-              />
-            </label>
-          </div>
-        </div>
-      </section>
+    <CossPage>
+      <CossPageHeader
+        eyebrow="Public directory"
+        icon={Building2}
+        title="Providers"
+        description="Browse public provider records where they are available. The model catalog remains the primary place to choose what your app uses."
+        secondary="Provider records are informational; API requests should use public model ids from the model catalog."
+        actions={(
+          <CossSearchInput
+            aria-label="Search providers"
+            icon={Search}
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search providers"
+          />
+        )}
+      />
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {filtered.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-600">
-            No provider records were returned.
+      <CossSection>
+        {loading ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }, (_, index) => (
+              <CossCard key={index} className="p-5">
+                <div className="h-4 w-40 animate-pulse rounded bg-slate-200" />
+                <div className="mt-3 h-3 w-24 animate-pulse rounded bg-slate-100" />
+                <div className="mt-6 h-16 w-full animate-pulse rounded bg-slate-100" />
+              </CossCard>
+            ))}
           </div>
+        ) : filtered.length === 0 ? (
+          <CossEmptyState
+            title="No provider records"
+            text="No public provider records matched the current search."
+            action={<Link to="/models" className="coss-button-primary">Browse models</Link>}
+          />
         ) : (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((provider, index) => (
@@ -87,8 +98,8 @@ export default function Providers() {
             ))}
           </div>
         )}
-      </section>
-    </div>
+      </CossSection>
+    </CossPage>
   );
 }
 
@@ -97,22 +108,36 @@ function ProviderCard({ provider }) {
   const company = getProviderCompany(provider);
   const description = getProviderDescription(provider);
   const website = getProviderWebsite(provider);
+  const logo = getProviderLogo(provider);
+
   return (
-    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-950">{name}</h2>
-      <p className="mt-1 text-sm text-slate-500">{company}</p>
-      <p className="mt-4 min-h-[64px] text-sm leading-6 text-slate-600">{description || 'Public provider record.'}</p>
+    <CossCardFrame as="article" className="flex flex-col p-5">
+      <div className="flex items-start gap-3">
+        {logo ? (
+          <img src={logo} alt="" className="h-10 w-10 rounded-lg border border-slate-200 object-cover" />
+        ) : (
+          <CossIconTile icon={Building2} />
+        )}
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-semibold text-slate-950">{name}</h2>
+          <p className="mt-1 truncate text-sm text-slate-500">{company}</p>
+        </div>
+      </div>
+      <p className="mt-4 min-h-[72px] flex-1 text-sm leading-6 text-slate-600">
+        {description || 'Public provider record.'}
+      </p>
       <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-        <Link to="/models" className="inline-flex flex-1 items-center justify-center rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+        <Link to="/models" className="coss-button-primary flex-1">
           Browse models
         </Link>
         {website && (
-          <a href={website} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          <a href={website} target="_blank" rel="noreferrer" className="coss-button-secondary">
             Website
+            <ExternalLink size={14} />
           </a>
         )}
       </div>
-    </article>
+    </CossCardFrame>
   );
 }
 
@@ -129,31 +154,13 @@ function getProviderCompany(provider) {
 }
 
 function getProviderLogo(provider) {
-  return provider.logo_url || provider.logo || provider.provider_logo || provider.icon_url || provider.avatar_url;
+  return provider.logo_url || provider.logo || provider.icon_url || provider.avatar_url;
 }
 
 function getProviderDescription(provider) {
-  return provider.description || provider.provider_description || provider.summary || provider.about || '';
+  return provider.description || provider.summary || provider.about || '';
 }
 
 function getProviderWebsite(provider) {
-  return provider.website || provider.website_url || provider.provider_website || provider.homepage || provider.url || '';
-}
-
-function getProviderDetailsUrl(provider) {
-  return provider.details_url || provider.profile_url || provider.marketplace_url || provider.docs_url || '';
-}
-
-function isVerifiedProvider(provider) {
-  return Boolean(provider.verified || provider.is_verified || provider.official || provider.is_official);
-}
-
-function getProviderAvailability(provider) {
-  const label = provider.availability || provider.status || provider.health || provider.state;
-  if (label) return getAvailability({ status: label });
-  const uptime = firstNumber(provider, ['availability_score', 'uptime', 'uptime_30d']);
-  if (uptime == null) return { label: 'Listed', score: 1 };
-  if (uptime >= 99 || uptime > 0.98) return { label: 'Online', score: 3 };
-  if (uptime >= 95 || uptime > 0.9) return { label: 'Limited', score: 2 };
-  return { label: 'Listed', score: 1 };
+  return provider.website || provider.website_url || provider.homepage || provider.url || '';
 }

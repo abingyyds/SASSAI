@@ -2,6 +2,17 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpDown, BarChart3, Database, Search, Trophy } from 'lucide-react';
 import ModelPrice from '../components/ModelPrice';
+import {
+  CossCard,
+  CossCardFrame,
+  CossPage,
+  CossPageHeader,
+  CossSearchInput,
+  CossSection,
+  CossSelect,
+  CossTabs,
+  CossTableFrame,
+} from '../components/public/CossLayout';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
 import {
   formatUsageValue,
@@ -64,71 +75,42 @@ export default function Rankings() {
       : enabledModels;
     return sortModels(base, sort).slice(0, 100);
   }, [enabledModels, search, sort]);
+  const activeSortLabel = sortOptions.find((item) => item.key === sort)?.label || 'Popular';
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                <Trophy size={15} />
-                Model rankings
-              </div>
-              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Rankings</h1>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                Browse the public model leaderboard by family, category, usage, and price.
-              </p>
-              <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                <Database size={13} />
-                {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
-              </div>
+    <CossPage>
+      <CossPageHeader
+        eyebrow="Model rankings"
+        icon={Trophy}
+        title="Rankings"
+        description="Compare public model families by catalog rank, category, real usage when available, and official pricing."
+        secondary="Usage is shown only when the public catalog returns a usage field. Missing values are displayed as unavailable."
+        actions={(
+          <div className="space-y-3">
+            <CossSearchInput
+              aria-label="Search rankings"
+              icon={Search}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search rankings"
+            />
+            <div className="coss-chip">
+              <Database size={13} />
+              {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
             </div>
-            <label className="relative w-full lg:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                placeholder="Search rankings"
-              />
-            </label>
           </div>
-        </div>
-      </section>
+        )}
+      />
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <CossSection>
+        <CossCardFrame className="mb-5 p-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap gap-2">
+            <CossTabs items={sortOptions} value={sort} onChange={setSort} />
+            <CossSelect label="Sort" value={sort} onChange={setSort} icon={ArrowUpDown} className="w-full lg:w-[220px]">
               {sortOptions.map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  onClick={() => setSort(item.key)}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                    sort === item.key
-                      ? 'bg-slate-950 text-white'
-                      : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-                  }`}
-                >
-                  {item.label}
-                </button>
+                <option key={item.key} value={item.key}>{item.label}</option>
               ))}
-            </div>
-            <label className="relative w-full lg:w-auto lg:min-w-[220px]">
-              <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <select
-                value={sort}
-                onChange={(event) => setSort(event.target.value)}
-                className="h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white pl-9 pr-8 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-              >
-                {sortOptions.map((item) => (
-                  <option key={item.key} value={item.key}>{item.label}</option>
-                ))}
-              </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">⌄</span>
-            </label>
+            </CossSelect>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span className="inline-flex items-center gap-2">
@@ -137,12 +119,12 @@ export default function Rankings() {
             </span>
             <span>Public model families only</span>
           </div>
-        </div>
+        </CossCardFrame>
 
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:px-5">
-            {loading ? 'Loading ranked models' : `${filteredModels.length} ranked models · ${sortOptions.find((item) => item.key === sort)?.label || 'Popular'}`}
-          </div>
+        <CossTableFrame
+          title={loading ? 'Loading ranked models' : `${filteredModels.length} ranked models`}
+          meta={activeSortLabel}
+        >
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[800px] text-sm">
               <thead>
@@ -151,7 +133,7 @@ export default function Rankings() {
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-5 py-3 font-medium">Category</th>
                   <th className="px-5 py-3 text-right font-medium">Usage</th>
-                  <th className="px-5 py-3 text-right font-medium">Price</th>
+                  <th className="px-5 py-3 text-right font-medium">Official price</th>
                 </tr>
               </thead>
               {loading ? (
@@ -159,12 +141,13 @@ export default function Rankings() {
               ) : (
                 <tbody>
                   {filteredModels.map((model, index) => (
-                    <tr key={getModelId(model)} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50">
+                    <tr key={getModelId(model)} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50/80">
                       <td className="px-5 py-4 font-mono text-slate-500">{index + 1}</td>
                       <td className="px-5 py-4">
-                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-sky-700">
+                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-slate-700">
                           {getModelDisplayName(model)}
                         </Link>
+                        <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
                       </td>
                       <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
                       <td className="px-5 py-4 text-right font-mono text-slate-700">{formatUsageValue(model)}</td>
@@ -206,9 +189,14 @@ export default function Rankings() {
               ))
             )}
           </div>
-        </div>
-      </section>
-    </div>
+          {!loading && filteredModels.length === 0 && (
+            <CossCard className="m-4 p-8 text-center text-sm text-slate-600">
+              No ranked models match the current search.
+            </CossCard>
+          )}
+        </CossTableFrame>
+      </CossSection>
+    </CossPage>
   );
 }
 

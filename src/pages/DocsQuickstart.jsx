@@ -4,6 +4,15 @@ import { AlertCircle, ArrowRight, BookOpen, CreditCard, KeyRound, Layers3, Refre
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
 import {
+  CossCard,
+  CossCardFrame,
+  CossIconTile,
+  CossMutedCard,
+  CossPage,
+  CossPageHeader,
+  CossSection,
+} from '../components/public/CossLayout';
+import {
   getDocsModelCatalog,
   readDocsModelCatalog,
   SUBROUTER_API_BASE_URL,
@@ -39,11 +48,14 @@ export default function DocsQuickstart() {
 
   useEffect(() => {
     let cancelled = false;
+
     getDocsModelCatalog()
       .then((catalog) => {
-        if (!cancelled) setModels(catalog.models);
+        if (cancelled) return;
+        setModels(catalog.models);
       })
       .catch(() => {});
+
     return () => {
       cancelled = true;
     };
@@ -95,79 +107,64 @@ for await (const part of stream) {
   };
 
   return (
-    <div className="coss-page">
-      <section className="coss-page-header">
-        <div className="coss-container grid gap-6 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
-          <div className="max-w-3xl">
-            <div className="coss-chip">
-              <BookOpen size={14} />
-              Documentation
-            </div>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-              SubRouter API quickstart
-            </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
-              Use the API base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
-            </p>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-              The quickstart covers key creation, the base URL, model selection, request shapes, multimodal input, pricing, and migration notes. Public examples use the API subdomain, not the website origin.
-            </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link to={user ? '/tokens' : '/register'} className="coss-button-primary">
-                <KeyRound size={16} />
-                {user ? 'Open API keys' : 'Create account'}
-              </Link>
-              <Link to="/models" className="coss-button-secondary">
-                Explore models
-                <ArrowRight size={16} />
-              </Link>
-            </div>
-          </div>
-
-          <div className="coss-card-muted p-4">
+    <CossPage>
+      <CossPageHeader
+        eyebrow="Documentation"
+        icon={BookOpen}
+        title="SubRouter API quickstart"
+        description="Use a SubRouter API key with the API subdomain base URL, choose a public model id, and send OpenAI-compatible chat completions requests."
+        secondary="The quickstart focuses on key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes."
+        actions={(
+          <CossCardFrame className="p-5">
             <div className="flex items-center gap-2">
-              <Server size={17} className="text-slate-500" />
-              <h2 className="text-sm font-semibold text-slate-950">Endpoint</h2>
+              <CossIconTile icon={Server} />
+              <h2 className="font-semibold text-slate-950">Endpoint</h2>
             </div>
             <div className="mt-4 space-y-3">
               <CopyRow label="Base URL" value={baseUrl} />
               <CopyRow label="Chat" value={`${baseUrl}/chat/completions`} />
               <CopyRow label="Model id" value={chatModelId} />
             </div>
-            <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
               The main website domain with a /v1 path is not a valid API base. Use the API subdomain base URL shown above.
             </p>
-          </div>
+          </CossCardFrame>
+        )}
+      >
+        <div className="mt-7 grid gap-3 sm:flex sm:flex-row">
+          <Link to={user ? '/tokens' : '/register'} className="coss-button-primary px-5 py-3">
+            <KeyRound size={16} />
+            {user ? 'Open API keys' : 'Create account'}
+          </Link>
+          <Link to="/models" className="coss-button-secondary px-5 py-3">
+            Explore models
+            <ArrowRight size={16} />
+          </Link>
         </div>
-      </section>
+      </CossPageHeader>
 
-      <section className="coss-container py-8 sm:py-10">
+      <CossSection>
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            <div className="coss-card p-3">
+            <CossCardFrame className="p-3">
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
                 {navItems.map((item) => (
-                  <a
-                    key={item.id}
-                    href={`#${item.id}`}
-                    className="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full"
-                  >
+                  <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full">
                     {item.label}
                   </a>
                 ))}
               </div>
-            </div>
-
-            <div className="coss-card p-4">
+            </CossCardFrame>
+            <CossCardFrame className="p-4">
               <p className="text-sm font-semibold text-slate-950">Current example model</p>
               <p className="mt-2 truncate font-mono text-xs text-slate-500">{chatModelId}</p>
               <div className="mt-3 flex gap-2">
-                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary flex-1 px-3 py-2 text-xs">
+                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary min-h-9 flex-1 px-3 py-2 text-xs">
                   Playground
                 </Link>
                 <CopyButton text={chatModelId} iconOnly className="h-9 w-9 px-0 py-0" />
               </div>
-            </div>
+            </CossCardFrame>
           </aside>
 
           <div className="space-y-6">
@@ -182,7 +179,7 @@ for await (const part of stream) {
               <p className="text-sm leading-6 text-slate-600">
                 Use the API subdomain base URL for OpenAI-compatible requests. Do not derive the API base URL from the website origin.
               </p>
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
                 The main website domain with a /v1 path is not a valid API base. Clients must use <code className="font-mono">{baseUrl}</code>.
               </div>
               <div className="grid gap-3 md:grid-cols-3">
@@ -201,7 +198,7 @@ Content-Type: application/json`}
 
             <DocCard id="selection" icon={Layers3} title="Model selection">
               <p className="text-sm leading-6 text-slate-600">
-                Pick model ids from the public catalog, then match the request shape to the model category. Public listings are deduped by model family, so users choose a model rather than a route.
+                Pick model ids from the public catalog, then match the request shape to the model category. Public listings are deduped by model family, so users choose a stable model id.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
                 <CopyRow label="Chat example" value={chatModelId} />
@@ -234,28 +231,32 @@ Content-Type: application/json`}
                 For vision-capable chat models, send message content as an array of typed parts. Keep the same /chat/completions endpoint and choose a model whose catalog entry supports the needed modality.
               </p>
               <CodeBlock title="Vision request" language="bash" code={jsonCurl(`${baseUrl}/chat/completions`, multimodalBody)} />
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Text-only models should continue to send a string <code className="font-mono text-slate-900">content</code>. Use typed content parts only for models that support image or other multimodal inputs.
               </div>
             </DocCard>
 
             <DocCard id="models" icon={Layers3} title="Model IDs and catalog">
               <p className="text-sm leading-6 text-slate-600">
-                Model IDs are copied from the public catalog and used exactly in API requests. Duplicate routes are shown as one public model family.
+                Model IDs are copied from the public catalog and used exactly in API requests. Duplicate catalog entries are shown as one public model family.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
                 <LinkCard to="/models" title="Models" text="Filter by chat, image, audio, video, embedding, and rerank." />
                 <LinkCard to="/rankings" title="Rankings" text="Review public model rank, category, usage, and official price." />
                 <LinkCard to="/playground" title="Playground" text="Build request payloads and copy code samples." />
               </div>
-              <CodeBlock title="Public catalog page" language="text" code="/models" />
+              <CodeBlock
+                title="Public catalog page"
+                language="text"
+                code="/models"
+              />
             </DocCard>
 
             <DocCard id="pricing" icon={CreditCard} title="Pricing and cache pricing">
               <p className="text-sm leading-6 text-slate-600">
                 Model cards show official USD input and output values from the public pricing feed. Per-call models show a call price when one is returned.
               </p>
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Always check the selected model details before production rollout because catalog pricing can change.
               </div>
             </DocCard>
@@ -273,7 +274,7 @@ Content-Type: application/json`}
 
             <DocCard id="migration" icon={RefreshCw} title="Migrating from OpenAI or OpenRouter">
               <p className="text-sm leading-6 text-slate-600">
-                Keep the OpenAI SDK shape for chat. Change the base URL to the SubRouter API subdomain, replace the API key, and use a public catalog model id. OpenRouter-specific optional headers are not required unless your own app depends on them.
+                Keep the OpenAI SDK shape for chat. Change the base URL to the SubRouter API subdomain, replace the API key, and use a public catalog model id. Optional headers from other gateways are not required unless your own app depends on them.
               </p>
               <CodeBlock
                 title="Before and after"
@@ -288,44 +289,44 @@ model=${chatModelId}`}
               />
             </DocCard>
 
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
               <AlertCircle size={17} className="mr-2 inline-block align-[-3px]" />
               Browser pages in this frontend compose requests but do not run generation without an API key. Use the playground to prepare payloads, then run them from your server, terminal, or trusted client.
             </div>
           </div>
         </div>
-      </section>
-    </div>
+      </CossSection>
+    </CossPage>
   );
 }
 
 function CopyRow({ label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-3">
+    <CossMutedCard className="p-3">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <div className="mt-2 flex items-center gap-2">
         <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-800">{value}</code>
         <CopyButton text={String(value)} iconOnly className="h-8 w-8 px-0 py-0" />
       </div>
-    </div>
+    </CossMutedCard>
   );
 }
 
 function DocCard({ id, icon: Icon, title, children }) {
   return (
-    <section id={id} className="scroll-mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <CossCardFrame as="section" id={id} className="scroll-mt-8 p-4 sm:p-6">
       <div className="mb-4 flex items-center gap-2">
-        <Icon size={18} className="text-slate-500" />
+        <CossIconTile icon={Icon} />
         <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
       </div>
       <div className="space-y-5">{children}</div>
-    </section>
+    </CossCardFrame>
   );
 }
 
 function LinkCard({ to, title, text }) {
   return (
-    <Link to={to} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:bg-white">
+    <Link to={to} className="block rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
       <p className="font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
     </Link>
@@ -334,10 +335,10 @@ function LinkCard({ to, title, text }) {
 
 function Trouble({ title, text }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <CossCard className="bg-slate-50 p-4">
       <p className="font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
-    </div>
+    </CossCard>
   );
 }
 

@@ -24,6 +24,13 @@ import { getSitePackages, Q } from '../../api';
 import CodeBlock from '../../components/CodeBlock';
 import ModelBadges, { AvailabilityBadge } from '../../components/ModelBadges';
 import ModelPrice from '../../components/ModelPrice';
+import {
+  CossCard,
+  CossCardFrame,
+  CossPageHeader,
+  CossSection,
+  CossStat,
+} from '../../components/public/CossLayout';
 import { PUBLIC_API_BASE_URL } from '../../constants/api';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 import {
@@ -117,142 +124,118 @@ export default function SaasHome() {
   ];
 
   return (
-    <div className="overflow-hidden bg-[#f7f9fc] text-slate-950">
-      <HomeMotionStyles />
-
-      <section className="saas-home-field relative isolate overflow-hidden border-b border-white/10 text-white">
-        <div className="saas-home-grid pointer-events-none absolute inset-0 opacity-70" />
-        <div className="saas-home-sweep pointer-events-none absolute inset-y-0 -left-1/4 w-1/2 opacity-60" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#f7f9fc] to-transparent" />
-
-        <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 pb-14 pt-12 sm:px-6 sm:pb-16 sm:pt-16 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:pb-20 lg:pt-20">
-          <div className="max-w-3xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/[0.15] bg-white/[0.08] px-3 py-1.5 text-sm font-medium text-cyan-50 shadow-sm backdrop-blur">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75 saas-home-pulse" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-300" />
-              </span>
-              AI model catalog and global gateway
-            </div>
-
-            <h1 className="max-w-4xl text-5xl font-semibold leading-[1.02] text-white sm:text-6xl lg:text-7xl">
-              {siteName}
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">
-              Explore public model families, compare official pricing, create API keys, and run production AI workflows through one OpenAI-compatible base URL.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link
-                to={user ? '/tokens' : '/register'}
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-semibold text-slate-950 shadow-xl shadow-cyan-950/20 transition hover:-translate-y-0.5 hover:bg-cyan-50"
-              >
-                <KeyRound size={17} />
-                Get API key
-              </Link>
-              <Link
-                to="/models"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-white/[0.15] bg-white/[0.08] px-6 py-3 text-sm font-semibold text-white backdrop-blur transition hover:-translate-y-0.5 hover:border-cyan-200/60 hover:bg-white/[0.14]"
-              >
-                <Boxes size={17} />
-                Explore models
-              </Link>
-              <Link
-                to={`/chat?model=${encodeURIComponent(defaultModelId)}`}
-                className="inline-flex items-center justify-center gap-2 rounded-lg px-6 py-3 text-sm font-semibold text-slate-200 transition hover:text-white"
-              >
-                <Play size={17} />
-                Open playground
-              </Link>
-            </div>
-
-            <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
-              {heroStats.map((stat) => (
-                <HeroStat key={stat.label} {...stat} />
-              ))}
-            </div>
-
-            <div className="mt-7 flex flex-wrap items-center gap-3 text-xs text-slate-300">
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-emerald-300" />
-                OpenAI-compatible
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-emerald-300" />
-                Public model catalog
-              </span>
-              <span className="inline-flex items-center gap-2">
-                <CheckCircle2 size={15} className="text-emerald-300" />
-                Base URL: {baseUrl}
-              </span>
-            </div>
-          </div>
-
+    <div className="coss-page overflow-hidden">
+      <CossPageHeader
+        eyebrow="AI model catalog and gateway"
+        icon={Sparkles}
+        title={siteName}
+        description="Explore public model families, compare official pricing, create API keys, and run production AI workflows through one OpenAI-compatible base URL."
+        secondary="Public pages keep model choice, pricing, and API access visible without exposing private routing internals."
+        actions={(
           <GatewayPanel models={routeModels} baseUrl={baseUrl} totalModels={enabledModels.length} />
+        )}
+        stats={(
+          <>
+            {heroStats.map((stat) => (
+              <CossStat key={stat.label} label={stat.label} value={stat.value} detail={stat.detail} />
+            ))}
+          </>
+        )}
+      >
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <Link
+            to={user ? '/tokens' : '/register'}
+            className="coss-button-primary px-5 py-3"
+          >
+            <KeyRound size={17} />
+            Get API key
+          </Link>
+          <Link
+            to="/models"
+            className="coss-button-secondary px-5 py-3"
+          >
+            <Boxes size={17} />
+            Explore models
+          </Link>
+          <Link
+            to={`/chat?model=${encodeURIComponent(defaultModelId)}`}
+            className="coss-button-ghost px-5 py-3"
+          >
+            <Play size={17} />
+            Open playground
+          </Link>
         </div>
-      </section>
+        <div className="mt-6 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-emerald-600" />
+            OpenAI-compatible
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-emerald-600" />
+            Public model catalog
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-emerald-600" />
+            Base URL: {baseUrl}
+          </span>
+        </div>
+      </CossPageHeader>
 
-      <section className="border-b border-slate-200 bg-white py-8">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
+      <CossSection className="py-8">
+        <div className="grid gap-4 sm:grid-cols-3">
           <EndpointCard title="Base URL" value={baseUrl} icon={Server} />
           <EndpointCard title="Chat completions" value={`${baseUrl}/chat/completions`} icon={Code2} />
           <EndpointCard title="Model catalog" value="/models" icon={Boxes} link="/models" />
         </div>
-      </section>
+      </CossSection>
 
-      <section className="bg-[#f7f9fc] py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            eyebrow="Featured models"
-            title="Compare models before you route traffic."
-            text="Public model cards keep capability, status, and pricing signals visible before you commit a production workload."
-            action={{ to: '/models', label: 'View model catalog' }}
-          />
+      <CossSection>
+        <SectionHeader
+          eyebrow="Featured models"
+          title="Compare models before you launch."
+          text="Public model cards keep capability, status, and pricing signals visible before you commit a production workload."
+          action={{ to: '/models', label: 'View model catalog' }}
+        />
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {featuredModels.length > 0 ? (
-              featuredModels.map((model) => (
-                <FeaturedModelCard key={getModelId(model)} model={model} />
-              ))
-            ) : (
-              <CatalogSyncState />
-            )}
-          </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {featuredModels.length > 0 ? (
+            featuredModels.map((model) => (
+              <FeaturedModelCard key={getModelId(model)} model={model} />
+            ))
+          ) : (
+            <CatalogSyncState />
+          )}
         </div>
-      </section>
+      </CossSection>
 
-      <section className="border-y border-slate-200 bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <ModelRoutingVisual models={routeModels} baseUrl={baseUrl} />
+      <CossSection>
+        <ModelRoutingVisual models={routeModels} baseUrl={baseUrl} />
+      </CossSection>
+
+      <CossSection>
+        <SectionHeader
+          eyebrow="Gateway capabilities"
+          title="One API surface for a changing model ecosystem."
+          text="Keep integration work small while the model catalog, public pricing, and production access evolve around your app."
+        />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {valueCards.map((card) => (
+            <ValueCard key={card.title} {...card} />
+          ))}
         </div>
-      </section>
+      </CossSection>
 
-      <section className="bg-[#f7f9fc] py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHeader
-            eyebrow="Gateway capabilities"
-            title="One API surface for a changing model ecosystem."
-            text="Keep integration work small while the model catalog, public pricing, and production access evolve around your app."
-          />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {valueCards.map((card) => (
-              <ValueCard key={card.title} {...card} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-slate-200 bg-white py-16">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:px-8">
+      <CossSection>
+        <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-cyan-700">Catalog families</p>
+            <p className="text-sm font-semibold text-slate-700">Catalog families</p>
             <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
               Models grouped by public capability.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">
               These groups are generated from the same public model families used by pricing, tokens, and catalog pages.
             </p>
-            <Link to="/models" className="mt-7 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-slate-800">
+            <Link to="/models" className="coss-button-primary mt-7">
               Browse models <ArrowRight size={16} />
             </Link>
           </div>
@@ -263,23 +246,23 @@ export default function SaasHome() {
                 <CategoryCard key={group.key} group={group} />
               ))
             ) : (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-sm text-slate-600 sm:col-span-2">
+              <CossCard className="p-5 text-sm text-slate-600 sm:col-span-2">
                 The catalog is syncing. Model families will appear here when public catalog data is available.
-              </div>
+              </CossCard>
             )}
           </div>
         </div>
-      </section>
+      </CossSection>
 
-      <section className="bg-slate-950 py-16 text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.82fr_1.18fr] lg:px-8">
+      <CossSection>
+        <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-cyan-300">Quickstart</p>
-            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-white sm:text-4xl">
+            <p className="text-sm font-semibold text-slate-700">Quickstart</p>
+            <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
               Use your first model in minutes.
             </h2>
-            <p className="mt-4 text-sm leading-6 text-slate-300">
-              Keep the request shape familiar: generate a key, choose a public model id, and send traffic to the SubRouter API base.
+            <p className="mt-4 text-sm leading-6 text-slate-600">
+              Keep the request shape familiar: generate a key, choose a public model id, and send traffic to the API base.
             </p>
             <div className="mt-7 space-y-4">
               <QuickStep title="Create an API key" text="Generate a key from the signed-in API Keys page." />
@@ -293,28 +276,25 @@ export default function SaasHome() {
               title="First request"
               language="bash"
               code={buildCurlSnippet({ baseUrl, modelId: defaultModelId })}
-              className="border-white/10 shadow-2xl shadow-cyan-950/30"
             />
           </div>
         </div>
-      </section>
+      </CossSection>
 
       {enabledPackages.length > 0 && (
-        <section className="bg-[#f7f9fc] py-16">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <SectionHeader
-              eyebrow="Platform access"
-              title="Plans keep the existing credit and package flow intact."
-              text="Public package cards stay focused on plan value while billing, activation, and access controls continue through the existing platform flow."
-              action={{ to: '/packages', label: 'View packages' }}
-            />
-            <div className="grid gap-4 lg:grid-cols-3">
-              {enabledPackages.slice(0, 3).map((pkg) => (
-                <PackageCard key={pkg.id} pkg={pkg} fmtPlanPrice={fmtPlanPrice} />
-              ))}
-            </div>
+        <CossSection>
+          <SectionHeader
+            eyebrow="Platform access"
+            title="Plans keep the existing credit and package flow intact."
+            text="Public package cards stay focused on plan value while billing, activation, and access controls continue through the existing platform flow."
+            action={{ to: '/packages', label: 'View packages' }}
+          />
+          <div className="grid gap-4 lg:grid-cols-3">
+            {enabledPackages.slice(0, 3).map((pkg) => (
+              <PackageCard key={pkg.id} pkg={pkg} fmtPlanPrice={fmtPlanPrice} />
+            ))}
           </div>
-        </section>
+        </CossSection>
       )}
     </div>
   );
@@ -411,8 +391,8 @@ function GatewayPanel({ models, baseUrl, totalModels }) {
   ];
 
   return (
-    <div className="saas-home-float relative hidden lg:block">
-      <div className="rounded-lg border border-white/[0.12] bg-slate-950/[0.76] p-4 shadow-2xl shadow-cyan-950/[0.35] backdrop-blur">
+    <div className="relative">
+      <div className="rounded-lg border border-slate-800 bg-slate-950 p-4 shadow-xl shadow-slate-950/10">
         <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-4">
           <div className="min-w-0">
             <p className="text-xs font-medium text-cyan-200">Gateway console</p>
@@ -563,7 +543,7 @@ function ModelRoutingVisual({ models, baseUrl }) {
   return (
     <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
       <div>
-        <p className="text-sm font-semibold text-cyan-700">Model routing visual</p>
+        <p className="text-sm font-semibold text-slate-700">Model selection</p>
         <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
           One request path, many public model choices.
         </h2>
@@ -586,7 +566,7 @@ function ModelRoutingVisual({ models, baseUrl }) {
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-2.5 py-1 text-xs font-semibold text-cyan-100">
             <Route size={13} />
-            Public route
+            Public API
           </span>
         </div>
 
@@ -678,10 +658,10 @@ function UsagePanel({ baseUrl, modelId }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {rows.map((row) => (
-        <div key={row.label} className="rounded-lg border border-white/10 bg-white/[0.05] p-4">
-          <p className="text-xs text-slate-400">{row.label}</p>
-          <p className="mt-2 truncate font-mono text-sm font-semibold text-white">{row.value}</p>
-        </div>
+        <CossCard key={row.label} className="p-4">
+          <p className="text-xs text-slate-500">{row.label}</p>
+          <p className="mt-2 truncate font-mono text-sm font-semibold text-slate-950">{row.value}</p>
+        </CossCard>
       ))}
     </div>
   );
@@ -690,10 +670,10 @@ function UsagePanel({ baseUrl, modelId }) {
 function QuickStep({ title, text }) {
   return (
     <div className="flex gap-3">
-      <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0 text-emerald-300" />
+      <CheckCircle2 size={18} className="mt-0.5 flex-shrink-0 text-emerald-600" />
       <div>
-        <p className="font-semibold text-white">{title}</p>
-        <p className="mt-1 text-sm leading-6 text-slate-300">{text}</p>
+        <p className="font-semibold text-slate-950">{title}</p>
+        <p className="mt-1 text-sm leading-6 text-slate-600">{text}</p>
       </div>
     </div>
   );

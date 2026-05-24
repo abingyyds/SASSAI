@@ -15,6 +15,15 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/SiteContext';
 import {
+  CossCard,
+  CossCardFrame,
+  CossIconTile,
+  CossMutedCard,
+  CossPage,
+  CossPageHeader,
+  CossSection,
+} from '../components/public/CossLayout';
+import {
   createSiteSaasCheckout,
   getSiteSaasSubscriptions,
   getSiteModels,
@@ -53,11 +62,11 @@ function getSubscriptionStatus(sub) {
 
 function BillingStep({ icon: Icon, title, desc }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5">
-      <Icon size={20} className="text-cyan-700" />
+    <CossCard className="p-5">
+      <CossIconTile icon={Icon} />
       <h3 className="mt-4 text-sm font-semibold text-slate-950">{title}</h3>
       <p className="mt-2 text-sm leading-6 text-slate-600">{desc}</p>
-    </div>
+    </CossCard>
   );
 }
 
@@ -158,34 +167,24 @@ export default function Packages() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-slate-50">
+      <CossPage className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="animate-spin text-slate-400" size={28} />
-      </div>
+      </CossPage>
     );
   }
 
   return (
-    <div className="bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-          <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-800">
-              <RefreshCcw size={16} />
-              SaaS subscription billing
-            </div>
-            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl lg:text-5xl">
-              Subscribe once. Credits renew automatically.
-            </h1>
-            <p className="mt-5 text-lg leading-8 text-slate-600">
-              Pick a plan, complete Creem checkout, and the subscription activates automatically. Renewals keep your credits flowing without manual top-ups or extra purchase steps.
-            </p>
-          </div>
-        </div>
-      </section>
+    <CossPage>
+      <CossPageHeader
+        eyebrow="Subscription billing"
+        icon={RefreshCcw}
+        title="Subscribe once. Credits renew automatically."
+        description="Pick a plan, complete checkout, and the subscription activates automatically. Renewals keep your credits flowing without manual top-ups or extra purchase steps."
+      />
 
       {activeSubs.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <CossSection>
+          <CossCardFrame className="p-5">
             <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold text-slate-950">{t('packages.mySubscriptions')}</h2>
@@ -203,7 +202,7 @@ export default function Packages() {
                 const status = getSubscriptionStatus(sub);
 
                 return (
-                  <div key={sub.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <CossMutedCard key={sub.id} className="p-4">
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-slate-950">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
@@ -234,24 +233,24 @@ export default function Packages() {
                       <span>{symbol}{(remain / Q * rate).toFixed(2)} remaining</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-slate-200">
-                      <div className="h-full rounded-full bg-cyan-600" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-slate-950" style={{ width: `${pct}%` }} />
                     </div>
-                  </div>
+                  </CossMutedCard>
                 );
               })}
             </div>
-          </div>
-        </section>
+          </CossCardFrame>
+        </CossSection>
       )}
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <CossSection>
         {enabledPackages.length === 0 ? (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
+          <CossCardFrame className="p-10 text-center">
             <p className="text-slate-600">{t('packages.noPackages')}</p>
-            <Link to="/models?sort=price" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700">
+            <Link to="/models?sort=price" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
               {t('packages.checkPricing')} <ArrowRight size={16} />
             </Link>
-          </div>
+          </CossCardFrame>
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
             {enabledPackages.map((pkg, index) => {
@@ -263,8 +262,8 @@ export default function Packages() {
               return (
                 <div
                   key={pkg.id}
-                  className={`relative flex flex-col rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${
-                    isFeatured ? 'border-slate-950 shadow-lg shadow-slate-200' : 'border-slate-200'
+                  className={`coss-card-frame relative flex flex-col p-5 sm:p-6 ${
+                    isFeatured ? 'border-slate-950 shadow-lg shadow-slate-200' : ''
                   }`}
                 >
                   {isFeatured && (
@@ -290,14 +289,14 @@ export default function Packages() {
                       </p>
                     )}
 
-                    <div className="mt-6 rounded-xl border border-cyan-100 bg-cyan-50 p-4">
+                    <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
                       <div className="flex items-start gap-3">
-                        <RefreshCcw className="mt-0.5 text-cyan-700" size={18} />
+                        <RefreshCcw className="mt-0.5 text-slate-700" size={18} />
                         <div>
-                          <p className="text-sm font-semibold text-cyan-950">
+                          <p className="text-sm font-semibold text-slate-950">
                            {isSubscription ? 'Auto-renewing subscription' : 'One-time plan'}
                           </p>
-                          <p className="mt-1 text-sm leading-6 text-cyan-800">
+                          <p className="mt-1 text-sm leading-6 text-slate-600">
                             {isSubscription
                               ? 'Checkout, activation, and future renewals are handled automatically.'
                               : 'This plan can be activated immediately after checkout.'}
@@ -308,19 +307,19 @@ export default function Packages() {
 
                     <ul className="mt-6 space-y-3 text-sm text-slate-600">
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-cyan-700" />
+                        <BadgeCheck size={16} className="text-emerald-600" />
                         <span>{monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-cyan-700" />
-                        <span>{enabledModels.length || 50}+ model routing catalog</span>
+                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <span>{enabledModels.length || 50}+ public models</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-cyan-700" />
+                        <BadgeCheck size={16} className="text-emerald-600" />
                         <span>Automatic plan activation</span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <BadgeCheck size={16} className="text-cyan-700" />
+                        <BadgeCheck size={16} className="text-emerald-600" />
                         <span>OpenAI-compatible API keys</span>
                       </li>
                     </ul>
@@ -353,9 +352,9 @@ export default function Packages() {
             })}
           </div>
         )}
-      </section>
+      </CossSection>
 
-      <section className="mx-auto max-w-7xl px-4 pb-14 sm:px-6 lg:px-8">
+      <CossSection className="pb-14 pt-0">
         <div className="grid gap-4 md:grid-cols-4">
           <BillingStep
             icon={CreditCard}
@@ -378,7 +377,7 @@ export default function Packages() {
             desc="Successful renewals extend the plan without manual action."
           />
         </div>
-      </section>
-    </div>
+      </CossSection>
+    </CossPage>
   );
 }

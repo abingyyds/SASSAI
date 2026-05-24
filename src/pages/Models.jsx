@@ -4,6 +4,18 @@ import { ArrowUpDown, Boxes, ExternalLink, Search, SlidersHorizontal } from 'luc
 import CopyButton from '../components/CopyButton';
 import ModelBadges from '../components/ModelBadges';
 import ModelPrice from '../components/ModelPrice';
+import {
+  CossCard,
+  CossCardFrame,
+  CossEmptyState,
+  CossPage,
+  CossPageHeader,
+  CossSearchInput,
+  CossSection,
+  CossSelect,
+  CossStat,
+  CossTabs,
+} from '../components/public/CossLayout';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
 import {
   filterModels,
@@ -72,129 +84,91 @@ export default function Models() {
     Array.from(new Set([...primaryCategories, ...enabledModels.map(getModelCategory)])).filter(Boolean)
   ), [enabledModels]);
   const modeCount = useMemo(() => new Set(enabledModels.flatMap((model) => getSupportedModes(model))).size, [enabledModels]);
-
-  const filteredModels = useMemo(() => {
-    const filtered = filterModels(enabledModels, { search, category });
-    return sortModels(filtered, sort);
-  }, [enabledModels, search, category, sort]);
+  const filteredModels = useMemo(() => sortModels(filterModels(enabledModels, { search, category }), sort), [enabledModels, search, category, sort]);
+  const categoryTabs = useMemo(() => [
+    { key: '', label: 'All' },
+    ...categories.map((item) => ({ key: item, label: item })),
+  ], [categories]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                <Boxes size={15} />
-                Public model catalog
-              </div>
-              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Models</h1>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                Browse the public catalog grouped by model family. Duplicate catalog entries are merged into one visible model entry.
-              </p>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500">
-                Each card can include a short model description, so users can understand what the model is for before opening the detail or playground page.
-              </p>
-              <div className="mt-5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:min-w-[420px]">
-              <Stat label="Models" value={formatCompactNumber(enabledModels.length)} />
-              <Stat label="Categories" value={formatCompactNumber(categories.length)} />
-              <Stat label="Modes" value={formatCompactNumber(modeCount)} />
-            </div>
-          </div>
+    <CossPage>
+      <CossPageHeader
+        eyebrow="Public catalog"
+        icon={Boxes}
+        title="Models"
+        description="Browse public model families, compare official USD pricing, and open any model directly in the playground."
+        secondary="Catalog entries are merged by public model id so users choose a stable model rather than an internal delivery path."
+        stats={(
+          <>
+            <CossStat label="Models" value={formatCompactNumber(enabledModels.length)} />
+            <CossStat label="Categories" value={formatCompactNumber(categories.length)} />
+            <CossStat label="Modes" value={formatCompactNumber(modeCount)} />
+          </>
+        )}
+      >
+        <div className="mt-5 coss-chip">
+          {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
         </div>
-      </section>
+      </CossPageHeader>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-5 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-3 lg:flex-row">
-            <label className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-950 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-                placeholder="Search model or capability"
-              />
-            </label>
-
-            <Select label="Category" value={category} onChange={setCategory}>
+      <CossSection>
+        <CossCardFrame className="mb-5 p-4">
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_180px]">
+            <CossSearchInput
+              aria-label="Search models"
+              icon={Search}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search model or capability"
+            />
+            <CossSelect label="Category" value={category} onChange={setCategory}>
               <option value="">All categories</option>
               {categories.map((item) => (
                 <option key={item} value={item}>{item}</option>
               ))}
-            </Select>
-            <Select label="Sort" value={sort} onChange={setSort} icon={ArrowUpDown}>
+            </CossSelect>
+            <CossSelect label="Sort" value={sort} onChange={setSort} icon={ArrowUpDown}>
               {sortOptions.map((item) => (
                 <option key={item.key} value={item.key}>{item.label}</option>
               ))}
-            </Select>
+            </CossSelect>
           </div>
-          <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
-            <button
-              type="button"
-              onClick={() => setCategory('')}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                category === ''
-                  ? 'border-slate-950 bg-slate-950 text-white'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              All
-            </button>
-            {categories.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setCategory(item)}
-                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                  category.toLowerCase() === item.toLowerCase()
-                    ? 'border-slate-950 bg-slate-950 text-white'
-                    : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
+          <div className="mt-4">
+            <CossTabs items={categoryTabs} value={category} onChange={setCategory} />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-500">
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal size={14} />
               {filteredModels.length} of {enabledModels.length} models shown
             </span>
-            <span>{category || 'All categories'} · {sort}</span>
+            <span>{category || 'All categories'} / {sortOptions.find((item) => item.key === sort)?.label || 'Popular'}</span>
           </div>
-        </div>
+        </CossCardFrame>
 
         {loading ? (
           <ModelListSkeleton />
         ) : filteredModels.length === 0 ? (
-          <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-600">
-            No models match the current filters.
-          </div>
+          <CossEmptyState title="No matching models" text="Adjust the search, category, or sort settings to view more public model families." />
         ) : (
           <>
-            <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:block">
+            <CossCardFrame className="hidden overflow-hidden lg:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
                     <th className="px-5 py-3 font-medium">Model</th>
                     <th className="px-5 py-3 font-medium">Category</th>
-                    <th className="px-5 py-3 text-right font-medium">Price</th>
+                    <th className="px-5 py-3 text-right font-medium">Official price</th>
                     <th className="px-5 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredModels.map((model) => (
-                    <tr key={getModelId(model)} className="border-b border-slate-100 align-top last:border-0 hover:bg-slate-50">
+                    <tr key={getModelId(model)} className="border-b border-slate-100 align-top last:border-0 hover:bg-slate-50/80">
                       <td className="px-5 py-4">
-                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-sky-700">
+                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-slate-700">
                           {getModelDisplayName(model)}
                         </Link>
-                        <div className="mt-1 flex items-center gap-2">
+                        <div className="mt-1 flex max-w-xl items-center gap-2">
                           <code className="truncate font-mono text-xs text-slate-500">{getModelId(model)}</code>
                           <CopyButton text={getModelId(model)} label="Copy id" iconOnly className="h-7 w-7 px-0 py-0" />
                         </div>
@@ -206,10 +180,10 @@ export default function Models() {
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-800">
+                          <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="coss-button-primary min-h-9 px-3 py-2 text-xs">
                             Try <ExternalLink size={13} />
                           </Link>
-                          <Link to={getModelRoute(model)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                          <Link to={getModelRoute(model)} className="coss-button-secondary min-h-9 px-3 py-2 text-xs">
                             Details
                           </Link>
                         </div>
@@ -218,41 +192,45 @@ export default function Models() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </CossCardFrame>
 
             <div className="grid gap-4 lg:hidden">
               {filteredModels.map((model) => (
-                <article key={getModelId(model)} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                  <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
-                    {getModelDisplayName(model)}
-                  </Link>
-                  <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                <CossCard key={getModelId(model)} as="article" className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
+                        {getModelDisplayName(model)}
+                      </Link>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                    </div>
+                    <CopyButton text={getModelId(model)} iconOnly className="h-8 w-8 shrink-0 px-0 py-0" />
+                  </div>
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
-                  <div className="mt-3"><ModelBadges model={model} /></div>
+                  <div className="mt-3"><ModelBadges model={model} limit={4} /></div>
                   <div className="mt-4"><ModelPrice model={model} /></div>
-                  <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
-                    <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white">
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="coss-button-primary min-h-9 px-3 py-2 text-xs">
                       Try in playground
                     </Link>
-                    <Link to={getModelRoute(model)} className="flex min-h-9 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-700">
+                    <Link to={getModelRoute(model)} className="coss-button-secondary min-h-9 px-3 py-2 text-xs">
                       Details
                     </Link>
-                    <CopyButton text={getModelId(model)} iconOnly className="h-9 w-9 px-0 py-0" />
                   </div>
-                </article>
+                </CossCard>
               ))}
             </div>
           </>
         )}
-      </section>
-    </div>
+      </CossSection>
+    </CossPage>
   );
 }
 
 function ModelListSkeleton() {
   return (
     <>
-      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:block">
+      <CossCardFrame className="hidden overflow-hidden lg:block">
         <table className="w-full text-sm">
           <tbody>
             {Array.from({ length: 8 }, (_, index) => (
@@ -265,44 +243,16 @@ function ModelListSkeleton() {
             ))}
           </tbody>
         </table>
-      </div>
+      </CossCardFrame>
       <div className="grid gap-4 lg:hidden">
         {Array.from({ length: 4 }, (_, index) => (
-          <div key={index} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+          <CossCard key={index} className="p-4">
             <div className="h-4 w-44 animate-pulse rounded bg-slate-200" />
             <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
             <div className="mt-5 h-10 w-full animate-pulse rounded bg-slate-100" />
-          </div>
+          </CossCard>
         ))}
       </div>
     </>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-3 sm:px-4">
-      <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 break-words text-xl font-semibold text-slate-950 sm:text-2xl">{value}</p>
-    </div>
-  );
-}
-
-function Select({ label, value, onChange, children, icon: Icon }) {
-  return (
-    <label className="min-w-0 flex-1 lg:min-w-[160px] lg:flex-none">
-      <span className="sr-only">{label}</span>
-      <div className="relative">
-        {Icon && <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />}
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className={`h-11 w-full appearance-none rounded-lg border border-slate-200 bg-white ${Icon ? 'pl-9' : 'pl-3'} pr-8 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100`}
-        >
-          {children}
-        </select>
-        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">⌄</span>
-      </div>
-    </label>
   );
 }

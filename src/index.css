@@ -270,7 +270,7 @@
   .coss-page {
     min-height: 100vh;
     background:
-      linear-gradient(180deg, #f8fafc 0%, #ffffff 38%, #f8fafc 100%);
+      linear-gradient(180deg, #f8fafc 0%, #ffffff 42%, #f8fafc 100%);
     color: #020617;
   }
 
@@ -279,21 +279,21 @@
   }
 
   .coss-page-header {
-    @apply border-b border-slate-200/80 bg-white/80 backdrop-blur-xl;
+    @apply border-b border-slate-200/80 bg-white/85 backdrop-blur-xl;
   }
 
   .coss-card {
-    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   }
 
   .coss-card-frame {
-    @apply rounded-2xl border border-slate-200 bg-white/95 shadow-xl backdrop-blur;
+    @apply rounded-xl border border-slate-200 bg-white shadow-xl backdrop-blur;
     box-shadow: 0 18px 56px rgba(15, 23, 42, 0.08);
   }
 
   .coss-card-muted {
-    @apply rounded-2xl border border-slate-200 bg-slate-50/80;
+    @apply rounded-xl border border-slate-200 bg-slate-50/80;
   }
 
   .coss-chip {
@@ -301,27 +301,35 @@
   }
 
   .coss-icon-tile {
-    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm;
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-sm;
   }
 
   .coss-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .coss-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .coss-button-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .coss-input {
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-950/5;
+    @apply w-full rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-950 shadow-sm transition focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-950/5;
   }
 
   .coss-input::placeholder {
     color: #94a3b8;
+  }
+
+  .coss-tab {
+    @apply shrink-0 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-950;
+  }
+
+  .coss-tab-active {
+    @apply border-slate-950 bg-slate-950 text-white hover:bg-slate-900 hover:text-white;
   }
 
   .input-solid {
