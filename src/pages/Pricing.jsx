@@ -46,15 +46,15 @@ export default function Pricing() {
   ), [enabledModels, search]);
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 rounded-lg border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="mb-8 rounded-lg border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
           <div className="max-w-3xl">
             <p className="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-cyan-700">
               <CreditCard size={15} />
               Official pricing
             </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-normal text-slate-950">{t('pricing.title')}</h1>
+            <h1 className="mt-3 text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">{t('pricing.title')}</h1>
             <p className="mt-4 text-base leading-7 text-slate-600">
               Public prices are merged from the official pricing feed and shown by model family. Route-specific marketplace prices are not displayed.
             </p>
@@ -83,7 +83,7 @@ export default function Pricing() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[760px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
@@ -118,6 +118,32 @@ export default function Pricing() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            <div className="divide-y divide-slate-100 md:hidden">
+              {filtered.map((model) => (
+                <div key={getModelId(model)} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-cyan-700">
+                        {getModelDisplayName(model)}
+                      </Link>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                      <p className="mt-2 text-xs text-slate-600">{getModelCategory(model)}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <ModelPrice model={model} compact />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex gap-2">
+                    <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="flex-1 rounded-lg bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white">
+                      Try
+                    </Link>
+                    <Link to={getModelRoute(model)} className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-center text-xs font-semibold text-slate-700">
+                      Details
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}

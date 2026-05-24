@@ -167,7 +167,7 @@ export default function Playground() {
                 <MessageSquareText size={15} />
                 Playground
               </div>
-              <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Test requests</h1>
+              <h1 className="text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">Test requests</h1>
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 Compose chat, image, video, or audio requests for the selected model and copy them to run with an API key.
               </p>
@@ -185,7 +185,7 @@ export default function Playground() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
+      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
         <div className="space-y-5">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 bg-slate-50 p-4">
@@ -218,7 +218,7 @@ export default function Playground() {
                   Show all builders
                 </label>
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
                 {visibleModes.map((mode) => {
                   const Icon = mode.icon;
                   const supported = mode.key === 'chat' || supportedModes.includes(mode.key);
@@ -227,7 +227,7 @@ export default function Playground() {
                       key={mode.key}
                       type="button"
                       onClick={() => selectMode(mode.key)}
-                      className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
                         activeMode === mode.key
                           ? 'border-slate-950 bg-slate-950 text-white'
                           : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
@@ -242,7 +242,7 @@ export default function Playground() {
               </div>
             </div>
 
-            <div className="grid min-h-[600px] grid-rows-[1fr_auto]">
+            <div className="grid min-h-[520px] grid-rows-[1fr_auto] lg:min-h-[600px]">
               <div className="space-y-5 overflow-auto p-5">
                 <div className="flex gap-3">
                   <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
@@ -323,7 +323,7 @@ export default function Playground() {
                 ))}
               </div>
               <ModelPrice model={selectedModel} />
-              <div className="mt-4 flex gap-2">
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 <Link to={getModelRoute(selectedModel)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
                   Details
                 </Link>

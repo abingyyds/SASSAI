@@ -11,20 +11,22 @@ export default function LogSubnav({ active }) {
 
   return (
     <div className="mb-6 flex justify-center">
-      <div className="inline-flex rounded-full border border-page-divider bg-page-surface p-1 shadow-sm">
-        {items.map((item) => (
-          <Link
-            key={item.key}
-            to={item.to}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-              active === item.key
-                ? 'bg-brand-600 text-white'
-                : 'text-page-muted hover:bg-page-surface-hover hover:text-page'
-            }`}
-          >
-            {item.label}
-          </Link>
-        ))}
+      <div className="-mx-2 flex w-full justify-start overflow-x-auto px-2 sm:mx-0 sm:justify-center">
+        <div className="inline-flex shrink-0 rounded-full border border-page-divider bg-page-surface p-1 shadow-sm">
+          {items.map((item) => (
+            <Link
+              key={item.key}
+              to={item.to}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                active === item.key
+                  ? 'bg-brand-600 text-white'
+                  : 'text-page-muted hover:bg-page-surface-hover hover:text-page'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

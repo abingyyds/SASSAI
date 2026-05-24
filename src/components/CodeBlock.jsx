@@ -16,7 +16,7 @@ export default function CodeBlock({ title, language, code, className = '' }) {
           />
         </div>
       )}
-      <pre className="max-h-[520px] overflow-auto p-4 text-xs leading-6 text-slate-100 sm:text-sm">
+      <pre className="max-h-[520px] overflow-auto whitespace-pre-wrap break-words p-3 text-xs leading-6 text-slate-100 sm:p-4 sm:text-sm md:whitespace-pre">
         <code>{code}</code>
       </pre>
     </div>

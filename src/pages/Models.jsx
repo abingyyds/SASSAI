@@ -81,14 +81,14 @@ export default function Models() {
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
                 <Boxes size={15} />
                 Public model catalog
               </div>
-              <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Models</h1>
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Models</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
                 Browse the public catalog grouped by model family. Duplicate catalog entries are merged into one visible model entry.
               </p>
@@ -99,7 +99,7 @@ export default function Models() {
                 {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-3 lg:min-w-[420px]">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:min-w-[420px]">
               <Stat label="Models" value={formatCompactNumber(enabledModels.length)} />
               <Stat label="Categories" value={formatCompactNumber(categories.length)} />
               <Stat label="Modes" value={formatCompactNumber(modeCount)} />
@@ -133,11 +133,11 @@ export default function Models() {
               ))}
             </Select>
           </div>
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="-mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
             <button
               type="button"
               onClick={() => setCategory('')}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                 category === ''
                   ? 'border-slate-950 bg-slate-950 text-white'
                   : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -150,7 +150,7 @@ export default function Models() {
                 key={item}
                 type="button"
                 onClick={() => setCategory(item)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold ${
                   category.toLowerCase() === item.toLowerCase()
                     ? 'border-slate-950 bg-slate-950 text-white'
                     : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
@@ -226,15 +226,15 @@ export default function Models() {
                   <Link to={getModelRoute(model)} className="font-semibold text-slate-950">
                     {getModelDisplayName(model)}
                   </Link>
-                  <p className="mt-1 truncate font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                  <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
                   <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
                   <div className="mt-3"><ModelBadges model={model} /></div>
                   <div className="mt-4"><ModelPrice model={model} /></div>
-                  <div className="mt-4 flex gap-2">
-                    <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="flex-1 rounded-lg bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white">
+                  <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2">
+                    <Link to={`/playground?model=${encodeURIComponent(getModelId(model))}`} className="flex min-h-9 items-center justify-center rounded-lg bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white">
                       Try in playground
                     </Link>
-                    <Link to={getModelRoute(model)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-700">
+                    <Link to={getModelRoute(model)} className="flex min-h-9 items-center justify-center rounded-lg border border-slate-200 px-3 py-2 text-center text-xs font-semibold text-slate-700">
                       Details
                     </Link>
                     <CopyButton text={getModelId(model)} iconOnly className="h-9 w-9 px-0 py-0" />
@@ -281,16 +281,16 @@ function ModelListSkeleton() {
 
 function Stat({ label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+    <div className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2 py-3 sm:px-4">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-1 break-words text-xl font-semibold text-slate-950 sm:text-2xl">{value}</p>
     </div>
   );
 }
 
 function Select({ label, value, onChange, children, icon: Icon }) {
   return (
-    <label className="min-w-[160px]">
+    <label className="min-w-0 flex-1 lg:min-w-[160px] lg:flex-none">
       <span className="sr-only">{label}</span>
       <div className="relative">
         {Icon && <Icon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />}

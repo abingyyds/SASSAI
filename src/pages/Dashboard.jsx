@@ -381,7 +381,7 @@ export default function Dashboard() {
               className="input flex-1"
               placeholder={t('dashboard.enterCode')}
             />
-            <button type="submit" disabled={redeeming} className="btn-primary whitespace-nowrap">
+            <button type="submit" disabled={redeeming} className="btn-primary justify-center whitespace-nowrap">
               {redeeming ? t('dashboard.redeeming') : t('dashboard.redeem')}
             </button>
           </form>
@@ -391,7 +391,7 @@ export default function Dashboard() {
           title={t('dashboard.quickLinks')}
           subtitle="Frequently used console areas."
         >
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <QuickLinkCard to="/tokens" title={t('dashboard.apiKeys')} desc={t('dashboard.manageKeys')} icon={KeyRound} />
             <QuickLinkCard to="/packages" title={t('dashboard.packages')} desc="Manage subscription billing" icon={Banknote} />
             <QuickLinkCard to="/pricing" title={t('dashboard.pricing')} desc={t('dashboard.modelPrices')} icon={Sparkles} />
@@ -431,22 +431,22 @@ export default function Dashboard() {
           <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div>
               <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.inviteLink')}</label>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <input type="text" readOnly value={affLink} className="input flex-1 text-sm" />
-                <button onClick={handleCopyAffLink} className="btn-secondary whitespace-nowrap px-4 py-2 text-sm">
+                <button onClick={handleCopyAffLink} className="btn-secondary justify-center whitespace-nowrap px-4 py-2 text-sm">
                   {t('topup.copy')}
                 </button>
               </div>
             </div>
 
             {(user?.aff_quota || 0) > 0 && (
-              <div className="flex items-end gap-2">
-                <button type="button" onClick={handleOpenWithdraw} className="btn-secondary whitespace-nowrap px-4 py-2 text-sm">
+              <div className="flex flex-col gap-3 sm:items-stretch lg:flex-row lg:items-end">
+                <button type="button" onClick={handleOpenWithdraw} className="btn-secondary justify-center whitespace-nowrap px-4 py-2 text-sm">
                   {t('topup.withdraw')}
                 </button>
                 <div className="flex-1">
                   <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.transferToBalance')}</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       type="number"
                       value={transferAmount}
@@ -455,7 +455,7 @@ export default function Dashboard() {
                       className="input flex-1 text-sm"
                       min={1}
                     />
-                    <button onClick={handleTransfer} disabled={transferring} className="btn-primary whitespace-nowrap px-4 py-2 text-sm">
+                    <button onClick={handleTransfer} disabled={transferring} className="btn-primary justify-center whitespace-nowrap px-4 py-2 text-sm">
                       {transferring ? t('topup.processing') : t('topup.transfer')}
                     </button>
                   </div>
@@ -554,7 +554,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 grid gap-2 sm:flex sm:justify-end sm:gap-3">
             <button type="button" onClick={handleCloseWithdraw} disabled={withdrawing} className="btn-secondary px-4 py-2">
               {t('tokens.cancel')}
             </button>
@@ -605,7 +605,7 @@ export default function Dashboard() {
             </Field>
           </div>
 
-          <div className="mt-6 flex justify-end gap-3">
+          <div className="mt-6 grid gap-2 sm:flex sm:justify-end sm:gap-3">
             <button type="button" onClick={handleCloseKolApply} disabled={kolApplyLoading} className="btn-secondary px-4 py-2">
               {t('tokens.cancel')}
             </button>
@@ -659,7 +659,7 @@ function Field({ label, children }) {
 function ModalShell({ title, subtitle, onClose, children }) {
   return (
     <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="glass w-full max-w-md rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="glass max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
         <div className="mb-5">
           <h3 className="text-lg font-semibold text-page mb-1">{title}</h3>
           <p className="text-sm text-page-secondary">{subtitle}</p>

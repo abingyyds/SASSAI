@@ -40,13 +40,13 @@ Model: choose from /models`;
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
               <PlugZap size={15} />
               Integrations
             </div>
-            <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Apps and SDKs</h1>
+            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Apps and SDKs</h1>
             <p className="mt-4 text-base leading-7 text-slate-600">
               Connect SDKs and clients that support OpenAI-compatible chat completions. Use your API key, the platform base URL, and any listed model id.
             </p>

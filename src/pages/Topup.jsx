@@ -585,11 +585,11 @@ export default function Topup() {
                     ))}
                   </div>
                   {selectedCreemProduct && (
-                    <div className="mt-4 flex justify-end">
+                    <div className="mt-4 flex justify-stretch sm:justify-end">
                       <button
                         onClick={() => handleCreemPay(selectedCreemProduct)}
                         disabled={paymentLoading}
-                        className="btn-primary px-6"
+                        className="btn-primary w-full justify-center px-6 sm:w-auto"
                       >
                         {paymentLoading && payingMethod === 'creem'
                           ? t('topup.processing')
@@ -654,8 +654,8 @@ export default function Topup() {
           ) : (
             <div className="space-y-2">
               {history.map((item, i) => (
-                <div key={i} className="flex items-center justify-between rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3">
-                  <div>
+                <div key={i} className="flex flex-col gap-3 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <p className="text-sm text-page">{symbol}{(Number(item.amount) * rate).toFixed(2)}</p>
                     <p className="text-xs text-page-muted">
                       {new Date(item.create_time * 1000).toLocaleString()} · {item.payment_method || t('topup.redeemCode')}

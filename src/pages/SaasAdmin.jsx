@@ -137,12 +137,12 @@ export default function SaasAdmin() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 px-4 py-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-8 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-cyan-700">Site-owned SaaS backend</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-950">SaaS Billing Admin</h1>
+            <h1 className="mt-3 text-2xl font-semibold text-slate-950 sm:text-3xl">SaaS Billing Admin</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
               Configure Creem, map SubRouter packages to Creem products, and upload the internal code pool used to activate subscriptions after payment.
             </p>
@@ -257,7 +257,7 @@ export default function SaasAdmin() {
             </button>
 
             <div className="mt-6 overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-5 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <div className="hidden grid-cols-5 bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500 sm:grid">
                 <span>Package</span>
                 <span>Total</span>
                 <span>Free</span>
@@ -268,12 +268,12 @@ export default function SaasAdmin() {
                 <p className="p-4 text-sm text-slate-500">No codes imported yet.</p>
               ) : (
                 state.code_stats.map((stat) => (
-                  <div key={stat.package_id} className="grid grid-cols-5 border-t border-slate-100 px-3 py-2 text-sm">
+                  <div key={stat.package_id} className="grid gap-2 border-t border-slate-100 px-3 py-3 text-sm sm:grid-cols-5 sm:py-2">
                     <span className="truncate font-mono text-xs text-slate-600">{stat.package_id}</span>
-                    <span>{stat.total}</span>
-                    <span className="text-emerald-700">{stat.available}</span>
-                    <span>{stat.subscribed}</span>
-                    <span className="text-rose-700">{stat.failed}</span>
+                    <span><span className="text-xs text-slate-500 sm:hidden">Total </span>{stat.total}</span>
+                    <span className="text-emerald-700"><span className="text-xs text-slate-500 sm:hidden">Free </span>{stat.available}</span>
+                    <span><span className="text-xs text-slate-500 sm:hidden">Activated </span>{stat.subscribed}</span>
+                    <span className="text-rose-700"><span className="text-xs text-slate-500 sm:hidden">Failed </span>{stat.failed}</span>
                   </div>
                 ))
               )}

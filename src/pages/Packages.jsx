@@ -167,13 +167,13 @@ export default function Packages() {
   return (
     <div className="bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-sm font-medium text-cyan-800">
               <RefreshCcw size={16} />
               SaaS subscription billing
             </div>
-            <h1 className="text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl">
+            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl lg:text-5xl">
               Subscribe once. Credits renew automatically.
             </h1>
             <p className="mt-5 text-lg leading-8 text-slate-600">
@@ -253,7 +253,7 @@ export default function Packages() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-5 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-3">
             {enabledPackages.map((pkg, index) => {
               const resetPeriod = pkg.quota_reset_period || 'monthly';
               const isSubscription = resetPeriod !== 'never' || pkg.creem_product_id || pkg.billing_interval;
@@ -263,7 +263,7 @@ export default function Packages() {
               return (
                 <div
                   key={pkg.id}
-                  className={`relative flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${
+                  className={`relative flex flex-col rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${
                     isFeatured ? 'border-slate-950 shadow-lg shadow-slate-200' : 'border-slate-200'
                   }`}
                 >
@@ -273,13 +273,13 @@ export default function Packages() {
                     </span>
                   )}
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-slate-950">{pkg.name}</h3>
+                    <h3 className="break-words text-lg font-semibold text-slate-950 sm:text-xl">{pkg.name}</h3>
                     {pkg.description && (
                       <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-600">{pkg.description}</p>
                     )}
 
-                    <div className="mt-7 flex items-end gap-2">
-                      <span className="text-4xl font-semibold tracking-normal text-slate-950">
+                    <div className="mt-6 flex items-end gap-2">
+                      <span className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">
                         {fmtPlanPrice(pkg.price, pkg.currency)}
                       </span>
                       <span className="pb-1 text-sm text-slate-500">/ {interval}</span>
@@ -307,21 +307,21 @@ export default function Packages() {
                     </div>
 
                     <ul className="mt-6 space-y-3 text-sm text-slate-600">
-                      <li className="flex items-center gap-2">
+                      <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-cyan-700" />
-                        {monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}
+                        <span>{monthlyCredit > 0 ? `${symbol}${(monthlyCredit * rate).toFixed(2)} ${getResetLabel(resetPeriod)} credit` : 'Custom credit allocation'}</span>
                       </li>
-                      <li className="flex items-center gap-2">
+                      <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-cyan-700" />
-                        {enabledModels.length || 50}+ model routing catalog
+                        <span>{enabledModels.length || 50}+ model routing catalog</span>
                       </li>
-                      <li className="flex items-center gap-2">
+                      <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-cyan-700" />
-                        Automatic plan activation
+                        <span>Automatic plan activation</span>
                       </li>
-                      <li className="flex items-center gap-2">
+                      <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-cyan-700" />
-                        OpenAI-compatible API keys
+                        <span>OpenAI-compatible API keys</span>
                       </li>
                     </ul>
                   </div>

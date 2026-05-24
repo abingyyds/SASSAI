@@ -68,14 +68,14 @@ export default function Rankings() {
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
                 <Trophy size={15} />
                 Model rankings
               </div>
-              <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Rankings</h1>
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">Rankings</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
                 Browse the public model leaderboard by family, category, usage, and price.
               </p>
@@ -116,7 +116,7 @@ export default function Rankings() {
                 </button>
               ))}
             </div>
-            <label className="relative min-w-[220px]">
+            <label className="relative w-full lg:w-auto lg:min-w-[220px]">
               <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <select
                 value={sort}
@@ -140,10 +140,10 @@ export default function Rankings() {
         </div>
 
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-600">
+          <div className="border-b border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 sm:px-5">
             {loading ? 'Loading ranked models' : `${filteredModels.length} ranked models · ${sortOptions.find((item) => item.key === sort)?.label || 'Popular'}`}
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[800px] text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-white text-left text-slate-500">
@@ -174,6 +174,37 @@ export default function Rankings() {
                 </tbody>
               )}
             </table>
+          </div>
+          <div className="divide-y divide-slate-100 md:hidden">
+            {loading ? (
+              Array.from({ length: 5 }, (_, index) => (
+                <div key={index} className="p-4">
+                  <div className="h-4 w-44 animate-pulse rounded bg-slate-200" />
+                  <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
+                </div>
+              ))
+            ) : (
+              filteredModels.map((model, index) => (
+                <Link key={getModelId(model)} to={getModelRoute(model)} className="block p-4 hover:bg-slate-50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs text-slate-500">#{index + 1}</span>
+                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">
+                          {getModelCategory(model)}
+                        </span>
+                      </div>
+                      <p className="mt-2 font-semibold text-slate-950">{getModelDisplayName(model)}</p>
+                      <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-mono text-xs text-slate-700">{formatUsageValue(model)}</p>
+                      <div className="mt-2"><ModelPrice model={model} compact /></div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            )}
           </div>
         </div>
       </section>

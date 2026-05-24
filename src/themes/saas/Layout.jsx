@@ -118,9 +118,9 @@ export default function SaasLayout() {
 
       <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/82 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+          <Link to="/" className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3 md:flex-none" onClick={() => setMobileMenuOpen(false)}>
             {site?.logo ? (
-              <img src={site.logo} alt={siteName} className="h-8 w-auto" />
+              <img src={site.logo} alt={siteName} className="h-8 w-auto max-w-[140px] object-contain sm:max-w-[180px]" />
             ) : (
               <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-semibold text-white">
                 {siteName.charAt(0)}
@@ -251,7 +251,7 @@ export default function SaasLayout() {
 
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 bg-white md:hidden">
-            <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
+            <nav className="mx-auto flex max-h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-1 overflow-y-auto px-4 py-3">
               {publicNavItems.map((item) => {
                 const { to, label, icon: Icon } = item;
                 return (
@@ -279,7 +279,7 @@ export default function SaasLayout() {
                   <LayoutDashboard size={16} />
                   Console
                 </Link>
-                <div className="mt-1 grid gap-1 pl-3">
+                <div className="mt-1 grid gap-1 pl-0 sm:pl-3">
                   {consoleMenuItems.map((item) => {
                     const { label, icon: Icon } = item;
                     return (

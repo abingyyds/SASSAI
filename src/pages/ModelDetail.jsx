@@ -101,7 +101,7 @@ export default function ModelDetail() {
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <Link to="/models" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-950">
             <ArrowLeft size={16} />
             Models
@@ -116,7 +116,7 @@ export default function ModelDetail() {
                   {preferredMode.toUpperCase()}
                 </span>
               </div>
-              <h1 className="text-4xl font-semibold tracking-normal text-slate-950">{modelName}</h1>
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">{modelName}</h1>
               <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-600">{getModelSummary(model)}</p>
               <div className="mt-4 flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                 <code className="min-w-0 flex-1 truncate font-mono text-sm text-slate-700">{id}</code>

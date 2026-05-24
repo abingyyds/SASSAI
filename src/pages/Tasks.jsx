@@ -257,6 +257,53 @@ export default function Tasks() {
     );
   });
 
+  const renderVideoCards = () => items.map((item) => {
+    const resultUrl = item.result_url || (isUrl(item.fail_reason) ? item.fail_reason : '');
+    return (
+      <div key={`video-${item.id || item.task_id}`} className="space-y-2 px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-page">{taskTypeLabel(item.action, 'video', t)}</p>
+            <p className="mt-1 break-all font-mono text-xs text-page-secondary">{item.task_id || '-'}</p>
+            <p className="mt-1 text-[11px] text-page-muted">{formatUnix(item.submit_time)} · {formatDuration(item.submit_time, item.finish_time, 's')}</p>
+          </div>
+          <ConsoleBadge tone={item.status === 'FAILURE' ? 'rose' : 'slate'}>{statusLabel(item.status, t)}</ConsoleBadge>
+        </div>
+        {renderProgress(item.progress, item.status)}
+        {resultUrl && item.status === 'SUCCESS' ? (
+          <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview({ type: 'video', url: resultUrl })}>{t('tasks.previewVideo')}</button>
+        ) : item.fail_reason ? (
+          <button type="button" className="max-w-full truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>{item.fail_reason}</button>
+        ) : null}
+      </div>
+    );
+  });
+
+  const renderImageCards = () => items.map((item) => {
+    const result = getImageTaskResult(item);
+    return (
+      <div key={`image-${item.id || item.mj_id}`} className="space-y-2 px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-page">{taskTypeLabel(item.action, 'image', t)}</p>
+            <p className="mt-1 break-all font-mono text-xs text-page-secondary">{item.mj_id || '-'}</p>
+            <p className="mt-1 text-[11px] text-page-muted">{formatMs(item.submit_time)} · {formatDuration(item.submit_time, item.finish_time, 'ms')}</p>
+          </div>
+          <ConsoleBadge tone={item.status === 'FAILURE' ? 'rose' : 'slate'}>{statusLabel(item.status, t)}</ConsoleBadge>
+        </div>
+        {renderProgress(item.progress, item.status)}
+        {(item.prompt || item.prompt_en) && (
+          <p className="line-clamp-3 text-xs leading-5 text-page-secondary">{item.prompt || item.prompt_en}</p>
+        )}
+        {result ? (
+          <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview(result)}>{result.type === 'video' ? t('tasks.previewVideo') : t('tasks.previewImage')}</button>
+        ) : item.fail_reason ? (
+          <button type="button" className="max-w-full truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>{item.fail_reason}</button>
+        ) : null}
+      </div>
+    );
+  });
+
   const stats = [
     <ConsoleStat key="submitted" icon={Clock3} label={t('tasks.submitTime')} value={String(total)} helper="Filtered task records" tone="cyan" />,
     <ConsoleStat key="mode" icon={mode === 'image' ? Image : Video} label="Current view" value={mode === 'image' ? 'Image tasks' : 'Video tasks'} helper="Toggle between generation records" tone="sky" />,
@@ -278,7 +325,7 @@ export default function Tasks() {
       />
 
       <div className="mt-6 flex justify-center">
-        <div className="inline-flex rounded-full border border-page-divider bg-page-surface/40 p-1">
+        <div className="inline-flex w-full max-w-sm rounded-full border border-page-divider bg-page-surface/40 p-1 sm:w-auto">
           {[
             { key: 'video', label: t('tasks.videoTasks'), icon: Video },
             { key: 'image', label: t('tasks.imageTasks'), icon: Image },
@@ -327,7 +374,7 @@ export default function Tasks() {
           <ConsoleEmpty icon={mode === 'image' ? Image : Video} title={t('tasks.noTasks')} description="No tasks match the current filters." />
         ) : (
           <div className="glass overflow-hidden rounded-2xl">
-            <div className="overflow-x-auto">
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-page-divider bg-page-surface/40 text-left text-page-muted">
@@ -343,6 +390,9 @@ export default function Tasks() {
                 </thead>
                 <tbody>{mode === 'image' ? renderImageRows() : renderVideoRows()}</tbody>
               </table>
+            </div>
+            <div className="divide-y divide-page-divider md:hidden">
+              {mode === 'image' ? renderImageCards() : renderVideoCards()}
             </div>
           </div>
         )}

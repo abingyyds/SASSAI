@@ -184,12 +184,12 @@ export default function SubDistributor() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
+    <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-12">
       <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
-        <div className="glass rounded-3xl p-8">
-          <div className="mb-8">
+        <div className="glass rounded-3xl p-5 sm:p-8">
+          <div className="mb-6 sm:mb-8">
             <p className="text-sm text-page-link font-medium mb-3">{t('subDist.badge')}</p>
-            <h1 className="text-3xl font-heading font-bold text-page mb-3">{t('subDist.title')}</h1>
+            <h1 className="text-2xl font-heading font-bold text-page mb-3 sm:text-3xl">{t('subDist.title')}</h1>
             <p className="text-sm text-page-secondary leading-6">
               {t('subDist.subtitle', { name: currentSiteName })}
             </p>
@@ -235,7 +235,7 @@ export default function SubDistributor() {
           ) : !user ? (
             <div className="rounded-2xl border border-border p-5 space-y-4">
               <p className="text-sm text-page-secondary">{t('subDist.loginHint')}</p>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid gap-2 sm:flex sm:flex-wrap sm:gap-3">
                 <Link to="/login" className="btn-primary">{t('subDist.goLogin')}</Link>
                 <Link to="/register" className="btn-secondary">{t('subDist.goRegister')}</Link>
               </div>
@@ -346,7 +346,7 @@ export default function SubDistributor() {
         </div>
 
         <div className="space-y-6">
-          <div className="glass rounded-3xl p-6">
+          <div className="glass rounded-3xl p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-page mb-4">{t('subDist.priceCardTitle')}</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-sm">
@@ -357,7 +357,7 @@ export default function SubDistributor() {
             </div>
           </div>
 
-          <div className="glass rounded-3xl p-6">
+          <div className="glass rounded-3xl p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-page mb-4">{t('subDist.ruleTitle')}</h2>
             <div className="space-y-3 text-sm text-page-secondary leading-6">
               <p>{t('subDist.rule1')}</p>

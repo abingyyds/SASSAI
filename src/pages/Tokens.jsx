@@ -260,8 +260,8 @@ export default function Tokens() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10">
-      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
+      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold text-cyan-700">API keys quickstart</p>
@@ -273,7 +273,7 @@ export default function Tokens() {
               Public API calls use the API subdomain, not this website origin with a /v1 path.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
             <Link to="/models" className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
               Models
             </Link>
@@ -337,7 +337,7 @@ export default function Tokens() {
         <div className="mt-6">
           <button
             onClick={openCreateDefault}
-            className="w-full glass rounded-xl p-4 flex items-center gap-4 hover:border-brand-500/50 border border-page-divider transition-all group text-left"
+            className="w-full glass rounded-xl p-4 flex items-center gap-3 sm:gap-4 hover:border-brand-500/50 border border-page-divider transition-all group text-left"
           >
             <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -350,7 +350,7 @@ export default function Tokens() {
                 <p className="text-xs text-page-secondary mt-0.5">{t('tokens.defaultGroupDesc')}</p>
               )}
             </div>
-            <span className="text-xs font-medium text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+            <span className="hidden text-xs font-medium text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity sm:flex items-center gap-1">
               {t('tokens.create')} →
             </span>
           </button>
@@ -383,8 +383,8 @@ export default function Tokens() {
 
       {/* ========== Create Modal ========== */}
       {showCreate && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }}>
-          <div className="glass rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }}>
+          <div className="glass max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-page mb-4">{t('tokens.createApiKey')}</h2>
             {selectedGroupId > 0 && (() => {
               const g = keyGroups.find((x) => x.id === selectedGroupId);
@@ -408,7 +408,7 @@ export default function Tokens() {
                   required
                 />
               </div>
-              <div className="flex justify-end gap-3">
+              <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
                 <button type="button" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }} className="btn-secondary">
                   {t('tokens.cancel')}
                 </button>
@@ -437,15 +437,15 @@ export default function Tokens() {
 
       {/* ========== New Key Reveal Modal ========== */}
       {newKey && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="glass rounded-2xl p-6 w-full max-w-lg">
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="glass max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl p-5 sm:p-6">
             <h2 className="text-lg font-semibold text-page mb-2">{t('tokens.newApiKey')}</h2>
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-4">
               <p className="text-sm text-page-warning">
                 {t('tokens.keyWarning')}
               </p>
             </div>
-            <div className="bg-page-inset rounded-xl p-4 flex items-center gap-3">
+            <div className="bg-page-inset rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
               <code className="text-sm font-mono text-page-success flex-1 break-all select-all">
                 {newKey}
               </code>
@@ -467,13 +467,13 @@ export default function Tokens() {
 
       {/* ========== Delete Confirmation Modal ========== */}
       {deleteConfirm && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
-          <div className="glass rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
+          <div className="glass w-full max-w-sm rounded-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold text-page mb-3">{t('tokens.deleteToken')}</h2>
             <p className="text-sm text-page-secondary mb-4">
               {t('tokens.deleteConfirm', { name: deleteConfirm.name })}
             </p>
-            <div className="flex justify-end gap-3">
+            <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
               <button onClick={() => setDeleteConfirm(null)} className="btn-secondary">{t('tokens.cancel')}</button>
               <button onClick={handleDelete} className="px-6 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors">
                 {t('tokens.delete')}
@@ -502,8 +502,8 @@ export default function Tokens() {
         ) : (
           <div className="space-y-3">
             {tokens.map((token) => (
-              <div key={token.id} className="glass-sm rounded-xl p-5">
-                <div className="flex items-center gap-4">
+              <div key={token.id} className="glass-sm rounded-xl p-4 sm:p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${token.status === 1 ? 'bg-green-500' : 'bg-page-muted'}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-page">{token.name}</p>
@@ -511,16 +511,16 @@ export default function Tokens() {
                   <span className="text-xs text-page-muted hidden md:block">
                     {token.created_time ? new Date(token.created_time * 1000).toLocaleDateString() : ''}
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
                     <button
                       onClick={() => handleToggleSupportedModels(token.id)}
-                      className="px-3 py-1 text-xs rounded-lg border border-page-divider text-page-secondary hover:bg-page-surface-hover transition-colors"
+                      className="px-2 py-1 text-xs rounded-lg border border-page-divider text-page-secondary hover:bg-page-surface-hover transition-colors sm:px-3"
                     >
                       {expandedTokens[token.id] ? t('tokens.hideSupportedModels') : t('tokens.viewSupportedModels')}
                     </button>
                     <button
                       onClick={() => handleToggle(token)}
-                      className={`px-3 py-1 text-xs rounded-lg border transition-colors ${
+                      className={`px-2 py-1 text-xs rounded-lg border transition-colors sm:px-3 ${
                         token.status === 1
                           ? 'border-green-500/30 text-page-success hover:bg-green-500/10'
                           : 'border-page-divider text-page-secondary hover:bg-page-surface-hover'
@@ -530,7 +530,7 @@ export default function Tokens() {
                     </button>
                     <button
                       onClick={() => setDeleteConfirm(token)}
-                      className="px-3 py-1 text-xs rounded-lg border border-red-500/20 text-page-danger hover:bg-red-500/10 transition-colors"
+                      className="px-2 py-1 text-xs rounded-lg border border-red-500/20 text-page-danger hover:bg-red-500/10 transition-colors sm:px-3"
                     >
                       {t('tokens.delete')}
                     </button>
@@ -726,13 +726,13 @@ function GroupPricingModal({
       onClick={onClose}
     >
       <div
-        className="glass rounded-2xl w-full max-w-6xl max-h-[88vh] overflow-hidden"
+        className="glass rounded-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-page-divider">
-          <div className="flex items-start justify-between gap-4">
+        <div className="px-4 py-4 border-b border-page-divider sm:px-6 sm:py-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
             <div>
-              <h2 className="text-xl font-heading font-semibold text-page">
+              <h2 className="text-lg font-heading font-semibold text-page sm:text-xl">
                 {displayGroup.name} · {t('tokens.groupPricingTitle')}
               </h2>
               <p className="text-sm text-page-secondary mt-1 max-w-3xl">
@@ -788,7 +788,7 @@ function GroupPricingModal({
           )}
         </div>
 
-        <div className="px-6 py-4 border-b border-page-divider bg-page-surface/40">
+        <div className="px-4 py-4 border-b border-page-divider bg-page-surface/40 sm:px-6">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <p className="text-sm text-page-secondary">
               {t('tokens.groupPricingNotice')}
@@ -803,7 +803,7 @@ function GroupPricingModal({
           </div>
         </div>
 
-        <div className="px-6 py-5 overflow-y-auto max-h-[58vh]">
+        <div className="max-h-[58vh] overflow-y-auto px-4 py-5 sm:px-6">
           {loading ? (
             <div className="flex items-center gap-2 text-sm text-page-secondary">
               <div className="w-4 h-4 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
@@ -818,7 +818,8 @@ function GroupPricingModal({
               {t('tokens.groupPricingNoMatch')}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm min-w-[860px]">
                 <thead>
                   <tr className="border-b border-page-divider">
@@ -886,6 +887,43 @@ function GroupPricingModal({
                 </tbody>
               </table>
             </div>
+            <div className="space-y-3 md:hidden">
+              {items.map((item) => (
+                <div key={`${item.model_name}:${item.billing_type}`} className="rounded-xl border border-page-divider bg-page-surface/40 p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-page">{item.display_name || item.model_name}</p>
+                      {(item.display_name || item.model_name) !== item.model_name && (
+                        <p className="mt-1 break-all font-mono text-xs text-page-muted">{item.model_name}</p>
+                      )}
+                      {item.category && <p className="mt-1 text-xs uppercase tracking-wide text-page-muted">{item.category}</p>}
+                    </div>
+                    <span className="rounded-full bg-page-surface px-2 py-1 text-xs text-page-secondary">
+                      {formatRouteCount(item.route_count, item.has_range, t)}
+                    </span>
+                  </div>
+                  <dl className="mt-3 grid gap-2 text-xs">
+                    <PriceLine label="Pricing mode" value={item.billing_type === 'per_call' ? t('pricing.perCall') : 'Pay as you go'} />
+                    <PriceLine
+                      label={t('tokens.groupPricingReferencePrice')}
+                      value={item.status !== 'healthy'
+                        ? t('pricing.unknown')
+                        : item.billing_type === 'per_call'
+                          ? formatGroupPriceRange(item.fixed_price_min, item.fixed_price_max, symbol, rate, true, t)
+                          : formatGroupPriceRange(item.input_price_min, item.input_price_max, symbol, rate, false, t)}
+                    />
+                    {item.billing_type !== 'per_call' && item.status === 'healthy' && (
+                      <>
+                        <PriceLine label={t('pricing.outputPrice')} value={formatGroupPriceRange(item.output_price_min, item.output_price_max, symbol, rate, false, t)} />
+                        <PriceLine label={t('pricing.cacheReadPrice')} value={formatGroupPriceRange(item.cache_read_price_min, item.cache_read_price_max, symbol, rate, false, t)} />
+                        <PriceLine label={t('pricing.cacheCreationPrice')} value={formatGroupCachePriceRange(item, symbol, rate, t)} />
+                      </>
+                    )}
+                  </dl>
+                </div>
+              ))}
+            </div>
+            </>
           )}
         </div>
       </div>
@@ -943,6 +981,15 @@ function formatGroupCachePriceRange(item, symbol, rate, t) {
     t,
   );
   return `${t('pricing.cacheCreation5m')} ${base} / ${t('pricing.cacheCreation1h')} ${oneHour}`;
+}
+
+function PriceLine({ label, value }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-page-muted">{label}</dt>
+      <dd className="break-words text-right font-mono text-page-label">{value}</dd>
+    </div>
+  );
 }
 
 function formatRouteCount(routeCount, hasRange, t) {

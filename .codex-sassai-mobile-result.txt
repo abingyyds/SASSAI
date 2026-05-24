@@ -1,0 +1,21 @@
+Implemented the mobile polish pass and kept it layout-only: no backend/API contract changes and no public merchant/provider internals added.
+
+**Pages Inspected**
+Auth login/register, SaaS top nav/mobile menu, Models, Rankings, Pricing, Providers, Model Detail, Apps, Docs, Playground, Packages, Sub-site, Dashboard, Tokens, Logs, Tasks, Topup, SaaS Admin, shared console/code/subnav components.
+
+**Mobile Issues Fixed**
+- Reduced cramped mobile padding in auth, console shells, docs, pricing, catalog, and admin pages.
+- Made SaaS mobile menu scroll within viewport and improved logo/name truncation.
+- Added/kept mobile card layouts for wide data views: rankings, pricing, tasks, token group pricing.
+- Improved wrapping for code blocks, long model IDs, token keys, affiliate links, modal content, and admin stats.
+- Made filters, tabs, CTA groups, billing/history rows, and console action buttons stack predictably on phones.
+- Tuned playground mode tabs and request builder sizing for narrow screens.
+
+**Remaining Bad Breakpoints**
+No obvious code-level mobile overflow remains from this pass. I did not run visual viewport screenshots, so there may still be minor route-specific polish issues only visible with real data density.
+
+**Build Verification**
+`npm run build` passed successfully after the final edits.
+
+**Files Changed**
+`src/components/CodeBlock.jsx`, `src/components/ConsoleSurface.jsx`, `src/components/LogSubnav.jsx`, `src/themes/saas/Layout.jsx`, and page files for auth, catalog/rankings/pricing/docs/playground/packages/console/admin flows. Existing untracked `CODEX_*`/`.codex-*` files were left untouched.

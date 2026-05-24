@@ -100,20 +100,20 @@ for await (const part of stream) {
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_360px] lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1fr_360px] lg:px-8">
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
               <BookOpen size={15} />
               Documentation
             </div>
-            <h1 className="text-4xl font-semibold tracking-normal text-slate-950">SubRouter API quickstart</h1>
+            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">SubRouter API quickstart</h1>
             <p className="mt-4 text-base leading-7 text-slate-600">
               Use a SubRouter API key with the API subdomain base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
             </p>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
               The quickstart focuses on what users need to start building: key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes. Public API examples use the API subdomain rather than this website origin.
             </p>
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-7 grid gap-3 sm:flex sm:flex-row">
               <Link to={user ? '/tokens' : '/register'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
                 <KeyRound size={16} />
                 {user ? 'Open API keys' : 'Create account'}
@@ -146,11 +146,13 @@ for await (const part of stream) {
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
             <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-              {navItems.map((item) => (
-                <a key={item.id} href={`#${item.id}`} className="block rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950">
-                  {item.label}
-                </a>
-              ))}
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
+                {navItems.map((item) => (
+                  <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full">
+                    {item.label}
+                  </a>
+                ))}
+              </div>
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-sm font-semibold text-slate-950">Current example model</p>
@@ -311,10 +313,10 @@ function CopyRow({ label, value }) {
 
 function DocCard({ id, icon: Icon, title, children }) {
   return (
-    <section id={id} className="scroll-mt-8 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+    <section id={id} className="scroll-mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center gap-2">
         <Icon size={18} className="text-slate-500" />
-        <h2 className="text-xl font-semibold text-slate-950">{title}</h2>
+        <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
       </div>
       <div className="space-y-5">{children}</div>
     </section>

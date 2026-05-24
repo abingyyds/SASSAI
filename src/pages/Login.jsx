@@ -43,10 +43,10 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[70vh] flex items-center justify-center px-6">
+    <div className="flex min-h-[70vh] items-center justify-center px-3 py-8 sm:px-6">
       <div className="w-full max-w-md">
-        <div className="glass rounded-2xl p-8">
-          <div className="text-center mb-8">
+        <div className="glass rounded-2xl p-5 sm:p-8">
+          <div className="mb-6 text-center sm:mb-8">
             <h1 className="text-2xl font-heading font-bold text-page mb-2">{t('login.welcomeBack')}</h1>
             <p className="text-sm text-page-secondary">
               {site?.name ? t('login.signInTo', { name: site.name }) : t('login.signInToDefault')}
