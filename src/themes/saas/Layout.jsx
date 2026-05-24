@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   BarChart3,
   BookOpen,
   Boxes,
+  Building2,
+  ChevronDown,
+  CreditCard,
   Home,
+  KeyRound,
+  Layers3,
   LayoutDashboard,
   LogOut,
   Menu,
   MessageSquareText,
+  PackageCheck,
   Settings2,
   Trophy,
   X,
@@ -25,21 +31,47 @@ export default function SaasLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [consoleMenuOpen, setConsoleMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const siteName = site?.name || 'AstraLayer';
+  const isAdmin = user?.is_admin || user?.role === 'admin';
+  const displayName = user?.display_name || user?.username;
   const consolePath = user ? '/dashboard' : '/login';
-  const navItems = [
+  const publicNavItems = [
     { to: '/', label: 'Home', icon: Home, exact: true },
     { to: '/models', label: 'Models', icon: Boxes, prefix: '/models' },
     { to: '/rankings', label: 'Rankings', icon: Trophy },
     { to: '/chat', label: 'Chat', icon: MessageSquareText, aliases: ['/playground'] },
     { to: '/pricing', label: t('nav.pricing'), icon: BarChart3 },
     { to: '/docs/quickstart', label: 'Docs', icon: BookOpen, prefix: '/docs' },
-    { to: consolePath, label: 'Console', icon: LayoutDashboard, aliases: ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/packages'] },
-    ...(user?.is_admin || user?.role === 'admin' ? [
-      { to: '/site-admin/saas', label: 'SaaS Admin', icon: Settings2 },
-    ] : []),
   ];
+  const consoleMenuItems = [
+    { to: '/dashboard', label: 'Console overview', icon: LayoutDashboard, auth: true },
+    { to: '/tokens', label: 'API Keys', icon: KeyRound, auth: true },
+    { to: '/topup', label: 'Recharge / Top up', icon: CreditCard, auth: true },
+    { to: '/logs', label: 'Call logs', icon: BarChart3, auth: true },
+    { to: '/tasks', label: 'Tasks', icon: Layers3, auth: true },
+    { to: '/packages', label: 'Packages / Plans', icon: PackageCheck },
+    { to: '/pricing', label: t('nav.pricing'), icon: BarChart3 },
+    { to: '/sub-site', label: 'Sub-site / Distributor', icon: Building2 },
+    ...(isAdmin ? [{ to: '/site-admin/saas', label: 'SaaS Admin', icon: Settings2, auth: true }] : []),
+  ];
+  const accountMenuItems = [
+    { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, auth: true },
+    { to: '/tokens', label: 'API Keys', icon: KeyRound, auth: true },
+    { to: '/topup', label: 'Recharge', icon: CreditCard, auth: true },
+    { to: '/logs', label: 'Usage logs', icon: BarChart3, auth: true },
+    { to: '/tasks', label: 'Tasks', icon: Layers3, auth: true },
+    { to: '/packages', label: 'Subscriptions', icon: PackageCheck },
+    ...(isAdmin ? [{ to: '/site-admin/saas', label: 'SaaS Admin', icon: Settings2, auth: true }] : []),
+  ];
+  const consoleNavItem = {
+    to: consolePath,
+    label: 'Console',
+    icon: LayoutDashboard,
+    aliases: ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/packages', '/sub-site', '/site-admin/saas'],
+  };
 
   const isActive = (item) => {
     if (item.exact) return location.pathname === item.to;
@@ -48,10 +80,24 @@ export default function SaasLayout() {
     return location.pathname === item.to;
   };
 
+  const navTarget = (item) => (item.auth && !user ? '/login' : item.to);
+  const closeMenus = () => {
+    setMobileMenuOpen(false);
+    setConsoleMenuOpen(false);
+    setAccountMenuOpen(false);
+  };
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
+    closeMenus();
   };
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+    setConsoleMenuOpen(false);
+    setAccountMenuOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-[#fbfcff] text-slate-950">
@@ -75,40 +121,148 @@ export default function SaasLayout() {
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => {
+            {publicNavItems.map((item) => {
               const { to, label, icon: Icon } = item;
               return (
+                <Link
+                  key={to}
+                  to={to}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive(item)
+                      ? 'bg-slate-950 text-white'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                >
+                  <Icon size={16} />
+                  {label}
+                </Link>
+              );
+            })}
+            <div
+              className="relative"
+              onMouseEnter={() => {
+                setConsoleMenuOpen(true);
+                setAccountMenuOpen(false);
+              }}
+              onMouseLeave={() => setConsoleMenuOpen(false)}
+              onFocus={() => {
+                setConsoleMenuOpen(true);
+                setAccountMenuOpen(false);
+              }}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setConsoleMenuOpen(false);
+                }
+              }}
+            >
               <Link
-                key={to}
-                to={to}
+                to={consolePath}
+                aria-haspopup="menu"
+                aria-expanded={consoleMenuOpen}
                 className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive(item)
+                  isActive(consoleNavItem)
                     ? 'bg-slate-950 text-white'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
                 }`}
               >
-                <Icon size={16} />
-                {label}
+                <LayoutDashboard size={16} />
+                Console
+                <ChevronDown size={14} className={`transition-transform ${consoleMenuOpen ? 'rotate-180' : ''}`} />
               </Link>
-              );
-            })}
+
+              {consoleMenuOpen && (
+                <div className="absolute left-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
+                  {consoleMenuItems.map((item) => {
+                    const { label, icon: Icon } = item;
+                    return (
+                      <Link
+                        key={item.to}
+                        to={navTarget(item)}
+                        role="menuitem"
+                        className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                          isActive(item)
+                            ? 'bg-slate-950 text-white'
+                            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                        }`}
+                      >
+                        <Icon size={16} />
+                        <span>{label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </nav>
 
           <div className="flex items-center gap-2">
             <LanguageSwitch className="text-slate-500 hover:bg-slate-100 hover:text-slate-900" />
             {user ? (
-              <div className="hidden items-center gap-3 sm:flex">
-                <span className="max-w-[160px] truncate text-sm text-slate-500">
-                  {user.display_name || user.username}
-                </span>
+              <div
+                className="relative hidden sm:block"
+                onMouseEnter={() => {
+                  setAccountMenuOpen(true);
+                  setConsoleMenuOpen(false);
+                }}
+                onMouseLeave={() => setAccountMenuOpen(false)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setAccountMenuOpen(false);
+                  }
+                }}
+              >
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-950"
-                  aria-label={t('nav.logout')}
+                  onClick={() => {
+                    setAccountMenuOpen((open) => !open);
+                    setConsoleMenuOpen(false);
+                  }}
+                  onFocus={() => setAccountMenuOpen(true)}
+                  className="inline-flex max-w-[210px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
                 >
-                  <LogOut size={17} />
+                  <span className="truncate">{displayName}</span>
+                  <ChevronDown size={14} className={`shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
+
+                {accountMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
+                    <div className="border-b border-slate-100 px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-slate-950">{displayName}</p>
+                      <p className="text-xs text-slate-500">Account</p>
+                    </div>
+                    <div className="py-2">
+                      {accountMenuItems.map((item) => {
+                        const { label, icon: Icon } = item;
+                        return (
+                          <Link
+                            key={item.to}
+                            to={navTarget(item)}
+                            role="menuitem"
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                              isActive(item)
+                                ? 'bg-slate-950 text-white'
+                                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                            }`}
+                          >
+                            <Icon size={16} />
+                            <span>{label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="flex w-full items-center gap-3 rounded-lg border-t border-slate-100 px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+                    >
+                      <LogOut size={16} />
+                      {t('nav.logout')}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
@@ -134,28 +288,92 @@ export default function SaasLayout() {
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 bg-white md:hidden">
             <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-              {navItems.map((item) => {
+              {publicNavItems.map((item) => {
                 const { to, label, icon: Icon } = item;
                 return (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                    isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Icon size={16} />
-                  {label}
-                </Link>
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={closeMenus}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium ${
+                      isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </Link>
                 );
               })}
+              <div className="mt-2 border-t border-slate-100 pt-3">
+                <Link
+                  to={consolePath}
+                  onClick={closeMenus}
+                  className={`inline-flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold ${
+                    isActive(consoleNavItem) ? 'bg-slate-950 text-white' : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  <LayoutDashboard size={16} />
+                  Console
+                </Link>
+                <div className="mt-1 grid gap-1 pl-3">
+                  {consoleMenuItems.map((item) => {
+                    const { label, icon: Icon } = item;
+                    return (
+                      <Link
+                        key={item.to}
+                        to={navTarget(item)}
+                        onClick={closeMenus}
+                        className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                          isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Icon size={15} />
+                        {label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+              {user && (
+                <div className="mt-2 border-t border-slate-100 pt-3">
+                  <div className="px-3 pb-1">
+                    <p className="truncate text-sm font-semibold text-slate-950">{displayName}</p>
+                    <p className="text-xs text-slate-500">Account</p>
+                  </div>
+                  <div className="grid gap-1 pl-3">
+                    {accountMenuItems.map((item) => {
+                      const { label, icon: Icon } = item;
+                      return (
+                        <Link
+                          key={item.to}
+                          to={navTarget(item)}
+                          onClick={closeMenus}
+                          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${
+                            isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          <Icon size={15} />
+                          {label}
+                        </Link>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-slate-600 hover:bg-slate-100"
+                    >
+                      <LogOut size={15} />
+                      {t('nav.logout')}
+                    </button>
+                  </div>
+                </div>
+              )}
               {!user && (
                 <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-medium text-slate-700">
+                  <Link to="/login" onClick={closeMenus} className="rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-medium text-slate-700">
                     {t('nav.login')}
                   </Link>
-                  <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white">
+                  <Link to="/register" onClick={closeMenus} className="rounded-lg bg-slate-950 px-3 py-2 text-center text-sm font-semibold text-white">
                     {t('nav.signUp')}
                   </Link>
                 </div>

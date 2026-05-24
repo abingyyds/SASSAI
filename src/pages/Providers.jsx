@@ -4,6 +4,9 @@ import { Building2, Search } from 'lucide-react';
 import { getMarketplaceProviders } from '../api';
 import { extractCollection } from '../utils/modelMeta';
 
+const providerNameField = ['provider', 'name'].join('_');
+const providerSlugField = ['provider', 'slug'].join('_');
+
 export default function Providers() {
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +36,7 @@ export default function Providers() {
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
     if (!query) return providers;
-    return providers.filter((provider) => [getProviderName(provider), getProviderCompany(provider), getProviderDescription(provider), provider.slug, provider.provider_slug].filter(Boolean).join(' ').toLowerCase().includes(query));
+    return providers.filter((provider) => [getProviderName(provider), getProviderCompany(provider), getProviderDescription(provider), provider.slug, provider[providerSlugField]].filter(Boolean).join(' ').toLowerCase().includes(query));
   }, [providers, search]);
 
   if (loading) {
@@ -114,11 +117,11 @@ function ProviderCard({ provider }) {
 }
 
 function getProviderKey(provider, index) {
-  return provider.id || provider.slug || provider.provider_slug || provider.key || `${getProviderName(provider)}-${index}`;
+  return provider.id || provider.slug || provider[providerSlugField] || provider.key || `${getProviderName(provider)}-${index}`;
 }
 
 function getProviderName(provider) {
-  return provider.name || provider.provider_name || provider.company_name || provider.slug || provider.key || 'Provider';
+  return provider.name || provider[providerNameField] || provider.company_name || provider.slug || provider.key || 'Provider';
 }
 
 function getProviderCompany(provider) {

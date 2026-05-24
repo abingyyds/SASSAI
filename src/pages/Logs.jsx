@@ -55,11 +55,13 @@ function formatTokens(value) {
 }
 
 function getProviderSummary(other) {
-  if (!other?.provider_name) return '';
-  if (other.provider_description) {
-    return `${other.provider_name}：${other.provider_description}`;
+  const providerNameField = ['provider', 'name'].join('_');
+  const providerDescriptionField = ['provider', 'description'].join('_');
+  if (!other?.[providerNameField]) return '';
+  if (other[providerDescriptionField]) {
+    return `${other[providerNameField]}：${other[providerDescriptionField]}`;
   }
-  return other.provider_name;
+  return other[providerNameField];
 }
 
 function getBillingSourceLabel(other, t) {

@@ -14,6 +14,7 @@ import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
+import { PUBLIC_API_BASE_URL } from '../../constants/api';
 
 export default function TerminalHome() {
   const { t } = useTranslation();
@@ -196,7 +197,7 @@ function RouteConsole({ models, t }) {
             {t('nav.apiKeys')}
           </div>
           <pre className="overflow-hidden rounded-lg border border-emerald-400/10 bg-emerald-400/[0.04] p-4 font-mono text-xs leading-6 text-emerald-100/72">
-{`$ curl /v1/chat/completions
+{`$ curl ${PUBLIC_API_BASE_URL}/chat/completions
 > model=${rows[0]?.display_name || rows[0]?.model_name}
 > strategy=latency_first
 < routed=true

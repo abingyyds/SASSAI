@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getTokenSupportedModels } from '../api';
+import { PUBLIC_API_ORIGIN } from '../constants/api';
 import { useSite } from '../context/SiteContext';
 import {
   CCSWITCH_PRIMARY_DOWNLOAD,
@@ -38,16 +39,10 @@ const CCSWITCH_APPS = [
 
 const API_ENDPOINTS = [
   {
-    id: 'overseas-direct',
-    url: 'https://aiapi.up.railway.app',
-    nameKey: 'config.apiEndpointOverseasDirectName',
-    descKey: 'config.apiEndpointOverseasDirectDesc',
-  },
-  {
-    id: 'overseas-cdn',
-    url: 'https://ai.orbitlink.me',
-    nameKey: 'config.apiEndpointOverseasCdnName',
-    descKey: 'config.apiEndpointOverseasCdnDesc',
+    id: 'official',
+    url: PUBLIC_API_ORIGIN,
+    nameKey: 'config.apiEndpointOfficialName',
+    descKey: 'config.apiEndpointOfficialDesc',
   },
 ];
 
@@ -200,7 +195,7 @@ const ConfigExporter = ({ tokens = [] }) => {
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedTool, setSelectedTool] = useState('claudecode');
   const [selectedCCSwitchApp, setSelectedCCSwitchApp] = useState('codex');
-  const [selectedEndpointId, setSelectedEndpointId] = useState('overseas-direct');
+  const [selectedEndpointId, setSelectedEndpointId] = useState('official');
   const [loadingModels, setLoadingModels] = useState(false);
   const [modelsError, setModelsError] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -307,7 +302,7 @@ const ConfigExporter = ({ tokens = [] }) => {
     if (lower.includes('claude')) {
       return {
         family: 'anthropic',
-        baseUrl: apiServerAddress,
+        baseUrl: `${apiServerAddress}/v1`,
         openclawApi: 'anthropic-messages',
         openclawProviderId: 'subrouter-anthropic',
         opencodeProviderId: 'anthropic',
@@ -323,13 +318,6 @@ const ConfigExporter = ({ tokens = [] }) => {
   };
 
   const getCCSwitchEndpoint = () => {
-    const app = CCSWITCH_APPS.find((item) => item.id === selectedCCSwitchApp);
-    if (app?.endpointType === 'anthropic') {
-      return apiServerAddress;
-    }
-    if (app?.endpointType === 'gemini') {
-      return `${apiServerAddress}/v1beta`;
-    }
     return `${apiServerAddress}/v1`;
   };
 
@@ -486,7 +474,7 @@ requires_openai_auth = true
         return `{
   "env": {
     "ANTHROPIC_API_KEY": "${apiKey}",
-    "ANTHROPIC_BASE_URL": "${apiServerAddress}",
+    "ANTHROPIC_BASE_URL": "${apiServerAddress}/v1",
     "ANTHROPIC_MODEL": "${selectedModel}"
   }
 }`;
@@ -612,7 +600,7 @@ print(response.choices[0].message.content)`;
 
 client = anthropic.Anthropic(
     api_key="${apiKey}",
-    base_url="${apiServerAddress}"
+    base_url="${apiServerAddress}/v1"
 )
 
 message = client.messages.create(
@@ -665,9 +653,6 @@ print(message.content[0].text)`;
 
   const getSelectedToolBaseUrl = () => {
     const preset = getModelConnectionPreset(selectedModel);
-    if (selectedTool === 'claudecode' || selectedTool === 'anthropic') {
-      return apiServerAddress;
-    }
     if (selectedTool === 'openclaw' || selectedTool === 'opencode') {
       return preset.baseUrl;
     }
@@ -973,7 +958,7 @@ print(message.content[0].text)`;
                 </button>
                 <button
                   onClick={() =>
-                    handleCopyValue(apiServerAddress, 'config.apiUrlCopied')
+                    handleCopyValue(`${apiServerAddress}/v1`, 'config.apiUrlCopied')
                   }
                   className="rounded-lg border border-page-divider bg-page-inset/40 px-3 py-2 text-left hover:bg-page-surface-hover transition-colors"
                 >
@@ -981,7 +966,7 @@ print(message.content[0].text)`;
                     {t('config.anthropicApiUrl')}
                   </div>
                   <code className="block mt-1 text-[11px] text-page-muted break-all">
-                    {apiServerAddress}
+                    {apiServerAddress}/v1
                   </code>
                 </button>
               </div>

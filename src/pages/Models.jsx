@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowUpDown, Boxes, ExternalLink, Search, SlidersHorizontal } from 'lucide-react';
-import { getMarketplaceModels, getSiteModels } from '../api';
 import CopyButton from '../components/CopyButton';
 import ModelBadges from '../components/ModelBadges';
 import ModelPrice from '../components/ModelPrice';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
 import {
-  extractCollection,
   filterModels,
   formatCompactNumber,
   getModelCategory,
@@ -15,8 +14,6 @@ import {
   getModelRoute,
   getModelSummary,
   getSupportedModes,
-  mergeModelCatalog,
-  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -29,28 +26,24 @@ const sortOptions = [
 
 export default function Models() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
+  const [loading, setLoading] = useState(() => !cachedCatalog);
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [sort, setSort] = useState(searchParams.get('sort') || 'popular');
-  const [dataSource, setDataSource] = useState('marketplace');
+  const [dataSource, setDataSource] = useState(() => cachedCatalog?.dataSource || 'public');
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!cachedCatalog) setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
-      .then((res) => {
+    getPublicModelCatalog()
+      .then((catalog) => {
         if (cancelled) return;
-        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
-        setDataSource('marketplace');
+        setModels(catalog.models);
+        setDataSource(catalog.dataSource);
       })
-      .catch(() => getSiteModels().then((res) => {
-        if (cancelled) return;
-        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
-        setDataSource('fallback');
-      }))
       .catch(() => {
         if (!cancelled) {
           setModels([]);
@@ -64,7 +57,7 @@ export default function Models() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [cachedCatalog]);
 
   useEffect(() => {
     const next = new URLSearchParams();
@@ -85,14 +78,6 @@ export default function Models() {
     return sortModels(filtered, sort);
   }, [enabledModels, search, category, sort]);
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-950" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-slate-50">
       <section className="border-b border-slate-200 bg-white">
@@ -111,7 +96,7 @@ export default function Models() {
                 Each card can include a short model description, so users can understand what the model is for before opening the detail or playground page.
               </p>
               <div className="mt-5 inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
-                {dataSource === 'marketplace' ? 'Live marketplace data' : 'Site catalog fallback'}
+                {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 lg:min-w-[420px]">
@@ -184,7 +169,9 @@ export default function Models() {
           </div>
         </div>
 
-        {filteredModels.length === 0 ? (
+        {loading ? (
+          <ModelListSkeleton />
+        ) : filteredModels.length === 0 ? (
           <div className="rounded-lg border border-slate-200 bg-white p-10 text-center text-slate-600">
             No models match the current filters.
           </div>
@@ -259,6 +246,36 @@ export default function Models() {
         )}
       </section>
     </div>
+  );
+}
+
+function ModelListSkeleton() {
+  return (
+    <>
+      <div className="hidden overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm lg:block">
+        <table className="w-full text-sm">
+          <tbody>
+            {Array.from({ length: 8 }, (_, index) => (
+              <tr key={index} className="border-b border-slate-100 last:border-0">
+                <td className="px-5 py-4"><div className="h-4 w-64 animate-pulse rounded bg-slate-200" /></td>
+                <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
+                <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
+                <td className="px-5 py-4"><div className="ml-auto h-4 w-28 animate-pulse rounded bg-slate-100" /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="grid gap-4 lg:hidden">
+        {Array.from({ length: 4 }, (_, index) => (
+          <div key={index} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="h-4 w-44 animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
+            <div className="mt-5 h-10 w-full animate-pulse rounded bg-slate-100" />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

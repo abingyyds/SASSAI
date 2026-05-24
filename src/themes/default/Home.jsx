@@ -21,6 +21,7 @@ import FadeContent from '../../components/bits/FadeContent';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
+import { PUBLIC_API_BASE_URL } from '../../constants/api';
 
 export default function DefaultHome() {
   const { t } = useTranslation();
@@ -321,7 +322,7 @@ function HeroConsole({ models, t }) {
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
-          <span className="font-mono text-xs text-slate-400">/v1/chat/completions</span>
+          <span className="font-mono text-xs text-slate-400">{PUBLIC_API_BASE_URL}/chat/completions</span>
         </div>
 
         <div className="grid gap-0 lg:grid-cols-[1fr_0.86fr]">
@@ -331,7 +332,7 @@ function HeroConsole({ models, t }) {
               {t('nav.apiKeys')}
             </div>
             <pre className="overflow-hidden rounded-lg bg-black/40 p-4 text-xs leading-6 text-slate-300">
-{`curl https://api.example.com/v1/chat/completions
+{`curl ${PUBLIC_API_BASE_URL}/chat/completions
   -H "Authorization: Bearer sk-..."
   -d '{"model":"${rows[0]?.display_name || rows[0]?.model_name}"}'`}
             </pre>

@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   Code2,
   KeyRound,
-  Network,
   Play,
   Route,
   Server,
@@ -17,18 +16,19 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite, useCurrency } from '../../context/SiteContext';
-import { getSiteModels, getSitePackages, Q } from '../../api';
+import { getSitePackages, Q } from '../../api';
 import CodeBlock from '../../components/CodeBlock';
 import ModelBadges, { AvailabilityBadge } from '../../components/ModelBadges';
 import ModelPrice from '../../components/ModelPrice';
+import { PUBLIC_API_BASE_URL } from '../../constants/api';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 import {
   buildCurlSnippet,
   formatCompactNumber,
+  getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
-  getProviderGroups,
-  getProviderName,
   sortModels,
 } from '../../utils/modelMeta';
 
@@ -36,19 +36,37 @@ export default function SaasHome() {
   const { user } = useAuth();
   const { site } = useSite();
   const { fmtPlanPrice } = useCurrency();
-  const [models, setModels] = useState([]);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [packages, setPackages] = useState([]);
   const siteName = site?.name || 'SubRouter';
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const baseUrl = PUBLIC_API_BASE_URL;
 
   useEffect(() => {
-    getSiteModels().then((res) => { if (res.data.success) setModels(res.data.data || []); }).catch(() => {});
+    let cancelled = false;
+    getPublicModelCatalog().then((catalog) => {
+      if (!cancelled) setModels(catalog.models);
+    }).catch(() => {});
     getSitePackages().then((res) => { if (res.data.success) setPackages(res.data.data || []); }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const enabledModels = useMemo(() => models.filter((model) => model.enabled !== false), [models]);
   const featuredModels = useMemo(() => sortModels(enabledModels, 'popular').slice(0, 6), [enabledModels]);
-  const providerGroups = useMemo(() => getProviderGroups(enabledModels).slice(0, 8), [enabledModels]);
+  const categoryGroups = useMemo(() => {
+    const groups = new Map();
+    enabledModels.forEach((model) => {
+      const category = getModelCategory(model);
+      if (!groups.has(category)) groups.set(category, []);
+      groups.get(category).push(model);
+    });
+    return Array.from(groups.entries())
+      .map(([name, items]) => ({ key: name.toLowerCase(), name, models: items }))
+      .sort((a, b) => b.models.length - a.models.length || a.name.localeCompare(b.name))
+      .slice(0, 8);
+  }, [enabledModels]);
   const enabledPackages = useMemo(() => packages.filter((pkg) => pkg.enabled !== false), [packages]);
   const totalCredits = useMemo(
     () => enabledPackages.reduce((sum, pkg) => sum + (Number(pkg.quota_amount) || 0), 0) / Q,
@@ -63,13 +81,13 @@ export default function SaasHome() {
           <div className="max-w-3xl">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700">
               <Sparkles size={16} />
-              AI model marketplace and global gateway
+              AI model catalog and global gateway
             </div>
             <h1 className="text-6xl font-semibold tracking-normal text-slate-950">
               {siteName}
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">
-              Explore models across providers, compare prices, create API keys, and use one OpenAI-compatible base URL for production AI workflows.
+              Explore public model families, compare official pricing, create API keys, and use one OpenAI-compatible base URL for production AI workflows.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -96,7 +114,7 @@ export default function SaasHome() {
             </div>
             <div className="mt-10 grid max-w-2xl grid-cols-3 gap-3">
               <HeroStat label="Models" value={`${enabledModels.length || 50}+`} />
-              <HeroStat label="Providers" value={`${providerGroups.length || 6}+`} />
+              <HeroStat label="Categories" value={`${categoryGroups.length || 6}+`} />
               <HeroStat label="Credits in plans" value={totalCredits > 0 ? `$${formatCompactNumber(totalCredits)}` : 'API'} />
             </div>
           </div>
@@ -135,7 +153,7 @@ export default function SaasHome() {
                   </div>
                   <AvailabilityBadge model={model} />
                 </div>
-                <p className="mt-3 text-sm text-slate-600">{getProviderName(model)}</p>
+                <p className="mt-3 text-sm text-slate-600">{getModelCategory(model)}</p>
                 <div className="mt-4"><ModelBadges model={model} /></div>
                 <div className="mt-4"><ModelPrice model={model} /></div>
               </Link>
@@ -151,10 +169,9 @@ export default function SaasHome() {
             <h2 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">One API surface for a changing model ecosystem.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <ValueCard icon={Route} title="Smart routing" text="Use the platform route layer and configured channels behind a stable model id." />
-            <ValueCard icon={Shuffle} title="Failover-ready" text="Provider channel metadata is visible where configured, so teams can plan resilient client behavior." />
-            <ValueCard icon={Network} title="Multi-provider" text="Browse vendors and provider routes from one public catalog." />
-            <ValueCard icon={Code2} title="OpenAI compatible" text="Point OpenAI SDKs at the /v1 base URL and keep the standard request shape." />
+            <ValueCard icon={Route} title="Stable model ids" text="Choose one public model family and keep the same id in your application code." />
+            <ValueCard icon={Shuffle} title="Production-ready" text="Use one gateway base URL while the platform handles operational routing behind the scenes." />
+            <ValueCard icon={Code2} title="OpenAI compatible" text={`Point OpenAI SDKs at ${PUBLIC_API_BASE_URL} and keep the standard request shape.`} />
             <ValueCard icon={Zap} title="Price-aware" text="Compare input, output, cache, and per-call economics before choosing a model." />
           </div>
         </div>
@@ -163,18 +180,18 @@ export default function SaasHome() {
       <section className="bg-white py-14">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
-            <p className="text-sm font-semibold text-sky-700">Provider ecosystem</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">Models grouped by vendor and route metadata.</h2>
+            <p className="text-sm font-semibold text-sky-700">Catalog families</p>
+            <h2 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">Models grouped by public capability.</h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              Provider cards are generated from the same public model response used by pricing, tokens, and catalog pages.
+              These groups are generated from the same public model families used by pricing, tokens, and catalog pages.
             </p>
-            <Link to="/providers" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
-              Browse providers <ArrowRight size={16} />
+            <Link to="/models" className="mt-6 inline-flex items-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+              Browse models <ArrowRight size={16} />
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            {providerGroups.map((group) => (
-              <Link key={group.key} to={`/models?vendor=${encodeURIComponent(group.name)}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
+            {categoryGroups.map((group) => (
+              <Link key={group.key} to={`/models?category=${encodeURIComponent(group.name)}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
                 <div className="flex items-center gap-3">
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-800 shadow-sm">
                     <ShieldCheck size={16} />
@@ -198,7 +215,7 @@ export default function SaasHome() {
             <div className="mt-6 space-y-4">
               <QuickStep title="Create an API key" text="Generate a key from the signed-in API Keys page." />
               <QuickStep title="Choose a model" text="Copy the exact model id from the catalog or detail page." />
-              <QuickStep title="Send a request" text="Use the OpenAI-compatible /v1/chat/completions endpoint." />
+              <QuickStep title="Send a request" text={`Use the OpenAI-compatible ${PUBLIC_API_BASE_URL}/chat/completions endpoint.`} />
             </div>
           </div>
           <CodeBlock
@@ -272,7 +289,7 @@ function GatewayPanel({ models, baseUrl }) {
         ))}
       </div>
       <div className="mt-4 rounded-lg border border-sky-400/20 bg-sky-400/10 p-3 text-xs leading-5 text-sky-100">
-        Select a model, copy its id, and send requests through the same /v1 endpoint.
+        Select a model, copy its id, and send requests through the API subdomain endpoint.
       </div>
     </div>
   );

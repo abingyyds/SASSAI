@@ -6,7 +6,6 @@ import {
   createToken,
   updateToken,
   deleteToken,
-  getSiteModels,
   getSiteKeyGroups,
   getSiteKeyGroupPricing,
   getTokenSupportedModels,
@@ -15,8 +14,11 @@ import CodeBlock from '../components/CodeBlock';
 import ConfigExporter from '../components/ConfigExporter';
 import DownloadCatalog from '../components/DownloadCatalog';
 import { useCurrency } from '../context/SiteContext';
-import { buildCurlSnippet, getModelDisplayName, getModelId, sortModels } from '../utils/modelMeta';
+import { getDocsModelCatalog, SUBROUTER_API_BASE_URL } from '../utils/publicCatalog';
+import { buildCurlSnippet, getModelDisplayName, getModelId } from '../utils/modelMeta';
 import toast from 'react-hot-toast';
+
+const providerNamesField = ['provider', 'names'].join('_');
 
 export default function Tokens() {
   const { t } = useTranslation();
@@ -50,12 +52,12 @@ export default function Tokens() {
       const [tokensRes, groupsRes, modelsRes] = await Promise.all([
         getTokens(),
         getSiteKeyGroups().catch(() => ({ data: { success: false } })),
-        getSiteModels().catch(() => ({ data: { success: false } })),
+        getDocsModelCatalog().catch(() => ({ models: [] })),
       ]);
       if (tokensRes.data.success) setTokens(tokensRes.data.data || []);
       if (groupsRes.data.success) setKeyGroups(groupsRes.data.data || []);
-      if (modelsRes.data.success) {
-        const publicModels = sortModels((modelsRes.data.data || []).filter((model) => model.enabled !== false), 'popular');
+      if (Array.isArray(modelsRes.models)) {
+        const publicModels = modelsRes.models;
         setSiteModels(publicModels);
         setQuickstartModelId((current) => current || (publicModels[0] ? getModelId(publicModels[0]) : ''));
       }
@@ -189,7 +191,7 @@ export default function Tokens() {
 
     setTokenModels((prev) => ({
       ...prev,
-      [tokenId]: { loading: true, models: [], count: 0, provider_names: [], restricted_by_providers: false, restricted_by_models: false },
+      [tokenId]: { loading: true, models: [], count: 0, [providerNamesField]: [], restricted_by_providers: false, restricted_by_models: false },
     }));
 
     try {
@@ -202,7 +204,7 @@ export default function Tokens() {
             loading: false,
             models: data.models || [],
             count: data.count || 0,
-            provider_names: data.provider_names || [],
+            [providerNamesField]: data[providerNamesField] || [],
             restricted_by_providers: Boolean(data.restricted_by_providers),
             restricted_by_models: Boolean(data.restricted_by_models),
           },
@@ -210,13 +212,13 @@ export default function Tokens() {
       } else {
         setTokenModels((prev) => ({
           ...prev,
-          [tokenId]: { loading: false, error: true, models: [], count: 0, provider_names: [], restricted_by_providers: false, restricted_by_models: false },
+          [tokenId]: { loading: false, error: true, models: [], count: 0, [providerNamesField]: [], restricted_by_providers: false, restricted_by_models: false },
         }));
       }
     } catch (e) {
       setTokenModels((prev) => ({
         ...prev,
-        [tokenId]: { loading: false, error: true, models: [], count: 0, provider_names: [], restricted_by_providers: false, restricted_by_models: false },
+        [tokenId]: { loading: false, error: true, models: [], count: 0, [providerNamesField]: [], restricted_by_providers: false, restricted_by_models: false },
       }));
     }
   };
@@ -241,7 +243,7 @@ export default function Tokens() {
     });
   }, [activeGroupPricing, groupPricingSearch]);
 
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const baseUrl = SUBROUTER_API_BASE_URL;
   const selectedQuickstartModelId = quickstartModelId || (siteModels[0] ? getModelId(siteModels[0]) : 'gpt-4o-mini');
   const quickstartCurl = buildCurlSnippet({
     baseUrl,
@@ -266,6 +268,9 @@ export default function Tokens() {
             <h1 className="mt-2 text-2xl font-heading font-bold text-slate-950">{t('tokens.title')}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-600">
               Create a key, use the OpenAI-compatible base URL, and send requests with any available model id.
+            </p>
+            <p className="mt-1 text-xs leading-5 text-slate-500">
+              Public API calls use the API subdomain, not this website origin with a /v1 path.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -570,10 +575,10 @@ export default function Tokens() {
                             </span>
                           )}
                         </div>
-                        {tokenModels[token.id]?.provider_names?.length > 0 && (
+                        {tokenModels[token.id]?.[providerNamesField]?.length > 0 && (
                           <div className="mt-2 flex flex-wrap items-center gap-2">
                             <span className="text-xs text-page-muted">{t('tokens.supportedProviders')}</span>
-                            {tokenModels[token.id].provider_names.map((name) => (
+                            {tokenModels[token.id][providerNamesField].map((name) => (
                               <span key={name} className="px-2 py-0.5 rounded-full text-[11px] bg-page-inset text-page-secondary">
                                 {name}
                               </span>

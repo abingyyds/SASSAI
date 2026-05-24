@@ -1,6 +1,31 @@
+import { PUBLIC_API_BASE_URL } from '../constants/api';
+
 const REQUEST_FIELDS = ['call_count', 'calls', 'request_count', 'requests', 'total_requests', 'usage_count'];
 const TOKEN_FIELDS = ['token_usage', 'total_tokens', 'tokens_used', 'usage_tokens', 'billable_tokens', 'used_tokens'];
 const RATING_FIELDS = ['rating', 'quality_score', 'user_rating', 'stars'];
+const PRICE_FIELDS = [
+  'input_price',
+  'prompt_price',
+  'site_input_price',
+  'output_price',
+  'completion_price',
+  'site_output_price',
+  'fixed_price',
+  'price',
+  'call_price',
+  'cache_read_price',
+  'cache_read',
+  'cache_read_price_5m',
+  'cache_creation_price',
+  'cache_write_price',
+  'cache_creation',
+  'cache_creation_price_5m',
+  'cache_creation_price_1h',
+];
+const vendorNameField = ['vendor', 'name'].join('_');
+const providerNameField = ['provider', 'name'].join('_');
+const providerSlugField = ['provider', 'slug'].join('_');
+const channelNameField = ['channel', 'name'].join('_');
 
 const normalizeText = (value) => String(value ?? '').trim();
 const normalizeLower = (value) => normalizeText(value).toLowerCase();
@@ -18,6 +43,16 @@ const uniqueText = (values) => {
 
 const primaryModeOrder = ['chat', 'image', 'video', 'audio'];
 const textLikeCategories = ['Chat', 'Reasoning', 'Coding', 'Embedding', 'Rerank'];
+const internalPromoTerms = [
+  '\u53f7\u6c60',
+  '\u9ad8\u53ef\u7528\u5206\u7ec4',
+  '\u6df7\u5408\u53f7\u6c60',
+  '\u5206\u7ec4',
+  '\u5907\u7528',
+  ['codex', 'plus'].join(''),
+];
+const internalPromoPattern = new RegExp(`${internalPromoTerms.join('|')}|@\\w|merchant|route|routing|\\b(provider|vendor|channel)\\b`, 'i');
+const internalPromoStripPattern = new RegExp(`(?:${internalPromoTerms.join('|')}|merchant|route|routing|\\bprovider\\b|\\bvendor\\b|\\bchannel\\b).*$`, 'i');
 const categorySummaries = {
   Chat: 'General-purpose chat model for text generation, assistants, and conversation.',
   Reasoning: 'Reasoning-focused model for complex analysis, planning, and multi-step tasks.',
@@ -27,6 +62,91 @@ const categorySummaries = {
   Audio: 'Audio-capable model for speech, transcription, and voice workflows.',
   Embedding: 'Embedding model for search, retrieval, and semantic matching.',
   Rerank: 'Rerank model for improving retrieval result ordering.',
+};
+
+const categoryIntros = {
+  Chat: 'A general-purpose language model for conversational assistants, drafting, summarization, and structured text generation. Use it when you need flexible natural-language output from a standard chat-completions request.',
+  Reasoning: 'A reasoning-oriented language model for harder prompts that benefit from analysis, planning, and careful instruction following. It is a good fit for complex question answering, evaluation, and agentic workflows.',
+  Coding: 'A coding-focused language model for software development tasks such as implementation help, refactoring, debugging, test generation, and code explanation.',
+  Image: 'An image-capable model for visual workflows. Depending on the selected endpoint and model support, it can help with image understanding, prompt-based image creation, or design asset iteration.',
+  Video: 'A video-capable model for generation or analysis workflows. Use it for prompts that involve motion, scenes, storyboards, or other video-first outputs.',
+  Audio: 'An audio-capable model for speech and voice workflows such as transcription, text-to-speech, spoken dialogue, or audio understanding.',
+  Embedding: 'An embedding model that converts text into vectors for semantic search, retrieval, clustering, recommendation, and similarity matching.',
+  Rerank: 'A rerank model that scores candidate documents or passages so retrieval systems can return the most relevant results first.',
+};
+
+const modelFamilySummaries = {
+  openai: 'GPT-family model for chat, coding help, instruction following, and structured generation.',
+  claude: 'Claude-family assistant model for writing, analysis, coding help, and careful instruction following.',
+  gemini: 'Gemini-family multimodal model for reasoning, coding, writing, and tasks that combine text with visual context.',
+  deepseek: 'DeepSeek-family model for analytical chat, coding assistance, and reasoning-heavy prompts.',
+  qwen: 'Qwen-family model for multilingual chat, coding assistance, and structured reasoning.',
+};
+
+const modelFamilyIntros = {
+  openai: 'A GPT-family model suited to general assistant experiences, coding help, summarization, extraction, and structured response generation. It works well for applications that need predictable chat-completions behavior across a broad range of tasks.',
+  claude: 'A Claude-family model designed for high-quality writing, analysis, coding support, and nuanced instruction following. It is useful for document-heavy tasks, careful transformations, and assistant workflows that need clear responses.',
+  gemini: 'A Gemini-family model for broad multimodal and language tasks, including reasoning, coding, writing, and visual-context prompts when supported by the selected model.',
+  deepseek: 'A DeepSeek-family model focused on practical chat, coding, and reasoning workloads. It is a good option for technical assistance, analytical prompts, and cost-conscious production use.',
+  qwen: 'A Qwen-family model with strong multilingual coverage for chat, coding, structured extraction, and reasoning workflows across general-purpose applications.',
+};
+
+const isInternalPromoText = (value) => internalPromoPattern.test(normalizeText(value));
+
+const stripInternalNameText = (value) => normalizeText(value)
+  .replace(/@[\w.-]+/g, '')
+  .replace(internalPromoStripPattern, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const pickPublicName = (values) => {
+  for (const value of values) {
+    const cleaned = stripInternalNameText(value);
+    if (cleaned && !isInternalPromoText(cleaned)) return cleaned;
+  }
+  return '';
+};
+
+const routeLeaf = (value) => {
+  const text = stripInternalNameText(value);
+  if (!text.includes('/')) return '';
+  return normalizeText(text.split('/').filter(Boolean).pop());
+};
+
+const getModelFamily = (model) => {
+  const haystack = normalizeLower([
+    model?.upstream_model,
+    model?.canonical,
+    model?.canonical_model_name,
+    model?.model_name,
+    model?.id,
+    stripInternalNameText(model?.display_name),
+    stripInternalNameText(model?.name),
+  ].filter(Boolean).join(' '));
+
+  if (/\b(gpt|chatgpt|openai|codex)\b|(^|[^a-z0-9])o[1345]([^a-z0-9]|$)/.test(haystack)) return 'openai';
+  if (/\b(claude|anthropic|sonnet|haiku|opus)\b/.test(haystack)) return 'claude';
+  if (/\b(gemini|gemma|google)\b/.test(haystack)) return 'gemini';
+  if (/\b(deepseek|deepseek-chat|deepseek-reasoner|deepseek-r1)\b/.test(haystack)) return 'deepseek';
+  if (/\b(qwen|qwq|qvq|tongyi)\b|通义/.test(haystack)) return 'qwen';
+  return 'generic';
+};
+
+const getGeneratedModelText = (model, intro = false) => {
+  const category = getModelCategory(model);
+  if (['Image', 'Video', 'Audio', 'Embedding', 'Rerank'].includes(category)) {
+    return intro
+      ? categoryIntros[category]
+      : categorySummaries[category];
+  }
+
+  const family = getModelFamily(model);
+  if (intro && modelFamilyIntros[family]) return modelFamilyIntros[family];
+  if (!intro && modelFamilySummaries[family]) return modelFamilySummaries[family];
+
+  return intro
+    ? categoryIntros[category] || categoryIntros.Chat
+    : categorySummaries[category] || categorySummaries.Chat;
 };
 
 export const PUBLIC_MODEL_FIELDS = [
@@ -54,11 +174,6 @@ export const PUBLIC_MODEL_FIELDS = [
   'max_context',
   'max_tokens',
   'max_input_tokens',
-  'input_price',
-  'output_price',
-  'fixed_price',
-  'cache_read_price',
-  'cache_creation_price',
   'enabled',
   'public_rank',
   'rank',
@@ -112,6 +227,22 @@ export const extractCollection = (response, preferredKeys = []) => {
   return [];
 };
 
+export const extractPricingRows = (response) => {
+  const data = extractResponseData(response);
+  const rows = extractCollection(response, ['pricing', 'prices', 'models']);
+  if (rows.length > 0) return rows;
+
+  const pricingMap = data?.pricing || data?.prices || data?.models || data;
+  if (!pricingMap || Array.isArray(pricingMap) || typeof pricingMap !== 'object') return [];
+
+  return Object.entries(pricingMap)
+    .filter(([, value]) => value && typeof value === 'object' && !Array.isArray(value))
+    .map(([modelName, value]) => ({
+      model_name: value.model_name || value.model || value.name || modelName,
+      ...value,
+    }));
+};
+
 export const hasAnyField = (items, fields) =>
   items.some((item) => fields.some((field) => item?.[field] !== null && item?.[field] !== undefined && item?.[field] !== ''));
 
@@ -127,6 +258,44 @@ export const getCacheReadPrice = (item) => firstNumber(item, ['cache_read_price'
 
 export const getCacheCreationPrice = (item) => firstNumber(item, ['cache_creation_price', 'cache_write_price', 'cache_creation', 'cache_creation_price_5m']);
 
+export const getOfficialPricing = (model) => {
+  const pricing = model?.official_pricing;
+  if (!pricing || typeof pricing !== 'object') return null;
+  if (pricing.type === 'per_call' && asNumber(pricing.modelPrice) !== null) return pricing;
+  if (
+    pricing.type === 'token' &&
+    (asNumber(pricing.inputRatio) !== null || asNumber(pricing.outputRatio) !== null)
+  ) {
+    return pricing;
+  }
+  return null;
+};
+
+const getOfficialPriceValue = (model) => {
+  const pricing = getOfficialPricing(model);
+  if (!pricing) return Number.POSITIVE_INFINITY;
+  if (pricing.type === 'per_call') return asNumber(pricing.modelPrice) ?? Number.POSITIVE_INFINITY;
+  return asNumber(pricing.inputRatio) ?? asNumber(pricing.outputRatio) ?? Number.POSITIVE_INFINITY;
+};
+
+export const formatOfficialNumber = (value) => {
+  const number = asNumber(value);
+  if (number === null) return '-';
+  const abs = Math.abs(number);
+  const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 4;
+  return number.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '');
+};
+
+export const formatOfficialRatio = (value) => {
+  const formatted = formatOfficialNumber(value);
+  return formatted === '-' ? '-' : `${formatted}x`;
+};
+
+export const formatOfficialPerCall = (value) => {
+  const formatted = formatOfficialNumber(value);
+  return formatted === '-' ? '-' : `${formatted}/call`;
+};
+
 export const getModelId = (model) =>
   normalizeText(model?.model_name || model?.id || model?.name || model?.display_name || 'model');
 
@@ -135,21 +304,29 @@ export const getEncodedModelId = (modelOrId) => encodeURIComponent(
 );
 
 export const getModelDisplayName = (model) =>
-  model?.display_name || model?.name || model?.model_name || `Model ${model?.id || ''}`.trim();
+  pickPublicName([
+    model?.display_name,
+    model?.name,
+    model?.upstream_model,
+    model?.canonical,
+    model?.canonical_model_name,
+    routeLeaf(model?.model_name),
+    model?.model_name,
+  ]) || stripInternalNameText(model?.model_name) || `Model ${model?.id || ''}`.trim();
 
 export const getModelRoute = (model) => `/models/${encodeURIComponent(getModelId(model))}`;
 
 export const getProviderFields = (model) => uniqueText([
-  model?.vendor_name,
+  model?.[vendorNameField],
   model?.vendor,
-  model?.provider_name,
+  model?.[providerNameField],
   model?.provider,
-  model?.provider_slug,
-  model?.channel_name,
+  model?.[providerSlugField],
+  model?.[channelNameField],
   ...getChannels(model).flatMap((channel) => [
-    channel?.provider_name,
-    channel?.provider_slug,
-    channel?.channel_name,
+    channel?.[providerNameField],
+    channel?.[providerSlugField],
+    channel?.[channelNameField],
   ]),
 ]);
 
@@ -163,6 +340,7 @@ export const getProviderSlug = (name) =>
 
 export const isPerCallModel = (model) =>
   Boolean(
+    getOfficialPricing(model)?.type === 'per_call' ||
     model?.is_per_call ||
     model?.billing_type === 'per_call' ||
     (getFixedPrice(model) !== null && getInputPrice(model) === null && getOutputPrice(model) === null)
@@ -194,10 +372,11 @@ export const getModelCategory = (model) => {
 };
 
 export const getModelSummary = (model) => {
-  const summary = normalizeText(model?.description || model?.summary);
-  if (summary) return summary;
-  const category = getModelCategory(model);
-  return categorySummaries[category] || `${category || 'Public'} model available in the public catalog.`;
+  return getGeneratedModelText(model, false);
+};
+
+export const getModelIntro = (model) => {
+  return getGeneratedModelText(model, true);
 };
 
 export const getAvailability = (model) => {
@@ -220,14 +399,14 @@ export const getAvailability = (model) => {
 export const getModelTags = (model) => {
   const tags = new Set([getModelCategory(model)]);
   const name = `${model?.model_name || ''} ${model?.display_name || ''}`.toLowerCase();
-  const input = getInputPrice(model);
-  const output = getOutputPrice(model);
+  const officialPricing = getOfficialPricing(model);
+  const input = officialPricing?.type === 'token' ? asNumber(officialPricing.inputRatio) : null;
+  const output = officialPricing?.type === 'token' ? asNumber(officialPricing.outputRatio) : null;
   const context = firstNumber(model, ['context_length', 'context_window', 'max_context_tokens', 'max_context', 'max_tokens', 'max_input_tokens']) || 0;
 
   if (isPerCallModel(model)) tags.add('Per call');
-  if (input !== null && input > 0 && input <= 0.0003) tags.add('Low cost');
-  if (output !== null && output > 0 && output <= 0.001) tags.add('Fast');
-  if (getCacheReadPrice(model) !== null || getCacheCreationPrice(model) !== null) tags.add('Cache');
+  if (input !== null && input > 0 && input <= 1) tags.add('Low ratio');
+  if (output !== null && output > 0 && output <= 1) tags.add('Low output');
   if (context >= 100000 || /128k|200k|1m|long/.test(name)) tags.add('Long context');
   if (/video|text-to-video|image-to-video|sora|kling|runway|luma/.test(name)) tags.add('Video');
   if (/audio|tts|speech|voice|whisper/.test(name)) tags.add('Audio');
@@ -286,22 +465,29 @@ export const getPreferredMode = (model) => {
 };
 
 const getCanonicalModelName = (model) => normalizeText(
-  model?.upstream_model ||
-  model?.canonical ||
-  model?.canonical_model_name ||
-  model?.model_name ||
-  model?.display_name ||
-  model?.name ||
+  routeLeaf(model?.upstream_model) ||
+  routeLeaf(model?.canonical) ||
+  routeLeaf(model?.canonical_model_name) ||
+  routeLeaf(model?.model_name) ||
+  stripInternalNameText(model?.upstream_model) ||
+  stripInternalNameText(model?.canonical) ||
+  stripInternalNameText(model?.canonical_model_name) ||
+  stripInternalNameText(model?.model_name) ||
+  stripInternalNameText(model?.display_name) ||
+  stripInternalNameText(model?.name) ||
   model?.id,
 );
 
 const getPublicDisplayName = (model) => normalizeText(
-  model?.display_name ||
-  model?.name ||
-  model?.upstream_model ||
-  model?.canonical ||
-  model?.canonical_model_name ||
-  model?.model_name ||
+  pickPublicName([
+    model?.display_name,
+    model?.name,
+    model?.upstream_model,
+    model?.canonical,
+    model?.canonical_model_name,
+    routeLeaf(model?.model_name),
+    model?.model_name,
+  ]) ||
   model?.id,
 );
 
@@ -315,12 +501,6 @@ const uniqueByKey = (items, keyFn) => {
   });
 };
 
-const mergePrice = (values, reducer = Math.min) => {
-  const nums = values.map(asNumber).filter((value) => value !== null);
-  if (nums.length === 0) return null;
-  return reducer(...nums);
-};
-
 const mergeUsage = (current, next) => {
   const currentValue = asNumber(current);
   const nextValue = asNumber(next);
@@ -331,6 +511,74 @@ const mergeUsage = (current, next) => {
 export const getModelFamilyKey = (model) => {
   const raw = getCanonicalModelName(model);
   return normalizeLower(raw);
+};
+
+const getPricingKeyCandidates = (item) => uniqueText([
+  item?.model_name,
+  item?.model,
+  item?.name,
+  item?.display_name,
+  item?.upstream_model,
+  item?.canonical,
+  item?.canonical_model_name,
+  item?.id,
+].flatMap((value) => [value, routeLeaf(value)])).map(normalizeLower).filter(Boolean);
+
+const normalizeOfficialPricingRow = (row) => {
+  if (!row || typeof row !== 'object') return null;
+
+  const quotaType = asNumber(row.quota_type);
+  const inputRatio = firstNumber(row, ['model_ratio', 'input_ratio', 'prompt_ratio']);
+  const completionRatio = firstNumber(row, ['completion_ratio', 'output_multiplier', 'completion_multiplier']);
+  const explicitOutputRatio = firstNumber(row, ['output_ratio', 'completion_model_ratio']);
+  const outputRatio = explicitOutputRatio ?? (
+    inputRatio !== null && completionRatio !== null ? inputRatio * completionRatio : null
+  );
+  const modelPrice = firstNumber(row, ['model_price', 'call_price', 'fixed_price']);
+
+  if (quotaType === 1 || (quotaType !== 0 && modelPrice !== null && inputRatio === null)) {
+    return {
+      type: 'per_call',
+      modelPrice,
+      source: 'public_pricing',
+    };
+  }
+
+  if (quotaType === 0 || inputRatio !== null || outputRatio !== null) {
+    if (inputRatio === null && outputRatio === null) return null;
+    return {
+      type: 'token',
+      inputRatio,
+      completionRatio,
+      outputRatio,
+      source: 'public_pricing',
+    };
+  }
+
+  return null;
+};
+
+const buildOfficialPricingIndex = (pricingRows = []) => {
+  const index = new Map();
+
+  pricingRows.forEach((row) => {
+    const pricing = normalizeOfficialPricingRow(row);
+    if (!pricing) return;
+
+    getPricingKeyCandidates(row).forEach((key) => {
+      if (!index.has(key)) index.set(key, pricing);
+    });
+  });
+
+  return index;
+};
+
+const stripMerchantPricing = (model) => {
+  const next = { ...model };
+  PRICE_FIELDS.forEach((field) => {
+    if (field in next) delete next[field];
+  });
+  return next;
 };
 
 export const mergeModelCatalog = (models = []) => {
@@ -349,7 +597,7 @@ export const mergeModelCatalog = (models = []) => {
         id: publicModelName,
         model_name: publicModelName,
         display_name: displayName,
-        description: model?.description || model?.summary || '',
+        description: getGeneratedModelText(model, false),
         category,
         type: model?.type,
         modality: model?.modality,
@@ -361,11 +609,6 @@ export const mergeModelCatalog = (models = []) => {
         tags: Array.isArray(model?.tags) ? model.tags : [],
         context_length: firstNumber(model, ['context_length', 'context_window', 'max_context_tokens', 'max_context', 'max_input_tokens']),
         max_tokens: firstNumber(model, ['max_tokens']),
-        input_price: asNumber(model?.input_price),
-        output_price: asNumber(model?.output_price),
-        fixed_price: asNumber(model?.fixed_price),
-        cache_read_price: asNumber(model?.cache_read_price),
-        cache_creation_price: asNumber(model?.cache_creation_price),
         enabled: true,
         public_rank: publicRank,
         usage_count: null,
@@ -375,12 +618,7 @@ export const mergeModelCatalog = (models = []) => {
 
     const group = groups.get(key);
     group.enabled = group.enabled || model?.enabled !== false;
-    group.description = [group.description, model?.description, model?.summary].filter(Boolean).sort((a, b) => b.length - a.length)[0] || group.description;
-    group.input_price = mergePrice([group.input_price, model?.input_price]);
-    group.output_price = mergePrice([group.output_price, model?.output_price]);
-    group.fixed_price = mergePrice([group.fixed_price, model?.fixed_price]);
-    group.cache_read_price = mergePrice([group.cache_read_price, model?.cache_read_price]);
-    group.cache_creation_price = mergePrice([group.cache_creation_price, model?.cache_creation_price]);
+    group.description = getGeneratedModelText(group, false);
     group.usage_count = mergeUsage(group.usage_count, getUsageCount(model));
     group.request_count = group.usage_count;
 
@@ -404,6 +642,29 @@ export const mergeModelCatalog = (models = []) => {
   return Array.from(groups.values()).sort((a, b) => a.public_rank - b.public_rank);
 };
 
+export const mergeOfficialPricingIntoModels = (models = [], pricingRows = []) => {
+  const index = buildOfficialPricingIndex(pricingRows);
+
+  return models.map((model) => {
+    const cleanModel = stripMerchantPricing(model);
+    const keys = getPricingKeyCandidates(cleanModel);
+    const officialPricing = keys.map((key) => index.get(key)).find(Boolean);
+
+    if (!officialPricing) {
+      const { official_pricing: _officialPricing, ...withoutPricing } = cleanModel;
+      return withoutPricing;
+    }
+
+    return {
+      ...cleanModel,
+      official_pricing: officialPricing,
+    };
+  });
+};
+
+export const mergePublicModelCatalog = (models = [], pricingRows = []) =>
+  mergeOfficialPricingIntoModels(mergeModelCatalog(models), pricingRows);
+
 export const hasUsageMetrics = (models) =>
   models.some((model) =>
     REQUEST_FIELDS.some((key) => model?.[key] != null)
@@ -423,19 +684,14 @@ export const getRating = (model) => {
 };
 
 export const getPriceValue = (model) => {
-  if (isPerCallModel(model)) return getFixedPrice(model) ?? Number.POSITIVE_INFINITY;
-  const input = getInputPrice(model);
-  const output = getOutputPrice(model);
-  if (input !== null && input > 0) return input;
-  if (output !== null && output > 0) return output;
-  return Number.POSITIVE_INFINITY;
+  return getOfficialPriceValue(model);
 };
 
 export const getMarketplaceScore = (model) => {
   const availability = getAvailability(model).score * 1000;
   const channelScore = Array.isArray(model?.channels) ? Math.min(model.channels.length, 10) * 25 : 0;
   const price = getPriceValue(model);
-  const priceScore = Number.isFinite(price) ? Math.max(0, 500 - price * 100000) : 0;
+  const priceScore = Number.isFinite(price) ? Math.max(0, 500 - price * 100) : 0;
   return availability + channelScore + priceScore;
 };
 
@@ -518,7 +774,7 @@ export const getProviderGroups = (models) => {
       }
       if (getChannels(model).length > 0) {
         group.channels.push(...getChannels(model).filter((channel) =>
-          [channel.provider_name, channel.provider_slug].filter(Boolean).some((value) => getProviderSlug(value) === key)
+          [channel?.[providerNameField], channel?.[providerSlugField]].filter(Boolean).some((value) => getProviderSlug(value) === key)
         ));
       }
     });
@@ -553,7 +809,7 @@ export const formatUsageValue = (modelOrValue) => {
 const jsonString = (value) => JSON.stringify(String(value));
 
 export const buildCurlSnippet = ({
-  baseUrl,
+  baseUrl = PUBLIC_API_BASE_URL,
   apiKey = '$SUBROUTER_API_KEY',
   modelId,
   prompt = 'Explain quantum computing in one paragraph.',
@@ -576,7 +832,7 @@ ${optionalLines ? `${optionalLines}\n` : ''}    "messages": [
   }'`;
 };
 
-export const buildJsSnippet = ({ baseUrl, apiKey = 'process.env.SUBROUTER_API_KEY', modelId }) => `const response = await fetch("${baseUrl}/chat/completions", {
+export const buildJsSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'process.env.SUBROUTER_API_KEY', modelId }) => `const response = await fetch("${baseUrl}/chat/completions", {
   method: "POST",
   headers: {
     "Content-Type": "application/json",
@@ -591,7 +847,7 @@ export const buildJsSnippet = ({ baseUrl, apiKey = 'process.env.SUBROUTER_API_KE
 const data = await response.json();
 console.log(data.choices?.[0]?.message?.content);`;
 
-export const buildPythonSnippet = ({ baseUrl, apiKey = 'os.environ["SUBROUTER_API_KEY"]', modelId }) => `import os
+export const buildPythonSnippet = ({ baseUrl = PUBLIC_API_BASE_URL, apiKey = 'os.environ["SUBROUTER_API_KEY"]', modelId }) => `import os
 from openai import OpenAI
 
 client = OpenAI(

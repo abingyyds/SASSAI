@@ -24,6 +24,7 @@ import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
+import { PUBLIC_API_BASE_URL } from '../../constants/api';
 
 const featureCards = [
   { icon: Gauge, tone: 'border-blue-200 bg-blue-50 text-blue-700', key: 'lightningFast', desc: 'lightningFastDesc' },
@@ -237,7 +238,7 @@ function RoutingWorkbench({ models, t }) {
               <Layers3 className="h-4 w-4 text-blue-300" />
               route decision
             </div>
-            <span className="font-mono text-xs text-slate-500">POST /v1/chat</span>
+            <span className="font-mono text-xs text-slate-500">POST {PUBLIC_API_BASE_URL}/chat</span>
           </div>
 
           <div className="space-y-3">

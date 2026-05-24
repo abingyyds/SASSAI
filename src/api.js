@@ -148,6 +148,46 @@ const previewSite = (theme = 'saas') => ({
 const devPublicResponse = (requestFn, data) =>
   shouldUseDevMock() ? previewResponse(data) : requestFn();
 
+const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000;
+const publicRequestCache = new Map();
+
+const stableCacheKey = (value) => {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableCacheKey).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map((key) => `${key}:${stableCacheKey(value[key])}`).join(',')}}`;
+  }
+  return String(value);
+};
+
+const cachedPublicRequest = (key, requestFn, ttlMs = PUBLIC_CACHE_TTL_MS) => {
+  const now = Date.now();
+  const cached = publicRequestCache.get(key);
+  if (cached?.result && cached.expiresAt > now) {
+    return Promise.resolve(cached.result);
+  }
+  if (cached?.promise) {
+    return cached.promise;
+  }
+
+  const promise = requestFn()
+    .then((result) => {
+      publicRequestCache.set(key, {
+        result,
+        expiresAt: Date.now() + ttlMs,
+      });
+      return result;
+    })
+    .catch((error) => {
+      publicRequestCache.delete(key);
+      throw error;
+    });
+
+  publicRequestCache.set(key, { promise });
+  return promise;
+};
+
 const api = axios.create({
   baseURL: '',
   timeout: 30000,
@@ -204,21 +244,41 @@ export const getSiteInfo = () => {
   }
   return devPublicResponse(() => api.get('/api/dist/site/info'), previewSite('saas'));
 };
-export const getSiteModels = () => getPreviewTheme()
-  ? previewResponse(previewModels)
-  : devPublicResponse(() => api.get('/api/dist/site/models'), previewModels);
-export const getMarketplaceModels = (params) => (shouldUseDevMock()
-  ? previewResponse(previewMarketplaceModels)
-  : api.get('/api/marketplace/models', { params, skipErrorHandler: true }));
-export const getMarketplaceProviders = (params) => (shouldUseDevMock()
-  ? previewResponse(previewMarketplaceProviders)
-  : api.get('/api/marketplace/providers', { params, skipErrorHandler: true }));
-export const getSitePricing = () => (shouldUseDevMock()
+export const getSiteModels = () => {
+  const theme = getPreviewTheme();
+  return cachedPublicRequest(`site-models:${theme || 'default'}:${shouldUseDevMock()}`, () => (
+    theme
+      ? previewResponse(previewModels)
+      : devPublicResponse(() => api.get('/api/dist/site/models'), previewModels)
+  ));
+};
+export const getMarketplaceModels = (params = {}) => cachedPublicRequest(
+  `marketplace-models:${shouldUseDevMock()}:${stableCacheKey(params)}`,
+  () => (shouldUseDevMock()
+    ? previewResponse(previewMarketplaceModels)
+    : api.get('/api/marketplace/models', { params, skipErrorHandler: true })),
+);
+export const getMarketplaceProviders = (params = {}) => cachedPublicRequest(
+  `marketplace-providers:${shouldUseDevMock()}:${stableCacheKey(params)}`,
+  () => (shouldUseDevMock()
+    ? previewResponse(previewMarketplaceProviders)
+    : api.get('/api/marketplace/providers', { params, skipErrorHandler: true })),
+);
+export const getPublicPricing = () => cachedPublicRequest(
+  'public-pricing',
+  () => (shouldUseDevMock() ? previewResponse([]) : api.get('/api/pricing', { skipErrorHandler: true })),
+);
+export const getSitePricing = () => cachedPublicRequest('site-pricing', () => (shouldUseDevMock()
   ? previewResponse([])
-  : api.get('/api/dist/site/pricing'));
-export const getSitePackages = () => getPreviewTheme()
-  ? previewResponse(previewPackages)
-  : devPublicResponse(() => api.get('/api/dist/site/packages'), previewPackages);
+  : api.get('/api/dist/site/pricing')));
+export const getSitePackages = () => {
+  const theme = getPreviewTheme();
+  return cachedPublicRequest(`site-packages:${theme || 'default'}:${shouldUseDevMock()}`, () => (
+    theme
+      ? previewResponse(previewPackages)
+      : devPublicResponse(() => api.get('/api/dist/site/packages'), previewPackages)
+  ));
+};
 export const getSiteKeyGroups = () => (shouldUseDevMock()
   ? previewResponse([])
   : api.get('/api/dist/site/key-groups'));

@@ -1,17 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpDown, BarChart3, Database, Search, Trophy } from 'lucide-react';
-import { getMarketplaceModels, getSiteModels } from '../api';
 import ModelPrice from '../components/ModelPrice';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
 import {
-  extractCollection,
   formatUsageValue,
   getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
-  mergeModelCatalog,
-  PUBLIC_MODEL_FIELDS,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -22,27 +19,23 @@ const sortOptions = [
 ];
 
 export default function Rankings() {
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
+  const [loading, setLoading] = useState(() => !cachedCatalog);
   const [sort, setSort] = useState('popular');
   const [search, setSearch] = useState('');
-  const [dataSource, setDataSource] = useState('marketplace');
+  const [dataSource, setDataSource] = useState(() => cachedCatalog?.dataSource || 'public');
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!cachedCatalog) setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
-      .then((res) => {
+    getPublicModelCatalog()
+      .then((catalog) => {
         if (cancelled) return;
-        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
-        setDataSource('marketplace');
+        setModels(catalog.models);
+        setDataSource(catalog.dataSource);
       })
-      .catch(() => getSiteModels().then((res) => {
-        if (cancelled) return;
-        setModels(mergeModelCatalog(extractCollection(res, ['models'])));
-        setDataSource('fallback');
-      }))
       .catch(() => {
         if (!cancelled) {
           setModels([]);
@@ -56,7 +49,7 @@ export default function Rankings() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [cachedCatalog]);
 
   const enabledModels = useMemo(() => models.filter((model) => model.enabled !== false), [models]);
   const filteredModels = useMemo(() => {
@@ -71,14 +64,6 @@ export default function Rankings() {
       : enabledModels;
     return sortModels(base, sort).slice(0, 100);
   }, [enabledModels, search, sort]);
-
-  if (loading) {
-    return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-950" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -96,7 +81,7 @@ export default function Rankings() {
               </p>
               <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600">
                 <Database size={13} />
-                {dataSource === 'marketplace' ? 'Live marketplace data' : 'Site catalog fallback'}
+                {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
               </div>
             </div>
             <label className="relative w-full lg:max-w-sm">
@@ -156,7 +141,7 @@ export default function Rankings() {
 
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 bg-slate-50 px-5 py-3 text-sm text-slate-600">
-            {filteredModels.length} ranked models · {sortOptions.find((item) => item.key === sort)?.label || 'Popular'}
+            {loading ? 'Loading ranked models' : `${filteredModels.length} ranked models · ${sortOptions.find((item) => item.key === sort)?.label || 'Popular'}`}
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[800px] text-sm">
@@ -169,25 +154,45 @@ export default function Rankings() {
                   <th className="px-5 py-3 text-right font-medium">Price</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredModels.map((model, index) => (
-                  <tr key={getModelId(model)} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50">
-                    <td className="px-5 py-4 font-mono text-slate-500">{index + 1}</td>
-                    <td className="px-5 py-4">
-                      <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-sky-700">
-                        {getModelDisplayName(model)}
-                      </Link>
-                    </td>
-                    <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
-                    <td className="px-5 py-4 text-right font-mono text-slate-700">{formatUsageValue(model)}</td>
-                    <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
-                  </tr>
-                ))}
-              </tbody>
+              {loading ? (
+                <RankingSkeletonRows />
+              ) : (
+                <tbody>
+                  {filteredModels.map((model, index) => (
+                    <tr key={getModelId(model)} className="border-b border-slate-100 align-middle last:border-0 hover:bg-slate-50">
+                      <td className="px-5 py-4 font-mono text-slate-500">{index + 1}</td>
+                      <td className="px-5 py-4">
+                        <Link to={getModelRoute(model)} className="font-semibold text-slate-950 hover:text-sky-700">
+                          {getModelDisplayName(model)}
+                        </Link>
+                      </td>
+                      <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
+                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatUsageValue(model)}</td>
+                      <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
             </table>
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function RankingSkeletonRows() {
+  return (
+    <tbody>
+      {Array.from({ length: 10 }, (_, index) => (
+        <tr key={index} className="border-b border-slate-100 last:border-0">
+          <td className="px-5 py-4"><div className="h-4 w-6 animate-pulse rounded bg-slate-100" /></td>
+          <td className="px-5 py-4"><div className="h-4 w-56 animate-pulse rounded bg-slate-200" /></td>
+          <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-100" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
+        </tr>
+      ))}
+    </tbody>
   );
 }

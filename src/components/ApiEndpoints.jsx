@@ -1,29 +1,15 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { useSite } from '../context/SiteContext';
+import { PUBLIC_API_BASE_URL } from '../constants/api';
 
 const SHARED_API_ENDPOINTS = [
   {
-    id: 'overseas-direct',
-    labelKey: 'home.apiEndpointOverseasDirect',
-    url: 'https://aiapi.up.railway.app',
-  },
-  {
-    id: 'overseas-cdn',
-    labelKey: 'home.apiEndpointOverseasCdn',
-    url: 'https://ai.orbitlink.me',
+    id: 'official-api',
+    labelKey: 'home.apiEndpointSite',
+    url: PUBLIC_API_BASE_URL,
   },
 ];
-
-const normalizeEndpoint = (value = '') => {
-  const raw = String(value || '').trim();
-  if (!raw) return '';
-  if (/^https?:\/\//i.test(raw)) {
-    return raw.replace(/\/+$/, '');
-  }
-  return `https://${raw.replace(/^\/+/, '').replace(/\/+$/, '')}`;
-};
 
 const copyToClipboard = async (text) => {
   try {
@@ -42,28 +28,16 @@ const copyToClipboard = async (text) => {
 
 export default function ApiEndpoints() {
   const { t } = useTranslation();
-  const { site } = useSite();
-
-  const siteEndpoint = useMemo(() => {
-    const currentOrigin =
-      typeof window !== 'undefined' ? window.location.origin : '';
-    return normalizeEndpoint(site?.domain || currentOrigin);
-  }, [site?.domain]);
 
   const endpoints = useMemo(
     () => [
-      {
-        id: 'site',
-        label: t('home.apiEndpointSite'),
-        url: siteEndpoint,
-      },
       ...SHARED_API_ENDPOINTS.map((endpoint) => ({
         ...endpoint,
         label: t(endpoint.labelKey),
         apiOnly: true,
       })),
     ].filter((endpoint) => endpoint.url),
-    [siteEndpoint, t],
+    [t],
   );
 
   const handleCopy = async (url) => {

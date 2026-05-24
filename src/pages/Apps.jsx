@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Braces, Code2, Download, PlugZap, TerminalSquare } from 'lucide-react';
 import CodeBlock from '../components/CodeBlock';
+import { PUBLIC_API_BASE_URL } from '../constants/api';
 
 const apps = [
   {
@@ -31,7 +32,7 @@ const apps = [
 ];
 
 export default function Apps() {
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const baseUrl = PUBLIC_API_BASE_URL;
   const config = `API Key: sk-your-api-key
 Base URL: ${baseUrl}
 Model: choose from /models`;
@@ -73,7 +74,7 @@ Model: choose from /models`;
               <h2 className="font-semibold text-slate-950">Universal settings</h2>
             </div>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              These values work for clients that expose OpenAI-compatible configuration fields.
+              These values work for clients that expose OpenAI-compatible configuration fields. Use the API subdomain, not the main website domain with a /v1 path.
             </p>
           </div>
           <CodeBlock title="Client values" language="text" code={config} />

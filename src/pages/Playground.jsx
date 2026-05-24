@@ -13,21 +13,21 @@ import {
   SlidersHorizontal,
   Video,
 } from 'lucide-react';
-import { getMarketplaceModels, getSiteModels } from '../api';
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
 import ModelPrice from '../components/ModelPrice';
 import {
-  extractCollection,
+  getPublicModelCatalog,
+  readPublicModelCatalog,
+  SUBROUTER_API_BASE_URL,
+} from '../utils/publicCatalog';
+import {
   getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
   getPreferredMode,
   getSupportedModes,
-  mergeModelCatalog,
-  PUBLIC_MODEL_FIELDS,
-  sortModels,
 } from '../utils/modelMeta';
 
 const modeDefinitions = [
@@ -46,8 +46,9 @@ const defaultPrompts = {
 
 export default function Playground() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [models, setModels] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
+  const [loading, setLoading] = useState(() => !cachedCatalog);
   const [selectedId, setSelectedId] = useState(searchParams.get('model') || '');
   const [activeMode, setActiveMode] = useState(searchParams.get('mode') || 'chat');
   const [modeTouched, setModeTouched] = useState(Boolean(searchParams.get('mode')));
@@ -63,25 +64,19 @@ export default function Playground() {
   const [audioFormat, setAudioFormat] = useState('mp3');
   const [prepared, setPrepared] = useState(false);
   const [codeTab, setCodeTab] = useState('curl');
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const baseUrl = SUBROUTER_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!cachedCatalog) setLoading(true);
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 200, fields: PUBLIC_MODEL_FIELDS })
-      .then((res) => {
+    getPublicModelCatalog()
+      .then((catalog) => {
         if (cancelled) return;
-        const list = sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular');
+        const list = catalog.models;
         setModels(list);
         setSelectedId((current) => current || (list[0] ? getModelId(list[0]) : ''));
       })
-      .catch(() => getSiteModels().then((res) => {
-        if (cancelled) return;
-        const list = sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular');
-        setModels(list);
-        setSelectedId((current) => current || (list[0] ? getModelId(list[0]) : ''));
-      }))
       .catch(() => {
         if (!cancelled) setModels([]);
       })
@@ -92,7 +87,7 @@ export default function Playground() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [cachedCatalog]);
 
   const selectedModel = useMemo(
     () => models.find((model) => getModelId(model) === selectedId) || models[0],

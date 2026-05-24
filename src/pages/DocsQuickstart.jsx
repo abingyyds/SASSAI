@@ -1,20 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, ArrowRight, BookOpen, CreditCard, KeyRound, Layers3, RefreshCw, Server, ShieldAlert, TerminalSquare } from 'lucide-react';
-import { getMarketplaceModels, getSiteModels } from '../api';
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
+import {
+  getDocsModelCatalog,
+  readDocsModelCatalog,
+  SUBROUTER_API_BASE_URL,
+} from '../utils/publicCatalog';
 import {
   buildCurlSnippet,
   buildJsSnippet,
   buildPythonSnippet,
-  extractCollection,
   getModelCategory,
   getModelId,
   getSupportedModes,
-  mergeModelCatalog,
-  PUBLIC_MODEL_FIELDS,
-  sortModels,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 
@@ -33,21 +33,18 @@ const navItems = [
 
 export default function DocsQuickstart() {
   const { user } = useAuth();
-  const [models, setModels] = useState([]);
-  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const cachedCatalog = useMemo(() => readDocsModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
+  const baseUrl = SUBROUTER_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;
 
-    getMarketplaceModels({ sort: 'popular', page: 1, page_size: 100, fields: PUBLIC_MODEL_FIELDS })
-      .then((res) => {
+    getDocsModelCatalog()
+      .then((catalog) => {
         if (cancelled) return;
-        setModels(sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular'));
+        setModels(catalog.models);
       })
-      .catch(() => getSiteModels().then((res) => {
-        if (cancelled) return;
-        setModels(sortModels(mergeModelCatalog(extractCollection(res, ['models'])).filter((model) => model.enabled !== false), 'popular'));
-      }))
       .catch(() => {});
 
     return () => {
@@ -58,7 +55,6 @@ export default function DocsQuickstart() {
   const picked = useMemo(() => pickDocsModels(models), [models]);
   const chatModelId = getModelId(picked.chat || models[0] || { model_name: 'gpt-4o-mini' });
   const visionModelId = getModelId(picked.image || picked.chat || { model_name: 'vision-model-id' });
-  const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
 
   const envSnippet = `SUBROUTER_API_KEY=sk-your-api-key
 SUBROUTER_BASE_URL=${baseUrl}
@@ -112,10 +108,10 @@ for await (const part of stream) {
             </div>
             <h1 className="text-4xl font-semibold tracking-normal text-slate-950">SubRouter API quickstart</h1>
             <p className="mt-4 text-base leading-7 text-slate-600">
-              Use a SubRouter API key with the same-origin /v1 base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
+              Use a SubRouter API key with the API subdomain base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
             </p>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-              The quickstart focuses on what users need to start building: key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes.
+              The quickstart focuses on what users need to start building: key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes. Public API examples use the API subdomain rather than this website origin.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link to={user ? '/tokens' : '/register'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
@@ -139,6 +135,9 @@ for await (const part of stream) {
               <CopyRow label="Chat" value={`${baseUrl}/chat/completions`} />
               <CopyRow label="Model id" value={chatModelId} />
             </div>
+            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+              The main website domain with a /v1 path is not a valid API base. Use the API subdomain base URL shown above.
+            </p>
           </div>
         </div>
       </section>
@@ -168,19 +167,22 @@ for await (const part of stream) {
           <div className="space-y-6">
             <DocCard id="api-key" icon={KeyRound} title="Get API key">
               <p className="text-sm leading-6 text-slate-600">
-                Create an account, open API Keys, and generate a key. Send it as a bearer token on every /v1 request.
+                Create an account, open API Keys, and generate a key. Send it as a bearer token on every request to the API subdomain.
               </p>
               <CodeBlock title="Environment" language="bash" code={envSnippet} />
             </DocCard>
 
             <DocCard id="base-url" icon={Server} title="Base URL">
               <p className="text-sm leading-6 text-slate-600">
-                Use this site origin plus /v1. The frontend avoids hardcoded hosts so the same docs work on this domain or a custom distributor domain.
+                Use the API subdomain base URL for OpenAI-compatible requests. Do not derive the API base URL from the website origin.
               </p>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                The main website domain with a /v1 path is not a valid API base. Clients must use <code className="font-mono">{baseUrl}</code>.
+              </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <CopyRow label="API key" value="sk-your-api-key" />
                 <CopyRow label="Base URL" value={baseUrl} />
-                <CopyRow label="API root" value={`${appOrigin}/v1`} />
+                <CopyRow label="Chat endpoint" value={`${baseUrl}/chat/completions`} />
               </div>
               <CodeBlock
                 title="Endpoint"
@@ -231,25 +233,25 @@ Content-Type: application/json`}
               </div>
             </DocCard>
 
-            <DocCard id="models" icon={Layers3} title="Model IDs and marketplace">
+            <DocCard id="models" icon={Layers3} title="Model IDs and catalog">
               <p className="text-sm leading-6 text-slate-600">
                 Model IDs are copied from the public catalog and used exactly in API requests. Duplicate routes are shown as one public model family.
               </p>
               <div className="grid gap-3 md:grid-cols-3">
                 <LinkCard to="/models" title="Models" text="Filter by chat, image, audio, video, embedding, and rerank." />
-                <LinkCard to="/rankings" title="Rankings" text="Review public model rank, category, and price." />
+                <LinkCard to="/rankings" title="Rankings" text="Review public model rank, category, usage, and official price." />
                 <LinkCard to="/playground" title="Playground" text="Build request payloads and copy code samples." />
               </div>
               <CodeBlock
-                title="Public catalog endpoint"
-                language="bash"
-                code="GET /api/marketplace/models?sort=popular&page=1&page_size=100"
+                title="Public catalog page"
+                language="text"
+                code="/models"
               />
             </DocCard>
 
             <DocCard id="pricing" icon={CreditCard} title="Pricing and cache pricing">
               <p className="text-sm leading-6 text-slate-600">
-                Model cards show input and output prices per 1M tokens when token pricing is available. Per-call models show a call price. Cache read and cache creation prices are shown on model details when the catalog exposes them.
+                Model cards show official input and output ratios from the public pricing feed. Per-call models show a call price when one is returned.
               </p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Always check the selected model details before production rollout because catalog pricing can change.
@@ -269,7 +271,7 @@ Content-Type: application/json`}
 
             <DocCard id="migration" icon={RefreshCw} title="Migrating from OpenAI or OpenRouter">
               <p className="text-sm leading-6 text-slate-600">
-                Keep the OpenAI SDK shape for chat. Change the base URL to this site, replace the API key, and use a SubRouter marketplace model id. OpenRouter-specific optional headers are not required unless your own app depends on them.
+                Keep the OpenAI SDK shape for chat. Change the base URL to the SubRouter API subdomain, replace the API key, and use a public catalog model id. OpenRouter-specific optional headers are not required unless your own app depends on them.
               </p>
               <CodeBlock
                 title="Before and after"
@@ -277,7 +279,7 @@ Content-Type: application/json`}
                 code={`# OpenAI or OpenRouter client
 baseURL=https://api.openai.com/v1
 
-# SubRouter client on this site
+# SubRouter client
 baseURL=${baseUrl}
 apiKey=$SUBROUTER_API_KEY
 model=${chatModelId}`}
