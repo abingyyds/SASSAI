@@ -14,6 +14,68 @@ const previewModels = [
   { id: 'preview-8', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', vendor_name: 'OpenAI', input_price: 0.00025, output_price: 0.002, cache_read_price: 0.000025, cache_creation_price: 0.00025, status: 'healthy', enabled: true },
 ];
 
+const previewMarketplaceModels = previewModels.map((model, index) => ({
+  ...model,
+  rank: index + 1,
+  category: index === 2 ? 'multimodal' : 'chat',
+  request_count: [1842000, 1295000, 981000, 812000, 620000, 451000, 389000, 335000][index],
+  token_usage: [8200000000, 6700000000, 4400000000, 3100000000, 2800000000, 1900000000, 1400000000, 1200000000][index],
+  probe_score: [99.1, 98.4, 97.8, 96.3, 95.2, 94.1, 93.7, 92.9][index],
+  rating: [4.9, 4.8, 4.7, 4.6, 4.5, 4.4, 4.4, 4.3][index],
+  availability: 'online',
+}));
+
+const previewMarketplaceProviders = [
+  {
+    id: 'openai',
+    name: 'OpenAI',
+    company_name: 'OpenAI',
+    verified: true,
+    availability: 'online',
+    rating: 4.9,
+    model_count: 2,
+    subscription_count: 12800,
+    description: 'General purpose chat, multimodal, and generation models.',
+    website: 'https://openai.com',
+  },
+  {
+    id: 'anthropic',
+    name: 'Anthropic',
+    company_name: 'Anthropic',
+    verified: true,
+    availability: 'online',
+    rating: 4.8,
+    model_count: 2,
+    subscription_count: 9400,
+    description: 'Claude models for reasoning, coding, and long-context assistants.',
+    website: 'https://anthropic.com',
+  },
+  {
+    id: 'google',
+    name: 'Google',
+    company_name: 'Google',
+    verified: true,
+    availability: 'online',
+    rating: 4.7,
+    model_count: 1,
+    subscription_count: 7100,
+    description: 'Gemini models for text, vision, and large context workloads.',
+    website: 'https://ai.google.dev',
+  },
+  {
+    id: 'deepseek',
+    name: 'DeepSeek',
+    company_name: 'DeepSeek',
+    verified: true,
+    availability: 'online',
+    rating: 4.6,
+    model_count: 1,
+    subscription_count: 6600,
+    description: 'Cost-efficient chat and reasoning routes.',
+    website: 'https://deepseek.com',
+  },
+];
+
 const previewPackages = [
   {
     id: 'preview-basic',
@@ -145,6 +207,12 @@ export const getSiteInfo = () => {
 export const getSiteModels = () => getPreviewTheme()
   ? previewResponse(previewModels)
   : devPublicResponse(() => api.get('/api/dist/site/models'), previewModels);
+export const getMarketplaceModels = (params) => (shouldUseDevMock()
+  ? previewResponse(previewMarketplaceModels)
+  : api.get('/api/marketplace/models', { params, skipErrorHandler: true }));
+export const getMarketplaceProviders = (params) => (shouldUseDevMock()
+  ? previewResponse(previewMarketplaceProviders)
+  : api.get('/api/marketplace/providers', { params, skipErrorHandler: true }));
 export const getSitePricing = () => (shouldUseDevMock()
   ? previewResponse([])
   : api.get('/api/dist/site/pricing'));

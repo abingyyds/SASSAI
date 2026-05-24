@@ -1,9 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, ExternalLink, Search } from 'lucide-react';
 import { getSiteModels } from '../api';
 import { useCurrency } from '../context/SiteContext';
 import { getOfficialPrice } from '../utils/officialEquiv';
+import {
+  getCacheCreationPrice,
+  getCacheReadPrice,
+  getFixedPrice,
+  getInputPrice,
+  getModelId,
+  getModelRoute,
+  getOutputPrice,
+  getProviderFields,
+  isPerCallModel,
+} from '../utils/modelMeta';
 
 export default function Pricing() {
   const { t } = useTranslation();
@@ -28,40 +40,51 @@ export default function Pricing() {
   }, []);
 
   const enabledModels = models.filter((m) => m.enabled !== false);
+  const isPerCallPrice = isPerCallModel;
 
   // Collect vendor names that actually have models
   const availableVendors = useMemo(() => {
-    const vendorNames = new Set(enabledModels.map((m) => m.vendor_name).filter(Boolean));
-    return vendors.filter((v) => vendorNames.has(v.name));
+    const vendorNames = new Set(enabledModels.flatMap((m) => getProviderFields(m)).filter(Boolean));
+    if (vendors.length > 0) {
+      return vendors.filter((v) => vendorNames.has(v.name));
+    }
+    return Array.from(vendorNames)
+      .sort((a, b) => a.localeCompare(b))
+      .map((name) => ({ id: name, name }));
   }, [enabledModels, vendors]);
 
   const filtered = useMemo(() => {
     let list = enabledModels;
     // Vendor filter
     if (vendor) {
-      list = list.filter((m) => m.vendor_name === vendor);
+      list = list.filter((m) => getProviderFields(m).includes(vendor));
     }
     // Search filter
     if (search) {
       const q = search.toLowerCase();
       list = list.filter((m) =>
-        (m.display_name || m.model_name || '').toLowerCase().includes(q) ||
+        [
+          m.display_name,
+          m.model_name,
+          getModelId(m),
+          ...getProviderFields(m),
+        ].filter(Boolean).join(' ').toLowerCase().includes(q) ||
         (Array.isArray(m.channels) && m.channels.some((ch) =>
           (ch.provider_name || ch.provider_slug || '').toLowerCase().includes(q)
         ))
       );
     }
     list = [...list].sort((a, b) => {
-      if (!!a.is_per_call !== !!b.is_per_call) {
-        return a.is_per_call ? 1 : -1;
+      if (isPerCallPrice(a) !== isPerCallPrice(b)) {
+        return isPerCallPrice(a) ? 1 : -1;
       }
-      if (a.is_per_call) {
-        return (Number(a.fixed_price) || 0) - (Number(b.fixed_price) || 0);
+      if (isPerCallPrice(a)) {
+        return (getFixedPrice(a) || 0) - (getFixedPrice(b) || 0);
       }
-      return (Number(a.input_price) || 0) - (Number(b.input_price) || 0);
+      return (getInputPrice(a) || 0) - (getInputPrice(b) || 0);
     });
     return list;
-  }, [enabledModels, vendor, search]);
+  }, [enabledModels, vendor, search, isPerCallPrice]);
 
   const toggleModel = (key) => {
     setExpandedModels((prev) => {
@@ -107,13 +130,11 @@ export default function Pricing() {
 
   const formatSavings = (model, official) => {
     if (!official || isPerCallPrice(model)) return null;
-    const siteInputPerMtok = Number(model.input_price) * 1000;
+    const siteInputPerMtok = Number(getInputPrice(model)) * 1000;
     if (!Number.isFinite(siteInputPerMtok) || siteInputPerMtok <= 0 || !official.inputPerMtok) return null;
     const savings = Math.round((siteInputPerMtok / official.inputPerMtok - 1) * 100);
     return savings < 0 ? `${savings}%` : null;
   };
-
-  const isPerCallPrice = (item) => item?.is_per_call || item?.billing_type === 'per_call';
 
   const getChannelLabel = (channel, index) =>
     channel.provider_name || t('pricing.channelFallback', { number: channel.channel_index || index + 1 });
@@ -136,6 +157,20 @@ export default function Pricing() {
           <p className="mt-4 text-lg leading-8 text-slate-600">
             {t('pricing.subtitle')}
           </p>
+        </div>
+        <div className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Input and output</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Token models show input and output rates per 1M tokens using the existing site currency conversion.</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Cache pricing</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Cache read and creation prices are shown when the catalog exposes them for a model or channel.</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm font-semibold text-slate-950">Per-call models</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Fixed-price models keep the existing per-call display and billing semantics.</p>
+          </div>
         </div>
       </div>
 
@@ -199,6 +234,7 @@ export default function Pricing() {
                 <th className="whitespace-nowrap px-5 py-3.5 text-right font-medium text-slate-500">{t('pricing.officialPrice')}</th>
                 <th className="whitespace-nowrap px-5 py-3.5 text-right font-medium text-slate-500">{t('pricing.savings')}</th>
                 <th className="px-5 py-3.5 text-center font-medium text-slate-500">{t('pricing.status')}</th>
+                <th className="px-5 py-3.5 text-right font-medium text-slate-500">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -229,7 +265,7 @@ export default function Pricing() {
                             {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                           </button>
                           <div className="min-w-0">
-                            <span className="block truncate font-mono text-slate-950">{m.display_name || m.model_name}</span>
+                            <Link to={getModelRoute(m)} className="block truncate font-mono text-slate-950 hover:text-cyan-700">{m.display_name || m.model_name}</Link>
                             {canExpand && (
                               <span className="mt-1 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
                                 {t('pricing.channelCount', { count: channels.length })}
@@ -239,16 +275,16 @@ export default function Pricing() {
                         </div>
                       </td>
                       <td className="px-5 py-3.5 text-right font-mono text-slate-700">
-                        {isPerCallPrice(m) ? t('pricing.perCall') : formatTokenPrice(m.input_price)}
+                        {isPerCallPrice(m) ? t('pricing.perCall') : formatTokenPrice(getInputPrice(m))}
                       </td>
                       <td className="px-5 py-3.5 text-right font-mono text-slate-700">
-                        {isPerCallPrice(m) ? formatPerCallPrice(m.fixed_price) : formatTokenPrice(m.output_price)}
+                        {isPerCallPrice(m) ? formatPerCallPrice(getFixedPrice(m)) : formatTokenPrice(getOutputPrice(m))}
                       </td>
                       <td className="px-5 py-3.5 text-right font-mono text-slate-700">
-                        {isPerCallPrice(m) ? '-' : formatTokenPrice(m.cache_read_price)}
+                        {isPerCallPrice(m) ? '-' : formatTokenPrice(getCacheReadPrice(m))}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono text-slate-700">
-                        {isPerCallPrice(m) ? '-' : formatCacheCreationPrice(m.model_name, m.cache_creation_price, m.cache_creation_price_1h)}
+                        {isPerCallPrice(m) ? '-' : formatCacheCreationPrice(m.model_name, getCacheCreationPrice(m), m.cache_creation_price_1h)}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 text-right font-mono text-slate-700">
                         {formatOfficialPrice(official)}
@@ -276,10 +312,20 @@ export default function Pricing() {
                           {m.status === 'healthy' ? t('pricing.online') : t('pricing.unknown')}
                         </span>
                       </td>
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link to={`/playground?model=${encodeURIComponent(getModelId(m))}`} className="rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800">
+                            Try
+                          </Link>
+                          <Link to={getModelRoute(m)} className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                            Details
+                          </Link>
+                        </div>
+                      </td>
                     </tr>
                     {expanded && canExpand && (
                       <tr className="border-b border-slate-100 bg-slate-50">
-                        <td colSpan={8} className="px-5 py-4">
+                        <td colSpan={9} className="px-5 py-4">
                           <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
                             <table className="w-full text-xs">
                               <thead>
@@ -335,16 +381,16 @@ export default function Pricing() {
                                         </div>
                                       </td>
                                       <td className="px-4 py-3 text-right font-mono text-slate-700">
-                                        {channelIsPerCall ? t('pricing.perCall') : formatTokenPrice(channel.input_price)}
+                                        {channelIsPerCall ? t('pricing.perCall') : formatTokenPrice(getInputPrice(channel))}
                                       </td>
                                       <td className="px-4 py-3 text-right font-mono text-slate-700">
-                                        {channelIsPerCall ? formatPerCallPrice(channel.fixed_price) : formatTokenPrice(channel.output_price)}
+                                        {channelIsPerCall ? formatPerCallPrice(getFixedPrice(channel)) : formatTokenPrice(getOutputPrice(channel))}
                                       </td>
                                       <td className="px-4 py-3 text-right font-mono text-slate-700">
-                                        {channelIsPerCall ? '-' : formatTokenPrice(channel.cache_read_price)}
+                                        {channelIsPerCall ? '-' : formatTokenPrice(getCacheReadPrice(channel))}
                                       </td>
                                       <td className="whitespace-nowrap px-4 py-3 text-right font-mono text-slate-700">
-                                        {channelIsPerCall ? '-' : formatCacheCreationPrice(m.model_name, channel.cache_creation_price, channel.cache_creation_price_1h)}
+                                        {channelIsPerCall ? '-' : formatCacheCreationPrice(m.model_name, getCacheCreationPrice(channel), channel.cache_creation_price_1h)}
                                       </td>
                                     </tr>
                                   );

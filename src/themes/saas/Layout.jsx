@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { BarChart3, CreditCard, Home, KeyRound, LogOut, Menu, Settings2, Sparkles, X } from 'lucide-react';
+import {
+  BarChart3,
+  BookOpen,
+  Boxes,
+  Building2,
+  Home,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessageSquareText,
+  Settings2,
+  Trophy,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
 import LanguageSwitch from '../../components/LanguageSwitch';
@@ -15,20 +28,27 @@ export default function SaasLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const siteName = site?.name || 'AstraLayer';
+  const consolePath = user ? '/dashboard' : '/login';
   const navItems = [
-    { to: '/', label: t('nav.home'), icon: Home },
+    { to: '/', label: 'Home', icon: Home, exact: true },
+    { to: '/models', label: 'Models', icon: Boxes, prefix: '/models' },
+    { to: '/providers', label: 'Providers', icon: Building2 },
+    { to: '/rankings', label: 'Rankings', icon: Trophy },
+    { to: '/chat', label: 'Chat', icon: MessageSquareText, aliases: ['/playground'] },
     { to: '/pricing', label: t('nav.pricing'), icon: BarChart3 },
-    { to: '/packages', label: t('nav.packages'), icon: CreditCard },
-    ...(user ? [
-      { to: '/dashboard', label: t('nav.dashboard'), icon: Sparkles },
-      { to: '/tokens', label: t('nav.apiKeys'), icon: KeyRound },
-    ] : []),
+    { to: '/docs/quickstart', label: 'Docs', icon: BookOpen, prefix: '/docs' },
+    { to: consolePath, label: 'Console', icon: LayoutDashboard, aliases: ['/dashboard', '/tokens', '/logs', '/tasks', '/topup', '/packages'] },
     ...(user?.is_admin || user?.role === 'admin' ? [
       { to: '/site-admin/saas', label: 'SaaS Admin', icon: Settings2 },
     ] : []),
   ];
 
-  const isActive = (to) => location.pathname === to;
+  const isActive = (item) => {
+    if (item.exact) return location.pathname === item.to;
+    if (item.prefix && location.pathname.startsWith(item.prefix)) return true;
+    if (item.aliases?.some((alias) => location.pathname === alias || location.pathname.startsWith(`${alias}/`))) return true;
+    return location.pathname === item.to;
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -57,12 +77,14 @@ export default function SaasLayout() {
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
-            {navItems.map(({ to, label, icon: Icon }) => (
+            {navItems.map((item) => {
+              const { to, label, icon: Icon } = item;
+              return (
               <Link
                 key={to}
                 to={to}
                 className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive(to)
+                  isActive(item)
                     ? 'bg-slate-950 text-white'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
                 }`}
@@ -70,7 +92,8 @@ export default function SaasLayout() {
                 <Icon size={16} />
                 {label}
               </Link>
-            ))}
+              );
+            })}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -113,19 +136,22 @@ export default function SaasLayout() {
         {mobileMenuOpen && (
           <div className="border-t border-slate-200 bg-white md:hidden">
             <nav className="mx-auto flex max-w-7xl flex-col gap-1 px-4 py-3">
-              {navItems.map(({ to, label, icon: Icon }) => (
+              {navItems.map((item) => {
+                const { to, label, icon: Icon } = item;
+                return (
                 <Link
                   key={to}
                   to={to}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium ${
-                    isActive(to) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
+                    isActive(item) ? 'bg-slate-950 text-white' : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   <Icon size={16} />
                   {label}
                 </Link>
-              ))}
+                );
+              })}
               {!user && (
                 <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-medium text-slate-700">
@@ -147,10 +173,17 @@ export default function SaasLayout() {
 
       <footer className="border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
-          <p>&copy; {new Date().getFullYear()} {siteName}. SaaS billing powered by subscription checkout.</p>
+          <p>&copy; {new Date().getFullYear()} {siteName}. AI model marketplace and API gateway.</p>
           <div className="flex flex-wrap items-center gap-4">
-            <Link to="/packages" className="hover:text-slate-950">{t('nav.packages')}</Link>
+            <Link to="/models" className="hover:text-slate-950">Models</Link>
+            <Link to="/providers" className="hover:text-slate-950">Providers</Link>
+            <Link to="/rankings" className="hover:text-slate-950">Rankings</Link>
+            <Link to="/docs/quickstart" className="hover:text-slate-950">Docs</Link>
             <Link to="/pricing" className="hover:text-slate-950">{t('nav.pricing')}</Link>
+            <Link to={user ? '/tokens' : '/login'} className="hover:text-slate-950">API Keys</Link>
+            <Link to="/packages" className="hover:text-slate-950">{t('nav.packages')}</Link>
+            <Link to={user ? '/logs' : '/login'} className="hover:text-slate-950">Logs</Link>
+            <Link to="/apps" className="hover:text-slate-950">Apps</Link>
             {site?.contact_email && (
               <a href={`mailto:${site.contact_email}`} className="hover:text-slate-950">
                 {t('nav.contact')}

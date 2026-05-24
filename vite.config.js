@@ -10,6 +10,16 @@ export default defineConfig({
         target: 'http://localhost:8787',
         changeOrigin: true,
       },
+      '/api/marketplace': {
+        target: 'https://subrouter.com',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/api/pricing': {
+        target: 'https://subrouter.com',
+        changeOrigin: true,
+        secure: true,
+      },
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,

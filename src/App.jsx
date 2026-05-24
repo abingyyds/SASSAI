@@ -10,6 +10,13 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Tokens = lazy(() => import('./pages/Tokens'));
 const Packages = lazy(() => import('./pages/Packages'));
 const Pricing = lazy(() => import('./pages/Pricing'));
+const Models = lazy(() => import('./pages/Models'));
+const ModelDetail = lazy(() => import('./pages/ModelDetail'));
+const Providers = lazy(() => import('./pages/Providers'));
+const Rankings = lazy(() => import('./pages/Rankings'));
+const Playground = lazy(() => import('./pages/Playground'));
+const DocsQuickstart = lazy(() => import('./pages/DocsQuickstart'));
+const Apps = lazy(() => import('./pages/Apps'));
 const Topup = lazy(() => import('./pages/Topup'));
 const Logs = lazy(() => import('./pages/Logs'));
 const Tasks = lazy(() => import('./pages/Tasks'));
@@ -32,6 +39,15 @@ function ThemedRoutes() {
         {/* Public pages with themed layout */}
         <Route element={<Layout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/models" element={<Models />} />
+          <Route path="/models/:modelId" element={<ModelDetail />} />
+          <Route path="/providers" element={<Providers />} />
+          <Route path="/rankings" element={<Rankings />} />
+          <Route path="/chat" element={<Playground />} />
+          <Route path="/playground" element={<Playground />} />
+          <Route path="/docs" element={<DocsQuickstart />} />
+          <Route path="/docs/quickstart" element={<DocsQuickstart />} />
+          <Route path="/apps" element={<Apps />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/sub-site" element={<SubDistributor />} />

@@ -1,17 +1,21 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   getTokens,
   createToken,
   updateToken,
   deleteToken,
+  getSiteModels,
   getSiteKeyGroups,
   getSiteKeyGroupPricing,
   getTokenSupportedModels,
 } from '../api';
+import CodeBlock from '../components/CodeBlock';
 import ConfigExporter from '../components/ConfigExporter';
 import DownloadCatalog from '../components/DownloadCatalog';
 import { useCurrency } from '../context/SiteContext';
+import { buildCurlSnippet, getModelDisplayName, getModelId, sortModels } from '../utils/modelMeta';
 import toast from 'react-hot-toast';
 
 export default function Tokens() {
@@ -24,6 +28,8 @@ export default function Tokens() {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [expandedTokens, setExpandedTokens] = useState({});
   const [tokenModels, setTokenModels] = useState({});
+  const [siteModels, setSiteModels] = useState([]);
+  const [quickstartModelId, setQuickstartModelId] = useState('');
 
   // Key groups
   const [keyGroups, setKeyGroups] = useState([]);
@@ -41,12 +47,18 @@ export default function Tokens() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [tokensRes, groupsRes] = await Promise.all([
+      const [tokensRes, groupsRes, modelsRes] = await Promise.all([
         getTokens(),
         getSiteKeyGroups().catch(() => ({ data: { success: false } })),
+        getSiteModels().catch(() => ({ data: { success: false } })),
       ]);
       if (tokensRes.data.success) setTokens(tokensRes.data.data || []);
       if (groupsRes.data.success) setKeyGroups(groupsRes.data.data || []);
+      if (modelsRes.data.success) {
+        const publicModels = sortModels((modelsRes.data.data || []).filter((model) => model.enabled !== false), 'popular');
+        setSiteModels(publicModels);
+        setQuickstartModelId((current) => current || (publicModels[0] ? getModelId(publicModels[0]) : ''));
+      }
     } catch (e) { /* interceptor */ }
     setLoading(false);
   }, []);
@@ -229,6 +241,14 @@ export default function Tokens() {
     });
   }, [activeGroupPricing, groupPricingSearch]);
 
+  const baseUrl = typeof window !== 'undefined' ? `${window.location.origin}/v1` : '/v1';
+  const selectedQuickstartModelId = quickstartModelId || (siteModels[0] ? getModelId(siteModels[0]) : 'gpt-4o-mini');
+  const quickstartCurl = buildCurlSnippet({
+    baseUrl,
+    modelId: selectedQuickstartModelId,
+    prompt: 'Say hello from my SubRouter key.',
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -239,6 +259,65 @@ export default function Tokens() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
+      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold text-cyan-700">API keys quickstart</p>
+            <h1 className="mt-2 text-2xl font-heading font-bold text-slate-950">{t('tokens.title')}</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
+              Create a key, use the OpenAI-compatible base URL, and send requests with any available model id.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/models" className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              Models
+            </Link>
+            <Link to="/docs/quickstart" className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+              Docs
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-500">Base URL</p>
+            <div className="mt-2 flex items-center gap-2">
+              <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-800">{baseUrl}</code>
+              <button
+                type="button"
+                onClick={() => handleCopy(baseUrl)}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                {copiedId === baseUrl ? t('tokens.copied') : t('tokens.copy')}
+              </button>
+            </div>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="text-xs font-medium text-slate-500">Endpoint</p>
+            <p className="mt-2 truncate font-mono text-xs text-slate-800">{baseUrl}/chat/completions</p>
+          </div>
+          <label className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <span className="text-xs font-medium text-slate-500">Snippet model</span>
+            <select
+              value={selectedQuickstartModelId}
+              onChange={(event) => setQuickstartModelId(event.target.value)}
+              className="mt-2 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            >
+              {siteModels.length > 0 ? siteModels.map((model) => (
+                <option key={getModelId(model)} value={getModelId(model)}>
+                  {getModelDisplayName(model)}
+                </option>
+              )) : (
+                <option value={selectedQuickstartModelId}>{selectedQuickstartModelId}</option>
+              )}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-5">
+          <CodeBlock title="First request" language="bash" code={quickstartCurl} />
+        </div>
+      </div>
 
       {/* ========== Section 1: Create Key with Groups ========== */}
       <div className="mb-10">
