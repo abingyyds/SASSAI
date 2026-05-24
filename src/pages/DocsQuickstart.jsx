@@ -39,14 +39,11 @@ export default function DocsQuickstart() {
 
   useEffect(() => {
     let cancelled = false;
-
     getDocsModelCatalog()
       .then((catalog) => {
-        if (cancelled) return;
-        setModels(catalog.models);
+        if (!cancelled) setModels(catalog.models);
       })
       .catch(() => {});
-
     return () => {
       cancelled = true;
     };
@@ -98,67 +95,74 @@ for await (const part of stream) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-8 sm:px-6 sm:py-10 lg:grid-cols-[1fr_360px] lg:px-8">
+    <div className="coss-page">
+      <section className="coss-page-header">
+        <div className="coss-container grid gap-6 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-              <BookOpen size={15} />
+            <div className="coss-chip">
+              <BookOpen size={14} />
               Documentation
             </div>
-            <h1 className="text-3xl font-semibold tracking-normal text-slate-950 sm:text-4xl">SubRouter API quickstart</h1>
-            <p className="mt-4 text-base leading-7 text-slate-600">
-              Use a SubRouter API key with the API subdomain base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
+            <h1 className="mt-4 text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
+              SubRouter API quickstart
+            </h1>
+            <p className="mt-3 max-w-3xl text-base leading-7 text-slate-600">
+              Use the API base URL, choose a public model id, and send OpenAI-compatible chat completions requests.
             </p>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-500">
-              The quickstart focuses on what users need to start building: key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes. Public API examples use the API subdomain rather than this website origin.
+              The quickstart covers key creation, the base URL, model selection, request shapes, multimodal input, pricing, and migration notes. Public examples use the API subdomain, not the website origin.
             </p>
-            <div className="mt-7 grid gap-3 sm:flex sm:flex-row">
-              <Link to={user ? '/tokens' : '/register'} className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 py-3 text-sm font-semibold text-white hover:bg-slate-800">
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to={user ? '/tokens' : '/register'} className="coss-button-primary">
                 <KeyRound size={16} />
                 {user ? 'Open API keys' : 'Create account'}
               </Link>
-              <Link to="/models" className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+              <Link to="/models" className="coss-button-secondary">
                 Explore models
                 <ArrowRight size={16} />
               </Link>
             </div>
           </div>
 
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-5">
+          <div className="coss-card-muted p-4">
             <div className="flex items-center gap-2">
               <Server size={17} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-950">Endpoint</h2>
+              <h2 className="text-sm font-semibold text-slate-950">Endpoint</h2>
             </div>
             <div className="mt-4 space-y-3">
               <CopyRow label="Base URL" value={baseUrl} />
               <CopyRow label="Chat" value={`${baseUrl}/chat/completions`} />
               <CopyRow label="Model id" value={chatModelId} />
             </div>
-            <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+            <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
               The main website domain with a /v1 path is not a valid API base. Use the API subdomain base URL shown above.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <section className="coss-container py-8 sm:py-10">
         <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
           <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+            <div className="coss-card p-3">
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
                 {navItems.map((item) => (
-                  <a key={item.id} href={`#${item.id}`} className="shrink-0 rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full">
+                  <a
+                    key={item.id}
+                    href={`#${item.id}`}
+                    className="shrink-0 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-950 lg:block lg:w-full"
+                  >
                     {item.label}
                   </a>
                 ))}
               </div>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+
+            <div className="coss-card p-4">
               <p className="text-sm font-semibold text-slate-950">Current example model</p>
               <p className="mt-2 truncate font-mono text-xs text-slate-500">{chatModelId}</p>
               <div className="mt-3 flex gap-2">
-                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="flex-1 rounded-lg bg-slate-950 px-3 py-2 text-center text-xs font-semibold text-white">
+                <Link to={`/playground?model=${encodeURIComponent(chatModelId)}`} className="coss-button-primary flex-1 px-3 py-2 text-xs">
                   Playground
                 </Link>
                 <CopyButton text={chatModelId} iconOnly className="h-9 w-9 px-0 py-0" />
@@ -178,7 +182,7 @@ for await (const part of stream) {
               <p className="text-sm leading-6 text-slate-600">
                 Use the API subdomain base URL for OpenAI-compatible requests. Do not derive the API base URL from the website origin.
               </p>
-              <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
                 The main website domain with a /v1 path is not a valid API base. Clients must use <code className="font-mono">{baseUrl}</code>.
               </div>
               <div className="grid gap-3 md:grid-cols-3">
@@ -230,7 +234,7 @@ Content-Type: application/json`}
                 For vision-capable chat models, send message content as an array of typed parts. Keep the same /chat/completions endpoint and choose a model whose catalog entry supports the needed modality.
               </p>
               <CodeBlock title="Vision request" language="bash" code={jsonCurl(`${baseUrl}/chat/completions`, multimodalBody)} />
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Text-only models should continue to send a string <code className="font-mono text-slate-900">content</code>. Use typed content parts only for models that support image or other multimodal inputs.
               </div>
             </DocCard>
@@ -244,18 +248,14 @@ Content-Type: application/json`}
                 <LinkCard to="/rankings" title="Rankings" text="Review public model rank, category, usage, and official price." />
                 <LinkCard to="/playground" title="Playground" text="Build request payloads and copy code samples." />
               </div>
-              <CodeBlock
-                title="Public catalog page"
-                language="text"
-                code="/models"
-              />
+              <CodeBlock title="Public catalog page" language="text" code="/models" />
             </DocCard>
 
             <DocCard id="pricing" icon={CreditCard} title="Pricing and cache pricing">
               <p className="text-sm leading-6 text-slate-600">
                 Model cards show official USD input and output values from the public pricing feed. Per-call models show a call price when one is returned.
               </p>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Always check the selected model details before production rollout because catalog pricing can change.
               </div>
             </DocCard>
@@ -288,7 +288,7 @@ model=${chatModelId}`}
               />
             </DocCard>
 
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-800">
               <AlertCircle size={17} className="mr-2 inline-block align-[-3px]" />
               Browser pages in this frontend compose requests but do not run generation without an API key. Use the playground to prepare payloads, then run them from your server, terminal, or trusted client.
             </div>
@@ -301,7 +301,7 @@ model=${chatModelId}`}
 
 function CopyRow({ label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className="rounded-2xl border border-slate-200 bg-white p-3">
       <p className="text-xs font-medium text-slate-500">{label}</p>
       <div className="mt-2 flex items-center gap-2">
         <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-800">{value}</code>
@@ -313,7 +313,7 @@ function CopyRow({ label, value }) {
 
 function DocCard({ id, icon: Icon, title, children }) {
   return (
-    <section id={id} className="scroll-mt-8 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+    <section id={id} className="scroll-mt-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
       <div className="mb-4 flex items-center gap-2">
         <Icon size={18} className="text-slate-500" />
         <h2 className="text-lg font-semibold text-slate-950 sm:text-xl">{title}</h2>
@@ -325,7 +325,7 @@ function DocCard({ id, icon: Icon, title, children }) {
 
 function LinkCard({ to, title, text }) {
   return (
-    <Link to={to} className="block rounded-lg border border-slate-200 bg-slate-50 p-4 hover:bg-white">
+    <Link to={to} className="block rounded-2xl border border-slate-200 bg-slate-50 p-4 hover:bg-white">
       <p className="font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
     </Link>
@@ -334,7 +334,7 @@ function LinkCard({ to, title, text }) {
 
 function Trouble({ title, text }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <p className="font-semibold text-slate-950">{title}</p>
       <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
     </div>
