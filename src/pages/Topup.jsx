@@ -538,7 +538,7 @@ export default function Topup() {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-page-divider bg-page bg-page-surface/50 px-4 py-3">
+                    <div className="rounded-2xl border border-page-divider bg-page-surface/50 px-4 py-3">
                       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-page-muted">{t('topup.cryptoSelectedSummary')}</p>
                       <p className="mt-1 text-sm font-medium text-page">{selectedCryptoLabel}</p>
                     </div>

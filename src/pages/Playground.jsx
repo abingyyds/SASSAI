@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   Bot,
   Code2,
+  FileJson,
   Image as ImageIcon,
   KeyRound,
   MessageSquareText,
@@ -16,6 +17,14 @@ import {
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
 import ModelPrice from '../components/ModelPrice';
+import {
+  ConsoleBadge,
+  ConsoleField,
+  ConsoleFrame,
+  ConsoleHero,
+  ConsolePage,
+  ConsoleStat,
+} from '../components/ConsoleSurface';
 import {
   getPublicModelCatalog,
   readPublicModelCatalog,
@@ -151,47 +160,40 @@ export default function Playground() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[50vh] items-center justify-center bg-slate-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-slate-950" />
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500/30 border-t-brand-500" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-700">
-                <MessageSquareText size={15} />
-                Playground
-              </div>
-              <h1 className="text-2xl font-semibold tracking-normal text-slate-950 sm:text-3xl">Test requests</h1>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
-                Compose chat, image, video, or audio requests for the selected model and copy them to run with an API key.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Link to="/docs/quickstart" className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                View docs
-              </Link>
-              <Link to="/tokens" className="inline-flex items-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                <KeyRound size={16} />
-                API keys
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+    <ConsolePage>
+      <ConsoleHero
+        eyebrow="Request builder"
+        title="Test requests"
+        subtitle="Compose chat, image, video, or audio requests for the selected model and copy them to run with an API key."
+        actions={[
+          <Link key="docs" to="/docs/quickstart" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <Code2 className="h-4 w-4" />
+            View docs
+          </Link>,
+          <Link key="keys" to="/tokens" className="btn-primary inline-flex items-center gap-2 px-4 py-2.5">
+            <KeyRound className="h-4 w-4" />
+            API keys
+          </Link>,
+        ]}
+        stats={[
+          <ConsoleStat key="builder" icon={ActiveIcon} label="Builder" value={activeDefinition.label} helper={request.endpoint.replace(`${baseUrl}/`, '')} tone="cyan" />,
+          <ConsoleStat key="catalog" icon={MessageSquareText} label="Catalog models" value={models.length.toLocaleString()} helper="Loaded from public catalog" tone="sky" />,
+        ]}
+      />
 
-      <section className="mx-auto grid max-w-7xl gap-6 px-4 py-5 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8">
+      <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-5">
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 bg-slate-50 p-4">
+          <ConsoleFrame>
+            <div className="border-b border-page-divider bg-page-surface/40 p-4">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">Model</span>
+                <ConsoleField label="Model">
                   <select
                     value={modelId}
                     onChange={(event) => {
@@ -199,7 +201,7 @@ export default function Playground() {
                       setModeTouched(false);
                       setPrepared(false);
                     }}
-                    className="mt-2 h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                    className="input h-11"
                   >
                     {models.map((model) => (
                       <option key={getModelId(model)} value={getModelId(model)}>
@@ -207,13 +209,13 @@ export default function Playground() {
                       </option>
                     ))}
                   </select>
-                </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
+                </ConsoleField>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-page-divider bg-white px-3 py-2 text-sm font-semibold text-page-secondary">
                   <input
                     type="checkbox"
                     checked={showAllModes}
                     onChange={(event) => setShowAllModes(event.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 accent-slate-950"
+                    className="h-4 w-4 rounded border-page-divider accent-slate-950"
                   />
                   Show all builders
                 </label>
@@ -227,15 +229,15 @@ export default function Playground() {
                       key={mode.key}
                       type="button"
                       onClick={() => selectMode(mode.key)}
-                      className={`inline-flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
+                      className={`inline-flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
                         activeMode === mode.key
                           ? 'border-slate-950 bg-slate-950 text-white'
-                          : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+                          : 'border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover hover:text-page'
                       }`}
                     >
                       <Icon size={16} />
                       {mode.label}
-                      {!supported && <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">manual</span>}
+                      {!supported && <span className="rounded-full bg-page-surface px-1.5 py-0.5 text-[10px] font-semibold text-page-muted">manual</span>}
                     </button>
                   );
                 })}
@@ -245,11 +247,11 @@ export default function Playground() {
             <div className="grid min-h-[520px] grid-rows-[1fr_auto] lg:min-h-[600px]">
               <div className="space-y-5 overflow-auto p-5">
                 <div className="flex gap-3">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
                     <Bot size={17} />
                   </div>
-                  <div className="max-w-3xl rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
-                    <p className="font-semibold text-slate-950">Request builder mode</p>
+                  <div className="max-w-3xl rounded-xl border border-page-divider bg-page-surface/50 p-4 text-sm leading-6 text-page-secondary">
+                    <p className="font-semibold text-page">Request builder mode</p>
                     <p className="mt-1">
                       {getModeDescription(activeMode)} Browser execution is disabled because this frontend does not expose a session-safe inference endpoint. Use an API key and copy a request.
                     </p>
@@ -265,27 +267,26 @@ export default function Playground() {
                 />
               </div>
 
-              <div className="border-t border-slate-200 bg-white p-4">
-                <label className="block">
-                  <span className="text-sm font-semibold text-slate-700">{activeMode === 'audio' ? 'Input text' : 'Prompt'}</span>
+              <div className="border-t border-page-divider bg-white p-4">
+                <ConsoleField label={activeMode === 'audio' ? 'Input text' : 'Prompt'}>
                   <textarea
                     value={prompt}
                     onChange={(event) => updatePrompt(event.target.value)}
-                    className="mt-2 min-h-[128px] w-full resize-y rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                    className="input min-h-[128px] resize-y px-4 py-3 leading-6"
                     placeholder="Enter a prompt"
                   />
-                </label>
+                </ConsoleField>
                 <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs text-slate-500">{request.endpoint}</p>
-                    <p className="mt-1 text-xs text-slate-500">Requires Authorization: Bearer $SUBROUTER_API_KEY</p>
+                    <p className="truncate font-mono text-xs text-page-muted">{request.endpoint}</p>
+                    <p className="mt-1 text-xs text-page-muted">Requires Authorization: Bearer $SUBROUTER_API_KEY</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <CopyButton text={request.curl} label="Copy cURL" />
                     <button
                       type="button"
                       disabled={!runAvailable}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-page-divider bg-page-surface px-4 py-2 text-sm font-semibold text-page-muted disabled:cursor-not-allowed"
                       title="Use API key / copy request"
                     >
                       <PlayCircle size={15} />
@@ -294,7 +295,7 @@ export default function Playground() {
                     <button
                       type="button"
                       onClick={() => setPrepared(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+                      className="btn-primary inline-flex items-center justify-center gap-2 px-4 py-2 disabled:opacity-50"
                       disabled={!prompt.trim()}
                     >
                       <Send size={15} />
@@ -304,38 +305,38 @@ export default function Playground() {
                 </div>
               </div>
             </div>
-          </div>
+          </ConsoleFrame>
         </div>
 
         <aside className="space-y-5">
           {selectedModel && (
-            <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <ConsoleFrame className="p-5">
               <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate font-semibold text-slate-950">{getModelDisplayName(selectedModel)}</h2>
-                  <p className="mt-1 truncate font-mono text-xs text-slate-500">{modelId}</p>
+                  <h2 className="truncate font-semibold text-page">{getModelDisplayName(selectedModel)}</h2>
+                  <p className="mt-1 truncate font-mono text-xs text-page-muted">{modelId}</p>
                 </div>
               </div>
               <div className="mb-4 flex flex-wrap gap-1.5">
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold text-slate-600">{getModelCategory(selectedModel)}</span>
+                <ConsoleBadge tone="slate">{getModelCategory(selectedModel)}</ConsoleBadge>
                 {supportedModes.map((mode) => (
-                  <span key={mode} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600">{mode}</span>
+                  <ConsoleBadge key={mode} tone="slate">{mode}</ConsoleBadge>
                 ))}
               </div>
               <ModelPrice model={selectedModel} />
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                <Link to={getModelRoute(selectedModel)} className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-center text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                <Link to={getModelRoute(selectedModel)} className="btn-secondary flex-1 px-3 py-2 text-center">
                   Details
                 </Link>
                 <CopyButton text={modelId} label="Copy id" className="flex-1" />
               </div>
-            </div>
+            </ConsoleFrame>
           )}
 
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <ConsoleFrame className="p-5">
             <div className="flex items-center gap-2">
-              <Settings2 size={17} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-950">Request settings</h2>
+              <Settings2 size={17} className="text-page-muted" />
+              <h2 className="font-semibold text-page">Request settings</h2>
             </div>
             <div className="mt-5 space-y-5">
               {activeMode === 'chat' && (
@@ -358,7 +359,7 @@ export default function Playground() {
                       max="32000"
                       value={maxTokens}
                       onChange={(event) => setMaxTokens(Number(event.target.value))}
-                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                      className="input h-10"
                     />
                   </Control>
                 </>
@@ -373,7 +374,7 @@ export default function Playground() {
                       max="4"
                       value={imageCount}
                       onChange={(event) => setImageCount(Number(event.target.value))}
-                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                      className="input h-10"
                     />
                   </Control>
                 </>
@@ -388,7 +389,7 @@ export default function Playground() {
                       max="30"
                       value={videoDuration}
                       onChange={(event) => setVideoDuration(Number(event.target.value))}
-                      className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+                      className="input h-10"
                     />
                   </Control>
                 </>
@@ -399,15 +400,15 @@ export default function Playground() {
                   <SelectControl label="Format" value={audioFormat} onChange={setAudioFormat} options={['mp3', 'wav', 'opus']} />
                 </>
               )}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+              <div className="rounded-xl border border-page-divider bg-page-surface/50 p-3 text-xs leading-5 text-page-secondary">
                 <SlidersHorizontal size={14} className="mr-1 inline-block align-[-2px]" />
                 Settings are included in generated request bodies only. Copy the request and run it with your own key.
               </div>
             </div>
-          </div>
+          </ConsoleFrame>
 
-          <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-200 p-3">
+          <ConsoleFrame>
+            <div className="border-b border-page-divider p-3">
               <div className="flex flex-wrap gap-2">
                 {['curl', 'javascript', 'python'].map((tab) => (
                   <button
@@ -417,7 +418,7 @@ export default function Playground() {
                     className={`rounded-lg px-3 py-2 text-xs font-semibold ${
                       codeTab === tab
                         ? 'bg-slate-950 text-white'
-                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                        : 'border border-page-divider bg-white text-page-secondary hover:bg-page-surface-hover'
                     }`}
                   >
                     {tab === 'curl' ? 'cURL' : tab === 'javascript' ? 'JavaScript' : 'Python'}
@@ -432,20 +433,20 @@ export default function Playground() {
                 code={request[codeTab]}
               />
             </div>
-          </div>
+          </ConsoleFrame>
 
-          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <ConsoleFrame className="p-5">
             <div className="flex items-center gap-2">
-              <Code2 size={17} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-950">JSON body</h2>
+              <FileJson size={17} className="text-page-muted" />
+              <h2 className="font-semibold text-page">JSON body</h2>
             </div>
-            <pre className="mt-4 max-h-[320px] overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+            <pre className="mt-4 max-h-[320px] overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-6 text-slate-100">
               <code>{JSON.stringify(request.body, null, 2)}</code>
             </pre>
-          </div>
+          </ConsoleFrame>
         </aside>
       </section>
-    </div>
+    </ConsolePage>
   );
 }
 
@@ -455,7 +456,7 @@ function PreviewPanel({ mode, prompt, prepared, endpoint, icon: Icon }) {
       <>
         {prepared && (
           <div className="flex justify-end">
-            <div className="max-w-2xl rounded-lg bg-slate-950 p-4 text-sm leading-6 text-white">
+            <div className="max-w-2xl rounded-xl bg-slate-950 p-4 text-sm leading-6 text-white">
               <p className="font-semibold">User</p>
               <p className="mt-2 text-slate-200">{prompt}</p>
             </div>
@@ -463,11 +464,11 @@ function PreviewPanel({ mode, prompt, prepared, endpoint, icon: Icon }) {
         )}
         {prepared && (
           <div className="flex gap-3">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-page-divider bg-page-surface text-page-secondary">
               <Bot size={17} />
             </div>
-            <div className="max-w-3xl rounded-lg border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-600">
-              The chat request is composed for <span className="font-mono text-slate-950">{endpoint}</span>. No assistant answer is fabricated in the browser preview.
+            <div className="max-w-3xl rounded-xl border border-page-divider bg-white p-4 text-sm leading-6 text-page-secondary">
+              The chat request is composed for <span className="font-mono text-page">{endpoint}</span>. No assistant answer is fabricated in the browser preview.
             </div>
           </div>
         )}
@@ -476,17 +477,17 @@ function PreviewPanel({ mode, prompt, prepared, endpoint, icon: Icon }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5">
+    <div className="rounded-xl border border-page-divider bg-white p-5">
       <div className="flex items-start gap-3">
-        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-slate-950 text-white">
+        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
           <Icon size={19} />
         </div>
         <div>
-          <h2 className="font-semibold text-slate-950">{modeLabel(mode)} request preview</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-600">
+          <h2 className="font-semibold text-page">{modeLabel(mode)} request preview</h2>
+          <p className="mt-2 text-sm leading-6 text-page-secondary">
             {prepared ? prompt : 'Compose a prompt to preview the request body. Generation results are not simulated here.'}
           </p>
-          <p className="mt-3 font-mono text-xs text-slate-500">{endpoint}</p>
+          <p className="mt-3 font-mono text-xs text-page-muted">{endpoint}</p>
         </div>
       </div>
     </div>
@@ -497,8 +498,8 @@ function Control({ label, value, children }) {
   return (
     <label className="block">
       <div className="mb-2 flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium text-slate-700">{label}</span>
-        <span className="font-mono text-slate-500">{value}</span>
+        <span className="font-medium text-page-label">{label}</span>
+        <span className="font-mono text-page-muted">{value}</span>
       </div>
       {children}
     </label>
@@ -508,11 +509,11 @@ function Control({ label, value, children }) {
 function SelectControl({ label, value, onChange, options }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-medium text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-medium text-page-label">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+        className="input h-10"
       >
         {options.map((option) => (
           <option key={option} value={option}>{option}</option>

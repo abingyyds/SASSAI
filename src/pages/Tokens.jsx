@@ -2,6 +2,19 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  ArrowRight,
+  BookOpen,
+  Check,
+  Copy,
+  Eye,
+  KeyRound,
+  Loader2,
+  Plus,
+  Server,
+  ShieldCheck,
+  Trash2,
+} from 'lucide-react';
+import {
   getTokens,
   createToken,
   updateToken,
@@ -14,6 +27,18 @@ import CodeBlock from '../components/CodeBlock';
 import ConfigExporter from '../components/ConfigExporter';
 import DownloadCatalog from '../components/DownloadCatalog';
 import { useCurrency } from '../context/SiteContext';
+import {
+  ConsoleBadge,
+  ConsoleEmpty,
+  ConsoleField,
+  ConsoleFrame,
+  ConsoleFrameHeader,
+  ConsoleHero,
+  ConsoleModal,
+  ConsolePage,
+  ConsoleSection,
+  ConsoleStat,
+} from '../components/ConsoleSurface';
 import { getDocsModelCatalog, SUBROUTER_API_BASE_URL } from '../utils/publicCatalog';
 import { buildCurlSnippet, getModelDisplayName, getModelId } from '../utils/modelMeta';
 import toast from 'react-hot-toast';
@@ -250,6 +275,35 @@ export default function Tokens() {
     modelId: selectedQuickstartModelId,
     prompt: 'Say hello from my SubRouter key.',
   });
+  const selectedGroup = selectedGroupId > 0
+    ? keyGroups.find((group) => group.id === selectedGroupId)
+    : null;
+  const heroStats = [
+    <ConsoleStat
+      key="keys"
+      icon={KeyRound}
+      label={t('tokens.myKeys')}
+      value={tokens.length.toLocaleString()}
+      helper="Keys in this account"
+      tone="cyan"
+    />,
+    <ConsoleStat
+      key="groups"
+      icon={ShieldCheck}
+      label="Access groups"
+      value={hasGroups ? keyGroups.length.toLocaleString() : 'Default'}
+      helper={hasGroups ? 'Choose group-scoped access when needed' : 'All available models'}
+      tone="sky"
+    />,
+    <ConsoleStat
+      key="models"
+      icon={Server}
+      label="Catalog models"
+      value={siteModels.length ? siteModels.length.toLocaleString() : '-'}
+      helper="Available for request snippets"
+      tone="emerald"
+    />,
+  ];
 
   if (loading) {
     return (
@@ -260,165 +314,154 @@ export default function Tokens() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-3 py-6 sm:px-6 sm:py-10">
-      <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold text-cyan-700">API keys quickstart</p>
-            <h1 className="mt-2 text-2xl font-heading font-bold text-slate-950">{t('tokens.title')}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              Create a key, use the OpenAI-compatible base URL, and send requests with any available model id.
-            </p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
-              Public API calls use the API subdomain, not this website origin with a /v1 path.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            <Link to="/models" className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-              Models
-            </Link>
-            <Link to="/docs/quickstart" className="rounded-lg bg-slate-950 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-              Docs
-            </Link>
-          </div>
-        </div>
+    <ConsolePage>
+      <ConsoleHero
+        eyebrow="API access"
+        title={t('tokens.title')}
+        subtitle="Create keys, choose access groups, and copy an OpenAI-compatible request using the public API base URL."
+        actions={[
+          <button key="create" type="button" onClick={openCreateDefault} className="btn-primary inline-flex items-center gap-2 px-4 py-2.5">
+            <Plus className="h-4 w-4" />
+            {t('tokens.createApiKey')}
+          </button>,
+          <Link key="models" to="/models" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <Server className="h-4 w-4" />
+            Models
+          </Link>,
+          <Link key="docs" to="/docs/quickstart" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <BookOpen className="h-4 w-4" />
+            Docs
+          </Link>,
+        ]}
+        stats={heroStats}
+      />
 
-        <div className="mt-5 grid gap-3 lg:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-medium text-slate-500">Base URL</p>
-            <div className="mt-2 flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate font-mono text-xs text-slate-800">{baseUrl}</code>
-              <button
-                type="button"
-                onClick={() => handleCopy(baseUrl)}
-                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+      <ConsoleFrame className="mt-6">
+        <ConsoleFrameHeader
+          title="Quickstart"
+          subtitle="Public API calls use the API subdomain, not this website origin with a /v1 path."
+        />
+        <div className="p-4 sm:p-5">
+          <div className="grid gap-3 lg:grid-cols-3">
+            <EndpointTile label="Base URL">
+              <div className="flex items-center gap-2">
+                <code className="min-w-0 flex-1 truncate font-mono text-xs text-page">{baseUrl}</code>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(baseUrl)}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-white text-page-muted hover:bg-page-surface-hover hover:text-page"
+                  aria-label="Copy base URL"
+                >
+                  {copiedId === baseUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </EndpointTile>
+            <EndpointTile label="Endpoint">
+              <p className="truncate font-mono text-xs text-page">{baseUrl}/chat/completions</p>
+            </EndpointTile>
+            <EndpointTile label="Snippet model">
+              <select
+                value={selectedQuickstartModelId}
+                onChange={(event) => setQuickstartModelId(event.target.value)}
+                className="input mt-0 h-9 px-2 text-xs"
               >
-                {copiedId === baseUrl ? t('tokens.copied') : t('tokens.copy')}
-              </button>
-            </div>
+                {siteModels.length > 0 ? siteModels.map((model) => (
+                  <option key={getModelId(model)} value={getModelId(model)}>
+                    {getModelDisplayName(model)}
+                  </option>
+                )) : (
+                  <option value={selectedQuickstartModelId}>{selectedQuickstartModelId}</option>
+                )}
+              </select>
+            </EndpointTile>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <p className="text-xs font-medium text-slate-500">Endpoint</p>
-            <p className="mt-2 truncate font-mono text-xs text-slate-800">{baseUrl}/chat/completions</p>
+          <div className="mt-4">
+            <CodeBlock title="First request" language="bash" code={quickstartCurl} />
           </div>
-          <label className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <span className="text-xs font-medium text-slate-500">Snippet model</span>
-            <select
-              value={selectedQuickstartModelId}
-              onChange={(event) => setQuickstartModelId(event.target.value)}
-              className="mt-2 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-800 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
-            >
-              {siteModels.length > 0 ? siteModels.map((model) => (
-                <option key={getModelId(model)} value={getModelId(model)}>
-                  {getModelDisplayName(model)}
-                </option>
-              )) : (
-                <option value={selectedQuickstartModelId}>{selectedQuickstartModelId}</option>
-              )}
-            </select>
-          </label>
         </div>
+      </ConsoleFrame>
 
-        <div className="mt-5">
-          <CodeBlock title="First request" language="bash" code={quickstartCurl} />
-        </div>
-      </div>
-
-      {/* ========== Section 1: Create Key with Groups ========== */}
-      <div className="mb-10">
-        <h1 className="text-2xl font-heading font-bold text-page">
-          {hasGroups ? t('tokens.selectGroup') : t('tokens.title')}
-        </h1>
-        {hasGroups && (
-          <p className="text-sm text-page-secondary mt-1">{t('tokens.selectGroupSubtitle')}</p>
-        )}
-
-        {/* Default (All Providers) Card */}
-        <div className="mt-6">
+      <ConsoleSection
+        className="mt-6"
+        title={hasGroups ? t('tokens.selectGroup') : t('tokens.createApiKey')}
+        subtitle={hasGroups ? t('tokens.selectGroupSubtitle') : 'Create a default API key with access to available models.'}
+      >
+        <div className="grid gap-3">
           <button
+            type="button"
             onClick={openCreateDefault}
-            className="w-full glass rounded-xl p-4 flex items-center gap-3 sm:gap-4 hover:border-brand-500/50 border border-page-divider transition-all group text-left"
+            className="group flex w-full items-center gap-3 rounded-2xl border border-page-divider bg-page-surface/40 p-4 text-left transition-colors hover:border-brand-500/40 hover:bg-page-surface"
           >
-            <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-page">{hasGroups ? t('tokens.defaultGroup') : t('tokens.newKey')}</p>
-              {hasGroups && (
-                <p className="text-xs text-page-secondary mt-0.5">{t('tokens.defaultGroupDesc')}</p>
-              )}
-            </div>
-            <span className="hidden text-xs font-medium text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity sm:flex items-center gap-1">
-              {t('tokens.create')} →
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-page-divider bg-white text-page">
+              <Plus className="h-5 w-5" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold text-page">{hasGroups ? t('tokens.defaultGroup') : t('tokens.newKey')}</span>
+              {hasGroups && <span className="mt-0.5 block text-xs leading-5 text-page-secondary">{t('tokens.defaultGroupDesc')}</span>}
+            </span>
+            <span className="hidden items-center gap-1 text-xs font-semibold text-page-link sm:inline-flex">
+              {t('tokens.create')}
+              <ArrowRight className="h-3.5 w-3.5" />
             </span>
           </button>
+
+          {hasGroups && Object.entries(groupedByVendor).map(([vendor, groups]) => (
+            <div key={vendor} className="rounded-2xl border border-page-divider bg-page-surface/30 p-3">
+              <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                <h3 className="text-sm font-semibold text-page">{vendor}</h3>
+                <ConsoleBadge tone="slate">{groups.length} {t('tokens.groupCount')}</ConsoleBadge>
+              </div>
+              <div className="grid gap-2">
+                {groups.map((group) => (
+                  <KeyGroupCard
+                    key={group.id}
+                    group={group}
+                    parseTags={parseTags}
+                    onSelect={openCreateFromGroup}
+                    onViewPricing={openGroupPricing}
+                    t={t}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
+      </ConsoleSection>
 
-        {/* Vendor Category Sections */}
-        {hasGroups && Object.entries(groupedByVendor).map(([vendor, groups]) => (
-          <div key={vendor} className="mt-6">
-            <div className="flex items-center gap-2 mb-3">
-              <h2 className="text-base font-semibold text-page">{vendor}</h2>
-              <span className="text-[11px] text-page-muted bg-page-surface px-2 py-0.5 rounded-full">
-                {groups.length} {t('tokens.groupCount')}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {groups.map((group) => (
-                <KeyGroupCard
-                  key={group.id}
-                  group={group}
-                  parseTags={parseTags}
-                  onSelect={openCreateFromGroup}
-                  onViewPricing={openGroupPricing}
-                  t={t}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* ========== Create Modal ========== */}
       {showCreate && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }}>
-          <div className="glass max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-page mb-4">{t('tokens.createApiKey')}</h2>
-            {selectedGroupId > 0 && (() => {
-              const g = keyGroups.find((x) => x.id === selectedGroupId);
-              return g ? (
-                <div className="mb-4 p-3 rounded-lg bg-page-surface border border-page-divider">
-                  <p className="text-xs text-page-muted">{t('tokens.selectedGroup')}</p>
-                  <p className="text-sm font-medium text-page">{g.name}</p>
-                </div>
-              ) : null;
-            })()}
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-page-label mb-1.5">{t('tokens.name')}</label>
-                <input
-                  type="text"
-                  value={createName}
-                  onChange={(e) => setCreateName(e.target.value)}
-                  className="input"
-                  placeholder={t('tokens.namePlaceholder')}
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
-                <button type="button" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }} className="btn-secondary">
-                  {t('tokens.cancel')}
-                </button>
-                <button type="submit" disabled={creating} className="btn-primary">
-                  {creating ? t('tokens.creating') : t('tokens.create')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ConsoleModal
+          title={t('tokens.createApiKey')}
+          onClose={() => { setShowCreate(false); setSelectedGroupId(0); }}
+        >
+          {selectedGroup && (
+            <div className="mb-4 rounded-xl border border-page-divider bg-page-surface/50 p-3">
+              <p className="text-xs text-page-muted">{t('tokens.selectedGroup')}</p>
+              <p className="mt-1 text-sm font-medium text-page">{selectedGroup.name}</p>
+            </div>
+          )}
+          <form onSubmit={handleCreate} className="space-y-4">
+            <ConsoleField label={t('tokens.name')}>
+              <input
+                type="text"
+                value={createName}
+                onChange={(event) => setCreateName(event.target.value)}
+                className="input"
+                placeholder={t('tokens.namePlaceholder')}
+                autoFocus
+                required
+              />
+            </ConsoleField>
+            <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
+              <button type="button" onClick={() => { setShowCreate(false); setSelectedGroupId(0); }} className="btn-secondary">
+                {t('tokens.cancel')}
+              </button>
+              <button type="submit" disabled={creating} className="btn-primary inline-flex items-center justify-center gap-2">
+                {creating && <Loader2 className="h-4 w-4 animate-spin" />}
+                {creating ? t('tokens.creating') : t('tokens.create')}
+              </button>
+            </div>
+          </form>
+        </ConsoleModal>
       )}
 
       <GroupPricingModal
@@ -435,176 +478,74 @@ export default function Tokens() {
         t={t}
       />
 
-      {/* ========== New Key Reveal Modal ========== */}
       {newKey && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="glass max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl p-5 sm:p-6">
-            <h2 className="text-lg font-semibold text-page mb-2">{t('tokens.newApiKey')}</h2>
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 mb-4">
-              <p className="text-sm text-page-warning">
-                {t('tokens.keyWarning')}
-              </p>
-            </div>
-            <div className="bg-page-inset rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <code className="text-sm font-mono text-page-success flex-1 break-all select-all">
-                {newKey}
-              </code>
-              <button
-                onClick={() => handleCopy(newKey)}
-                className="btn-primary !px-4 !py-1.5 flex-shrink-0"
-              >
-                {copiedId === newKey ? t('tokens.copied') : t('tokens.copy')}
-              </button>
-            </div>
-            <div className="flex justify-end mt-4">
-              <button onClick={() => setNewKey(null)} className="btn-secondary">
-                {t('tokens.savedKey')}
-              </button>
-            </div>
+        <ConsoleModal title={t('tokens.newApiKey')} maxWidth="max-w-lg">
+          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.08] p-3">
+            <p className="text-sm text-page-warning">{t('tokens.keyWarning')}</p>
           </div>
-        </div>
+          <div className="flex flex-col gap-3 rounded-xl border border-page-divider bg-page-inset p-4 sm:flex-row sm:items-center">
+            <code className="flex-1 select-all break-all font-mono text-sm text-page-success">{newKey}</code>
+            <button onClick={() => handleCopy(newKey)} className="btn-primary inline-flex shrink-0 items-center justify-center gap-2 px-4 py-2">
+              {copiedId === newKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copiedId === newKey ? t('tokens.copied') : t('tokens.copy')}
+            </button>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <button onClick={() => setNewKey(null)} className="btn-secondary">
+              {t('tokens.savedKey')}
+            </button>
+          </div>
+        </ConsoleModal>
       )}
 
-      {/* ========== Delete Confirmation Modal ========== */}
       {deleteConfirm && (
-        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)}>
-          <div className="glass w-full max-w-sm rounded-2xl p-5 sm:p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-page mb-3">{t('tokens.deleteToken')}</h2>
-            <p className="text-sm text-page-secondary mb-4">
-              {t('tokens.deleteConfirm', { name: deleteConfirm.name })}
-            </p>
-            <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="btn-secondary">{t('tokens.cancel')}</button>
-              <button onClick={handleDelete} className="px-6 py-2.5 rounded-xl bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors">
-                {t('tokens.delete')}
-              </button>
-            </div>
+        <ConsoleModal
+          title={t('tokens.deleteToken')}
+          subtitle={t('tokens.deleteConfirm', { name: deleteConfirm.name })}
+          onClose={() => setDeleteConfirm(null)}
+          maxWidth="max-w-sm"
+        >
+          <div className="grid gap-2 sm:flex sm:justify-end sm:gap-3">
+            <button onClick={() => setDeleteConfirm(null)} className="btn-secondary">{t('tokens.cancel')}</button>
+            <button onClick={handleDelete} className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-rose-500">
+              <Trash2 className="h-4 w-4" />
+              {t('tokens.delete')}
+            </button>
           </div>
-        </div>
+        </ConsoleModal>
       )}
 
-      {/* ========== Section 2: My API Keys ========== */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-heading font-semibold text-page">{t('tokens.myKeys')}</h2>
-        </div>
-
+      <ConsoleFrame className="mt-6">
+        <ConsoleFrameHeader title={t('tokens.myKeys')} subtitle="Manage key status, inspect supported models, and copy key material." />
         {tokens.length === 0 ? (
-          <div className="glass rounded-2xl p-8 text-center">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-page-surface flex items-center justify-center">
-              <svg className="w-6 h-6 text-page-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            </div>
-            <p className="text-sm text-page-secondary">{t('tokens.noKeys')}</p>
-            <p className="text-xs text-page-muted mt-1">{t('tokens.noKeysHint')}</p>
+          <div className="p-4 sm:p-5">
+            <ConsoleEmpty
+              icon={KeyRound}
+              title={t('tokens.noKeys')}
+              description={t('tokens.noKeysHint')}
+              action={<button type="button" onClick={openCreateDefault} className="btn-primary px-4 py-2">{t('tokens.createFirst')}</button>}
+            />
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="divide-y divide-page-divider">
             {tokens.map((token) => (
-              <div key={token.id} className="glass-sm rounded-xl p-4 sm:p-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${token.status === 1 ? 'bg-green-500' : 'bg-page-muted'}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-page">{token.name}</p>
-                  </div>
-                  <span className="text-xs text-page-muted hidden md:block">
-                    {token.created_time ? new Date(token.created_time * 1000).toLocaleDateString() : ''}
-                  </span>
-                  <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
-                    <button
-                      onClick={() => handleToggleSupportedModels(token.id)}
-                      className="px-2 py-1 text-xs rounded-lg border border-page-divider text-page-secondary hover:bg-page-surface-hover transition-colors sm:px-3"
-                    >
-                      {expandedTokens[token.id] ? t('tokens.hideSupportedModels') : t('tokens.viewSupportedModels')}
-                    </button>
-                    <button
-                      onClick={() => handleToggle(token)}
-                      className={`px-2 py-1 text-xs rounded-lg border transition-colors sm:px-3 ${
-                        token.status === 1
-                          ? 'border-green-500/30 text-page-success hover:bg-green-500/10'
-                          : 'border-page-divider text-page-secondary hover:bg-page-surface-hover'
-                      }`}
-                    >
-                      {token.status === 1 ? t('tokens.enabled') : t('tokens.disabled')}
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(token)}
-                      className="px-2 py-1 text-xs rounded-lg border border-red-500/20 text-page-danger hover:bg-red-500/10 transition-colors sm:px-3"
-                    >
-                      {t('tokens.delete')}
-                    </button>
-                  </div>
-                </div>
-                {token.key && (
-                  <div className="mt-3 flex items-center gap-2 bg-page-inset rounded-lg px-3 py-2">
-                    <code className="text-xs font-mono text-page-muted flex-1 break-all select-all">
-                      sk-{token.key}
-                    </code>
-                    <button
-                      onClick={() => handleCopy('sk-' + token.key)}
-                      className="flex-shrink-0 px-2.5 py-1 text-xs rounded-md bg-page-surface text-page-secondary hover:bg-page-surface-hover hover:text-page transition-colors"
-                    >
-                      {copiedId === 'sk-' + token.key ? t('tokens.copied') : t('tokens.copy')}
-                    </button>
-                  </div>
-                )}
-                {expandedTokens[token.id] && (
-                  <div className="mt-3 rounded-xl border border-page-divider bg-page-surface/50 px-4 py-3">
-                    {tokenModels[token.id]?.loading ? (
-                      <div className="flex items-center gap-2 text-sm text-page-secondary">
-                        <div className="w-4 h-4 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
-                        <span>{t('tokens.loadingSupportedModels')}</span>
-                      </div>
-                    ) : tokenModels[token.id]?.error ? (
-                      <p className="text-sm text-page-danger">{t('tokens.loadSupportedModelsFailed')}</p>
-                    ) : (
-                      <>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-medium text-page">
-                            {t('tokens.supportedModels')} ({tokenModels[token.id]?.count || 0})
-                          </p>
-                          {tokenModels[token.id]?.restricted_by_models && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] bg-brand-500/10 text-brand-500">
-                              {t('tokens.restrictedByModels')}
-                            </span>
-                          )}
-                          {tokenModels[token.id]?.restricted_by_providers && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] bg-brand-500/10 text-brand-500">
-                              {t('tokens.restrictedByProviders')}
-                            </span>
-                          )}
-                        </div>
-                        {tokenModels[token.id]?.[providerNamesField]?.length > 0 && (
-                          <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <span className="text-xs text-page-muted">{t('tokens.supportedProviders')}</span>
-                            {tokenModels[token.id][providerNamesField].map((name) => (
-                              <span key={name} className="px-2 py-0.5 rounded-full text-[11px] bg-page-inset text-page-secondary">
-                                {name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                        {tokenModels[token.id]?.models?.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {tokenModels[token.id].models.map((modelName) => (
-                              <code key={modelName} className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-page-inset text-page-secondary">
-                                {modelName}
-                              </code>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-sm text-page-muted">{t('tokens.noSupportedModels')}</p>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
+              <TokenRow
+                key={token.id}
+                token={token}
+                copiedId={copiedId}
+                expanded={!!expandedTokens[token.id]}
+                modelState={tokenModels[token.id]}
+                providerNamesField={providerNamesField}
+                onCopy={handleCopy}
+                onDelete={() => setDeleteConfirm(token)}
+                onToggle={() => handleToggle(token)}
+                onToggleModels={() => handleToggleSupportedModels(token.id)}
+                t={t}
+              />
             ))}
           </div>
         )}
-      </div>
+      </ConsoleFrame>
 
       <div className="mt-8">
         <ConfigExporter tokens={tokens} />
@@ -613,6 +554,135 @@ export default function Tokens() {
       <div className="mt-10">
         <DownloadCatalog />
       </div>
+    </ConsolePage>
+  );
+}
+
+function EndpointTile({ label, children }) {
+  return (
+    <div className="rounded-xl border border-page-divider bg-page-surface/40 p-3">
+      <p className="mb-2 text-xs font-medium text-page-muted">{label}</p>
+      {children}
+    </div>
+  );
+}
+
+function TokenRow({
+  token,
+  copiedId,
+  expanded,
+  modelState,
+  providerNamesField,
+  onCopy,
+  onDelete,
+  onToggle,
+  onToggleModels,
+  t,
+}) {
+  const keyValue = token.key ? `sk-${token.key}` : '';
+  const createdDate = token.created_time ? new Date(token.created_time * 1000).toLocaleDateString() : '';
+
+  return (
+    <div className="p-4 sm:p-5">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`h-2.5 w-2.5 rounded-full ${token.status === 1 ? 'bg-page-success' : 'bg-page-muted'}`} />
+            <p className="min-w-0 truncate text-sm font-semibold text-page">{token.name}</p>
+            <ConsoleBadge tone={token.status === 1 ? 'emerald' : 'slate'}>
+              {token.status === 1 ? t('tokens.enabled') : t('tokens.disabled')}
+            </ConsoleBadge>
+            {createdDate && <span className="text-xs text-page-muted">{createdDate}</span>}
+          </div>
+          {keyValue && (
+            <div className="mt-3 flex items-center gap-2 rounded-xl border border-page-divider bg-page-inset px-3 py-2">
+              <code className="min-w-0 flex-1 select-all break-all font-mono text-xs text-page-secondary">{keyValue}</code>
+              <button
+                type="button"
+                onClick={() => onCopy(keyValue)}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-page-divider bg-white text-page-muted hover:bg-page-surface-hover hover:text-page"
+                aria-label="Copy API key"
+              >
+                {copiedId === keyValue ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:items-center">
+          <button
+            type="button"
+            onClick={onToggleModels}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-page-divider px-2.5 py-2 text-xs font-medium text-page-secondary transition-colors hover:bg-page-surface-hover hover:text-page"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="truncate">{expanded ? t('tokens.hideSupportedModels') : t('tokens.viewSupportedModels')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={onToggle}
+            className={`inline-flex items-center justify-center rounded-lg border px-2.5 py-2 text-xs font-medium transition-colors ${
+              token.status === 1
+                ? 'border-emerald-500/30 text-page-success hover:bg-emerald-500/10'
+                : 'border-page-divider text-page-secondary hover:bg-page-surface-hover'
+            }`}
+          >
+            {token.status === 1 ? t('tokens.enabled') : t('tokens.disabled')}
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-rose-500/20 px-2.5 py-2 text-xs font-medium text-page-danger transition-colors hover:bg-rose-500/10"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {t('tokens.delete')}
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-4 rounded-xl border border-page-divider bg-page-surface/50 px-4 py-3">
+          {modelState?.loading ? (
+            <div className="flex items-center gap-2 text-sm text-page-secondary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>{t('tokens.loadingSupportedModels')}</span>
+            </div>
+          ) : modelState?.error ? (
+            <p className="text-sm text-page-danger">{t('tokens.loadSupportedModelsFailed')}</p>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-page">
+                  {t('tokens.supportedModels')} ({modelState?.count || 0})
+                </p>
+                {modelState?.restricted_by_models && <ConsoleBadge tone="brand">{t('tokens.restrictedByModels')}</ConsoleBadge>}
+                {modelState?.restricted_by_providers && <ConsoleBadge tone="brand">{t('tokens.restrictedByProviders')}</ConsoleBadge>}
+              </div>
+              {modelState?.[providerNamesField]?.length > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-page-muted">{t('tokens.supportedProviders')}</span>
+                  {modelState[providerNamesField].map((name) => (
+                    <span key={name} className="rounded-full bg-page-inset px-2 py-0.5 text-[11px] text-page-secondary">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {modelState?.models?.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {modelState.models.map((modelName) => (
+                    <code key={modelName} className="rounded-lg bg-page-inset px-2.5 py-1 font-mono text-[11px] text-page-secondary">
+                      {modelName}
+                    </code>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-page-muted">{t('tokens.noSupportedModels')}</p>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -624,10 +694,10 @@ function KeyGroupCard({ group, parseTags, onSelect, onViewPricing, t }) {
 
   return (
     <div
-      className={`glass-sm rounded-xl p-4 border border-page-divider transition-all ${
+      className={`rounded-xl border border-page-divider bg-white p-4 transition-colors ${
         isUnavailable
           ? 'opacity-75'
-          : 'hover:border-brand-500/40 cursor-pointer group'
+          : 'cursor-pointer hover:border-brand-500/40 hover:bg-page-surface/40 group'
       }`}
       onClick={() => !isUnavailable && onSelect(group)}
     >
@@ -642,7 +712,7 @@ function KeyGroupCard({ group, parseTags, onSelect, onViewPricing, t }) {
               </span>
             )}
             {isUnavailable && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-500">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-page-danger">
                 {t('tokens.unavailable')}
               </span>
             )}
@@ -687,10 +757,8 @@ function KeyGroupCard({ group, parseTags, onSelect, onViewPricing, t }) {
 
           {!isUnavailable && (
             <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="text-xs font-medium text-brand-500">{t('tokens.create')}</span>
-              <svg className="w-4 h-4 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <span className="text-xs font-medium text-page-link">{t('tokens.create')}</span>
+              <ArrowRight className="h-4 w-4 text-page-link" />
             </div>
           )}
         </div>
@@ -770,12 +838,12 @@ function GroupPricingModal({
               </span>
             )}
             {summary?.provider_limited && (
-              <span className="px-2.5 py-1 rounded-full text-xs bg-brand-500/10 text-brand-500">
+              <span className="px-2.5 py-1 rounded-full text-xs bg-page-surface text-page-secondary">
                 {t('tokens.restrictedByProviders')}
               </span>
             )}
             {summary?.model_limited && (
-              <span className="px-2.5 py-1 rounded-full text-xs bg-brand-500/10 text-brand-500">
+              <span className="px-2.5 py-1 rounded-full text-xs bg-page-surface text-page-secondary">
                 {t('tokens.restrictedByModels')}
               </span>
             )}

@@ -23,9 +23,17 @@
     --page-select-bg: rgba(17,24,39,0.96);
     --page-select-panel-bg: rgba(17,24,39,0.98);
     --page-surface: rgba(255,255,255,0.04);
+    --page-surface-rgb: 255 255 255;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(255,255,255,0.08);
+    --page-surface-hover-rgb: 255 255 255;
+    --page-surface-hover-alpha: 0.08;
     --page-divider: rgba(255,255,255,0.06);
+    --page-divider-rgb: 255 255 255;
+    --page-divider-alpha: 0.06;
     --page-inset: rgba(0,0,0,0.4);
+    --page-inset-rgb: 0 0 0;
+    --page-inset-alpha: 0.4;
     /* Semantic colors — dark mode defaults */
     --page-success: 74 222 128;
     --page-success-text: 74 222 128;
@@ -78,9 +86,17 @@
     --page-select-bg: #ffffff;
     --page-select-panel-bg: #ffffff;
     --page-surface: rgba(0,0,0,0.03);
+    --page-surface-rgb: 0 0 0;
+    --page-surface-alpha: 0.03;
     --page-surface-hover: rgba(0,0,0,0.06);
+    --page-surface-hover-rgb: 0 0 0;
+    --page-surface-hover-alpha: 0.06;
     --page-divider: rgb(229,231,235);
+    --page-divider-rgb: 229 231 235;
+    --page-divider-alpha: 1;
     --page-inset: rgba(0,0,0,0.04);
+    --page-inset-rgb: 0 0 0;
+    --page-inset-alpha: 0.04;
     --page-success: 22 163 74;
     --page-success-text: 22 163 74;
     --page-warning: 202 138 4;
@@ -101,9 +117,17 @@
     --page-select-bg: rgba(255,251,247,0.98);
     --page-select-panel-bg: rgba(255,251,247,0.99);
     --page-surface: rgba(61,48,36,0.04);
+    --page-surface-rgb: 61 48 36;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(61,48,36,0.08);
+    --page-surface-hover-rgb: 61 48 36;
+    --page-surface-hover-alpha: 0.08;
     --page-divider: #E8DDD0;
+    --page-divider-rgb: 232 221 208;
+    --page-divider-alpha: 1;
     --page-inset: rgba(61,48,36,0.06);
+    --page-inset-rgb: 61 48 36;
+    --page-inset-alpha: 0.06;
   }
 
   .theme-starter {
@@ -119,9 +143,17 @@
     --page-select-bg: #ffffff;
     --page-select-panel-bg: #ffffff;
     --page-surface: rgba(15,23,42,0.04);
+    --page-surface-rgb: 15 23 42;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(15,23,42,0.07);
+    --page-surface-hover-rgb: 15 23 42;
+    --page-surface-hover-alpha: 0.07;
     --page-divider: rgb(226,232,240);
+    --page-divider-rgb: 226 232 240;
+    --page-divider-alpha: 1;
     --page-inset: rgba(15,23,42,0.05);
+    --page-inset-rgb: 15 23 42;
+    --page-inset-alpha: 0.05;
   }
 
   .theme-aurora {
@@ -137,9 +169,17 @@
     --page-select-bg: #ffffff;
     --page-select-panel-bg: #ffffff;
     --page-surface: rgba(15,23,42,0.04);
+    --page-surface-rgb: 15 23 42;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(15,23,42,0.07);
+    --page-surface-hover-rgb: 15 23 42;
+    --page-surface-hover-alpha: 0.07;
     --page-divider: rgb(226,232,240);
+    --page-divider-rgb: 226 232 240;
+    --page-divider-alpha: 1;
     --page-inset: rgba(15,23,42,0.05);
+    --page-inset-rgb: 15 23 42;
+    --page-inset-alpha: 0.05;
   }
 
   .theme-market {
@@ -155,9 +195,17 @@
     --page-select-bg: #ffffff;
     --page-select-panel-bg: #ffffff;
     --page-surface: rgba(41,37,36,0.04);
+    --page-surface-rgb: 41 37 36;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(41,37,36,0.07);
+    --page-surface-hover-rgb: 41 37 36;
+    --page-surface-hover-alpha: 0.07;
     --page-divider: rgb(231,229,228);
+    --page-divider-rgb: 231 229 228;
+    --page-divider-alpha: 1;
     --page-inset: rgba(41,37,36,0.05);
+    --page-inset-rgb: 41 37 36;
+    --page-inset-alpha: 0.05;
   }
 
   .theme-maoqiu {
@@ -173,9 +221,17 @@
     --page-select-bg: #ffffff;
     --page-select-panel-bg: #ffffff;
     --page-surface: rgba(34,80,255,0.04);
+    --page-surface-rgb: 34 80 255;
+    --page-surface-alpha: 0.04;
     --page-surface-hover: rgba(34,80,255,0.08);
+    --page-surface-hover-rgb: 34 80 255;
+    --page-surface-hover-alpha: 0.08;
     --page-divider: rgb(226,232,240);
+    --page-divider-rgb: 226 232 240;
+    --page-divider-alpha: 1;
     --page-inset: rgba(34,80,255,0.05);
+    --page-inset-rgb: 34 80 255;
+    --page-inset-alpha: 0.05;
   }
 
   .theme-terminal {
@@ -195,9 +251,17 @@
     --page-select-bg: rgba(6,17,13,0.98);
     --page-select-panel-bg: rgba(6,17,13,0.98);
     --page-surface: rgba(52,211,153,0.06);
+    --page-surface-rgb: 52 211 153;
+    --page-surface-alpha: 0.06;
     --page-surface-hover: rgba(52,211,153,0.12);
+    --page-surface-hover-rgb: 52 211 153;
+    --page-surface-hover-alpha: 0.12;
     --page-divider: rgba(52,211,153,0.18);
+    --page-divider-rgb: 52 211 153;
+    --page-divider-alpha: 0.18;
     --page-inset: rgba(0,0,0,0.32);
+    --page-inset-rgb: 0 0 0;
+    --page-inset-alpha: 0.32;
     --page-success: 52 211 153;
     --page-success-text: 52 211 153;
     --page-warning: 251 191 36;
@@ -206,6 +270,83 @@
     --page-danger-text: 248 113 113;
     --page-info: 45 212 191;
     --page-info-text: 45 212 191;
+  }
+
+  .theme-saas {
+    --brand: 15 23 42;
+    --page-bg: #fbfcff;
+    --page-spinner: rgba(15,23,42,0.78);
+    --page-spinner-track: rgba(15,23,42,0.16);
+    --page-text: 15 23 42;
+    --page-text-secondary: 71 85 105;
+    --page-text-muted: 148 163 184;
+    --page-label: 51 65 85;
+    --page-link: 8 145 178;
+    --page-card-bg: rgba(255,255,255,0.88);
+    --page-card-border: rgb(226,232,240);
+    --page-input-bg: #ffffff;
+    --page-input-border: rgb(203,213,225);
+    --page-select-bg: #ffffff;
+    --page-select-panel-bg: #ffffff;
+    --page-surface: rgba(15,23,42,0.035);
+    --page-surface-rgb: 15 23 42;
+    --page-surface-alpha: 0.035;
+    --page-surface-hover: rgba(15,23,42,0.07);
+    --page-surface-hover-rgb: 15 23 42;
+    --page-surface-hover-alpha: 0.07;
+    --page-divider: rgb(226,232,240);
+    --page-divider-rgb: 226 232 240;
+    --page-divider-alpha: 1;
+    --page-inset: rgba(15,23,42,0.05);
+    --page-inset-rgb: 15 23 42;
+    --page-inset-alpha: 0.05;
+    --page-success: 5 150 105;
+    --page-success-text: 5 150 105;
+    --page-warning: 217 119 6;
+    --page-warning-text: 180 83 9;
+    --page-danger: 225 29 72;
+    --page-danger-text: 225 29 72;
+    --page-info: 8 145 178;
+    --page-info-text: 8 145 178;
+  }
+
+  .theme-saas .theme-page-shell::before {
+    background:
+      linear-gradient(180deg, #fbfcff 0%, #ffffff 54%, #f8fafc 100%);
+  }
+
+  .theme-saas .glass,
+  .theme-saas .glass-sm {
+    border-color: rgb(226,232,240);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+    backdrop-filter: blur(16px);
+  }
+
+  .theme-saas .btn-primary,
+  .theme-saas .bg-brand-500 {
+    background-color: #0f172a !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 18px rgba(15,23,42,0.12);
+  }
+
+  .theme-saas .btn-primary:hover {
+    background-color: #1e293b !important;
+  }
+
+  .theme-saas .btn-secondary {
+    border-color: rgb(226,232,240);
+    color: rgb(51 65 85);
+    background: rgba(255,255,255,0.76);
+  }
+
+  .theme-saas .btn-secondary:hover {
+    background: rgba(248,250,252,0.95);
+  }
+
+  .theme-saas .input:focus {
+    border-color: rgb(148 163 184);
+    box-shadow: 0 0 0 3px rgba(15,23,42,0.08);
   }
 
   /* Per-dark-theme background overrides */
