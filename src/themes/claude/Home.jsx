@@ -54,7 +54,7 @@ export default function ClaudeHome() {
                   <Link to="/register" className="px-7 py-3 rounded-full bg-[#D97757] text-white font-medium text-sm hover:bg-[#C4613F] transition-colors">
                     {t('home.getStarted')}
                   </Link>
-                  <Link to="/pricing" className="px-7 py-3 text-[#8B7D6E] font-medium text-sm hover:text-[#3D3024] transition-colors">
+                  <Link to="/models?sort=price" className="px-7 py-3 text-[#8B7D6E] font-medium text-sm hover:text-[#3D3024] transition-colors">
                     {t('home.viewPricing')} →
                   </Link>
                 </>
@@ -130,7 +130,7 @@ export default function ClaudeHome() {
                 <p className="text-[#8B7D6E]">{t('home.availableModelsDesc', { count: enabledModels.length })}</p>
               </div>
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="text-sm text-[#D97757] hover:text-[#C4613F] transition-colors">
+                <Link to="/models?sort=price" className="text-sm text-[#D97757] hover:text-[#C4613F] transition-colors">
                   {t('home.viewAllModels', { count: enabledModels.length })} →
                 </Link>
               )}

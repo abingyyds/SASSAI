@@ -131,9 +131,9 @@ export function useSite() {
 }
 
 /**
- * useCurrency - 获取分站货币配置
- * 返回 { symbol, rate, code, fmt(usdValue) }
- * fmt() 将 USD 值转换为显示货币并格式化
+ * useCurrency - read site currency settings.
+ * Returns { symbol, rate, code, fmt(usdValue) }.
+ * fmt() converts a USD value into the display currency and formats it.
  */
 export function useCurrency() {
   const { site } = useSite();

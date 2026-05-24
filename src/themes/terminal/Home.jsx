@@ -58,7 +58,7 @@ export default function TerminalHome() {
                 {user ? t('home.goToDashboard') : t('home.getStarted')}
               </TerminalButton>
               <Link
-                to="/pricing"
+                to="/models?sort=price"
                 className="inline-flex items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-400/[0.04] px-6 py-3 font-mono text-sm font-bold text-emerald-100 transition-colors hover:bg-emerald-400/10"
               >
                 {t('home.viewPricing')}

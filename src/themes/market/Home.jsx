@@ -108,7 +108,7 @@ export default function MarketHome() {
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <SectionTitle title={t('home.availableModels')} desc={t('home.availableModelsDesc', { count: enabledModels.length })} compact />
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm font-black text-orange-700 hover:text-stone-950">
+                <Link to="/models?sort=price" className="inline-flex items-center gap-1.5 text-sm font-black text-orange-700 hover:text-stone-950">
                   {t('home.viewAllModels', { count: enabledModels.length })}
                   <ArrowRight className="h-4 w-4" />
                 </Link>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useSite } from '../context/SiteContext';
-import { ExternalLink, TicketPercent } from 'lucide-react';
+import { Banknote, CreditCard, ExternalLink, Repeat2, ShieldCheck, Sparkles, TicketPercent, Wallet } from 'lucide-react';
 import {
   getUserUsage, redeemCode, getTopupInfo,
   createEpayOrder, createStripeOrder, createCreemOrder,
@@ -11,6 +11,13 @@ import {
 } from '../api';
 import { useCurrency } from '../context/SiteContext';
 import CountUp from '../components/bits/CountUp';
+import {
+  ConsoleBadge,
+  ConsoleHero,
+  ConsolePage,
+  ConsoleSection,
+  ConsoleStat,
+} from '../components/ConsoleSurface';
 import toast from 'react-hot-toast';
 
 function normalizeExternalUrl(value) {
@@ -347,256 +354,254 @@ export default function Topup() {
     );
   }
 
+  const statCards = [
+    <ConsoleStat
+      key="balance"
+      icon={Wallet}
+      label={t('dashboard.balance')}
+      value={<span>{symbol}<CountUp from={0} to={balanceDollars} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: quota.toLocaleString() })}
+      tone="cyan"
+    />,
+    <ConsoleStat
+      key="used"
+      icon={Repeat2}
+      label={t('dashboard.used')}
+      value={<span>{symbol}<CountUp from={0} to={(usedQuota / Q) * rate} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: usedQuota.toLocaleString() })}
+      tone="sky"
+    />,
+    <ConsoleStat
+      key="package"
+      icon={Banknote}
+      label={t('dashboard.packageUsed')}
+      value={<span>{symbol}<CountUp from={0} to={(packageUsedQuota / Q) * rate} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: packageUsedQuota.toLocaleString() })}
+      tone="emerald"
+    />,
+    <ConsoleStat
+      key="requests"
+      icon={Sparkles}
+      label={t('dashboard.totalRequests')}
+      value={<CountUp from={0} to={requestCount} duration={1.4} />}
+      helper="All API requests"
+      tone="amber"
+    />,
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-heading font-bold text-page mb-1">{t('topup.title')}</h1>
-        <p className="text-sm text-page-secondary">{t('topup.subtitle')}</p>
-      </div>
+    <ConsolePage>
+      <ConsoleHero
+        eyebrow="Billing center"
+        title={t('topup.title')}
+        subtitle={t('topup.subtitle')}
+        actions={[
+          <button
+            key="history"
+            type="button"
+            onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadHistory(); }}
+            className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5"
+          >
+            <CreditCard className="h-4 w-4" />
+            {showHistory ? t('topup.hideHistory') : t('topup.viewHistory')}
+          </button>,
+        ]}
+        stats={statCards}
+      />
 
-      {/* Balance Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.balance')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}<CountUp from={0} to={balanceDollars} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: quota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.used')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}<CountUp from={0} to={usedQuota / Q * rate} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: usedQuota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.packageUsed')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}<CountUp from={0} to={packageUsedQuota / Q * rate} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: packageUsedQuota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.totalRequests')}</p>
-          <div className="text-3xl font-bold text-page">
-            <CountUp from={0} to={requestCount} duration={1.5} />
-          </div>
-        </div>
-      </div>
-
-      {/* Online Topup - EPay & Stripe & Crypto */}
       {site?.enable_topup && (enableOnline || enableStripe || enableCrypto) && (epayAndStripeMethods.length > 0 || enableCrypto) && (
-        <div className="glass rounded-2xl p-6 mb-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-page">{t('topup.onlineTopup')}</h2>
-            <button
-              onClick={() => { setShowHistory(!showHistory); if (!showHistory) loadHistory(); }}
-              className="text-sm text-page-secondary hover:text-page transition-colors"
-            >
-              {showHistory ? t('topup.hideHistory') : t('topup.viewHistory')}
-            </button>
-          </div>
+        <ConsoleSection
+          className="mt-6"
+          title={t('topup.onlineTopup')}
+          subtitle="Choose a payment method, set the amount, and complete checkout."
+        >
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(300px,0.9fr)]">
+            <div className="space-y-6">
+              <div>
+                <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.selectAmount')}</label>
+                <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {presetAmounts.map((val) => (
+                    <button
+                      key={val}
+                      onClick={() => handlePreset(val)}
+                      className={`rounded-2xl border px-3 py-2 text-sm font-medium transition-all ${
+                        selectedPreset === val
+                          ? 'border-brand-500/40 bg-brand-500/15 text-page'
+                          : 'border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                      }`}
+                    >
+                      {symbol}{formatCurrencyAmount(val * rate)}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Preset Amounts */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-page-label mb-3">{t('topup.selectAmount')}</label>
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-              {presetAmounts.map((val) => (
-                <button
-                  key={val}
-                  onClick={() => handlePreset(val)}
-                  className={`py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
-                    selectedPreset === val
-                      ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                      : 'glass-sm text-page-label hover:text-page hover:bg-page-surface-hover'
-                  }`}
-                >
-                  {symbol}{formatCurrencyAmount(val * rate)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Custom Amount */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-page-label mb-2">{t('topup.customAmount')}</label>
-            <div className="flex gap-3">
-              <input
-                type="number"
-                value={displayAmount}
-                onChange={(e) => {
-                  const currentValue = e.target.value;
-                  setDisplayAmount(currentValue);
-                  setSelectedPreset(null);
-                  const quotaAmount = toQuotaAmount(currentValue);
-                  setAmount(quotaAmount === '' ? '' : String(quotaAmount));
-                }}
-                onBlur={(e) => {
-                  const quotaAmount = toQuotaAmount(e.target.value);
-                  if (quotaAmount === '') {
-                    setDisplayAmount('');
-                    setAmount('');
-                    return;
-                  }
-                  setAmount(String(quotaAmount));
-                  setDisplayAmount(toDisplayAmount(quotaAmount));
-                }}
-                min={minTopup * rate}
-                step="0.01"
-                placeholder={t('topup.amountPlaceholder', { min: formatCurrencyAmount(minTopup * rate) })}
-                className="input flex-1"
-              />
-            </div>
-            <p className="text-xs text-page-muted mt-2">
-              {t('topup.customAmountHint')}
-            </p>
-            {amount ? (
-              <p className="text-xs text-page-muted mt-2">
-                {t('topup.rechargeAmountLabel')}: {symbol}{displayAmount || toDisplayAmount(amount)}
-              </p>
-            ) : null}
-          </div>
-
-          {/* Payment Methods (EPay + Stripe) */}
-          <div>
-            <label className="block text-sm font-medium text-page-label mb-3">{t('topup.paymentMethod')}</label>
-            <div className="flex flex-wrap gap-2">
-              {epayAndStripeMethods.map((method) => {
-                const isCurrentLoading = paymentLoading && payingMethod === method.type;
-                return (
-                  <button
-                    key={method.type}
-                    onClick={() => handlePay(method.type)}
-                    disabled={paymentLoading || !amount}
-                    className="px-4 py-2.5 rounded-xl text-sm font-medium glass-sm text-page-label hover:text-page hover:bg-page-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  >
-                    {isCurrentLoading ? t('topup.processing') : method.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Crypto Payment (inline) */}
-          {enableCrypto && availableChains.length > 0 && (
-            <div className="mt-6 pt-6 border-t border-page-divider">
-              <label className="block text-sm font-medium text-page-label mb-3">{t('topup.cryptoPayment')}</label>
-              <div className="rounded-xl border border-page-divider bg-page-surface/50 p-4 space-y-4">
-                <p className="text-xs text-page-muted">
-                  {t('topup.cryptoSelectionHint')}
-                </p>
-
-                <div>
-                  <p className="text-xs font-medium text-page-label mb-2">
-                    {t('topup.cryptoStepChain')}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.customAmount')}</label>
+                <input
+                  type="number"
+                  value={displayAmount}
+                  onChange={(e) => {
+                    const currentValue = e.target.value;
+                    setDisplayAmount(currentValue);
+                    setSelectedPreset(null);
+                    const quotaAmount = toQuotaAmount(currentValue);
+                    setAmount(quotaAmount === '' ? '' : String(quotaAmount));
+                  }}
+                  onBlur={(e) => {
+                    const quotaAmount = toQuotaAmount(e.target.value);
+                    if (quotaAmount === '') {
+                      setDisplayAmount('');
+                      setAmount('');
+                      return;
+                    }
+                    setAmount(String(quotaAmount));
+                    setDisplayAmount(toDisplayAmount(quotaAmount));
+                  }}
+                  min={minTopup * rate}
+                  step="0.01"
+                  placeholder={t('topup.amountPlaceholder', { min: formatCurrencyAmount(minTopup * rate) })}
+                  className="input"
+                />
+                <p className="mt-2 text-xs text-page-muted">{t('topup.customAmountHint')}</p>
+                {amount ? (
+                  <p className="mt-2 text-xs text-page-muted">
+                    {t('topup.rechargeAmountLabel')}: {symbol}{displayAmount || toDisplayAmount(amount)}
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {availableChains.map((chain) => (
+                ) : null}
+              </div>
+
+              <div>
+                <label className="mb-3 block text-sm font-medium text-page-label">{t('topup.paymentMethod')}</label>
+                <div className="flex flex-wrap gap-2">
+                  {epayAndStripeMethods.map((method) => {
+                    const isCurrentLoading = paymentLoading && payingMethod === method.type;
+                    return (
                       <button
-                        key={chain.key}
-                        onClick={() => setSelectedChain(chain.key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          selectedChain === chain.key
-                            ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                            : 'glass-sm text-page-label hover:text-page hover:bg-page-surface-hover'
-                        }`}
+                        key={method.type}
+                        onClick={() => handlePay(method.type)}
+                        disabled={paymentLoading || !amount}
+                        className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        {chain.label}
+                        {isCurrentLoading ? t('topup.processing') : method.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {enableCrypto && availableChains.length > 0 && (
+                <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-brand-500" />
+                    <h3 className="text-sm font-semibold text-page">{t('topup.cryptoPayment')}</h3>
+                  </div>
+                  <p className="text-xs text-page-muted">{t('topup.cryptoSelectionHint')}</p>
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-page-muted">{t('topup.cryptoStepChain')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {availableChains.map((chain) => (
+                          <button
+                            key={chain.key}
+                            onClick={() => setSelectedChain(chain.key)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                              selectedChain === chain.key
+                                ? 'bg-brand-500 text-white'
+                                : 'border border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                            }`}
+                          >
+                            {chain.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-page-muted">{t('topup.cryptoStepToken')}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['usdt', 'usdc'].map((token) => (
+                          <button
+                            key={token}
+                            onClick={() => setSelectedToken(token)}
+                            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                              selectedToken === token
+                                ? 'bg-brand-500 text-white'
+                                : 'border border-page-divider bg-page-surface/40 text-page-label hover:bg-page-surface-hover hover:text-page'
+                            }`}
+                          >
+                            {token.toUpperCase()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-page-divider bg-page bg-page-surface/50 px-4 py-3">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-page-muted">{t('topup.cryptoSelectedSummary')}</p>
+                      <p className="mt-1 text-sm font-medium text-page">{selectedCryptoLabel}</p>
+                    </div>
+
+                    <button
+                      onClick={handleCryptoPay}
+                      disabled={paymentLoading || !amount}
+                      className="btn-primary inline-flex w-full items-center justify-center gap-2"
+                    >
+                      {paymentLoading && payingMethod === 'crypto'
+                        ? t('topup.processing')
+                        : t('topup.generateCryptoAddress', { method: selectedCryptoLabel })}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {site?.enable_topup && enableCreem && creemProducts.length > 0 && (
+                <div className="rounded-2xl border border-page-divider bg-page-surface/40 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-brand-500" />
+                    <h3 className="text-sm font-semibold text-page">{t('topup.creemPayment') || 'Creem payment'}</h3>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {creemProducts.map((product) => (
+                      <button
+                        key={product.productId}
+                        className={`rounded-2xl border p-4 text-left transition-colors ${
+                          selectedCreemProduct?.productId === product.productId
+                            ? 'border-brand-500/40 bg-brand-500/10'
+                            : 'border-page-divider bg-page-surface/40 hover:bg-page-surface-hover'
+                        }`}
+                        onClick={() => setSelectedCreemProduct(product)}
+                      >
+                        <div className="text-sm font-semibold text-page">{product.name}</div>
+                        <div className="mt-2 text-xl font-semibold text-page-success">
+                          ${product.price}
+                          <span className="ml-1 text-xs font-normal text-page-muted">{product.currency || 'USD'}</span>
+                        </div>
+                        {product.quota && (
+                          <p className="mt-1 text-xs text-page-secondary">{t('topup.quotaIncluded') || `${product.quota} quota`}</p>
+                        )}
                       </button>
                     ))}
                   </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium text-page-label mb-2">
-                    {t('topup.cryptoStepToken')}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {['usdt', 'usdc'].map((token) => (
+                  {selectedCreemProduct && (
+                    <div className="mt-4 flex justify-end">
                       <button
-                        key={token}
-                        onClick={() => setSelectedToken(token)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          selectedToken === token
-                            ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/25'
-                            : 'glass-sm text-page-label hover:text-page hover:bg-page-surface-hover'
-                        }`}
+                        onClick={() => handleCreemPay(selectedCreemProduct)}
+                        disabled={paymentLoading}
+                        className="btn-primary px-6"
                       >
-                        {token.toUpperCase()}
+                        {paymentLoading && payingMethod === 'creem'
+                          ? t('topup.processing')
+                          : `${t('topup.payNow') || 'Pay'} $${selectedCreemProduct.price}`}
                       </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="rounded-lg bg-page-inset/60 px-3 py-3">
-                  <p className="text-[11px] text-page-muted mb-1">
-                    {t('topup.cryptoSelectedSummary')}
-                  </p>
-                  <p className="text-sm font-medium text-page">
-                    {selectedCryptoLabel}
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleCryptoPay}
-                  disabled={paymentLoading || !amount}
-                  className="btn-primary w-full justify-center flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {paymentLoading && payingMethod === 'crypto' ? (
-                    t('topup.processing')
-                  ) : (
-                    t('topup.generateCryptoAddress', { method: selectedCryptoLabel })
+                    </div>
                   )}
-                </button>
-              </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Creem Products Section */}
-      {site?.enable_topup && enableCreem && creemProducts.length > 0 && (
-        <div className="glass rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-page mb-4">{t('topup.creemPayment') || 'Creem Payment'}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {creemProducts.map((product) => (
-              <div
-                key={product.productId}
-                className={`glass-sm rounded-xl p-4 cursor-pointer transition-all ${
-                  selectedCreemProduct?.productId === product.productId
-                    ? 'ring-2 ring-brand-500 bg-brand-500/10'
-                    : 'hover:bg-page-surface'
-                }`}
-                onClick={() => setSelectedCreemProduct(product)}
-              >
-                <h3 className="text-sm font-semibold text-page mb-1">{product.name}</h3>
-                <p className="text-xl font-bold text-page-success mb-1">
-                  ${product.price} <span className="text-xs text-page-muted font-normal">{product.currency || 'USD'}</span>
-                </p>
-                {product.quota && (
-                  <p className="text-xs text-page-secondary">{t('topup.quotaIncluded') || `${product.quota} quota`}</p>
-                )}
-              </div>
-            ))}
           </div>
-          {selectedCreemProduct && (
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={() => handleCreemPay(selectedCreemProduct)}
-                disabled={paymentLoading}
-                className="btn-primary px-6"
-              >
-                {paymentLoading && payingMethod === 'creem'
-                  ? t('topup.processing')
-                  : `${t('topup.payNow') || 'Pay'} $${selectedCreemProduct.price}`}
-              </button>
-            </div>
-          )}
-        </div>
+        </ConsoleSection>
       )}
 
       {/* Crypto Payment Modal */}
@@ -636,52 +641,42 @@ export default function Topup() {
         </div>
       )}
 
-      {/* History */}
       {showHistory && (
-        <div className="glass rounded-2xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-page mb-4">{t('topup.history')}</h2>
+        <ConsoleSection className="mt-6" title={t('topup.history')} subtitle="Recent billing and recharge activity.">
           {historyLoading ? (
             <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500/30 border-t-brand-500" />
             </div>
           ) : history.length === 0 ? (
-            <p className="text-sm text-page-muted text-center py-8">{t('topup.noHistory')}</p>
+            <div className="rounded-2xl border border-dashed border-page-divider bg-page-surface/40 py-10 text-center text-sm text-page-muted">
+              {t('topup.noHistory')}
+            </div>
           ) : (
             <div className="space-y-2">
               {history.map((item, i) => (
-                <div key={i} className="flex items-center justify-between glass-sm rounded-xl px-4 py-3">
+                <div key={i} className="flex items-center justify-between rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3">
                   <div>
                     <p className="text-sm text-page">{symbol}{(Number(item.amount) * rate).toFixed(2)}</p>
                     <p className="text-xs text-page-muted">
                       {new Date(item.create_time * 1000).toLocaleString()} · {item.payment_method || t('topup.redeemCode')}
                     </p>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    item.status === 'success'
-                      ? 'bg-green-500/10 text-page-success'
-                      : item.status === 'pending'
-                        ? 'bg-yellow-500/10 text-page-warning'
-                        : 'bg-red-500/10 text-page-danger'
-                  }`}>
+                  <ConsoleBadge tone={item.status === 'success' ? 'emerald' : item.status === 'pending' ? 'amber' : 'rose'}>
                     {item.status === 'success' ? t('topup.statusSuccess') : item.status === 'pending' ? t('topup.statusPending') : t('topup.statusFailed')}
-                  </span>
+                  </ConsoleBadge>
                 </div>
               ))}
             </div>
           )}
-        </div>
+        </ConsoleSection>
       )}
 
-      {/* Redeem Code */}
-      <div className="glass rounded-2xl p-6">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h2 className="text-lg font-semibold text-page">{t('topup.redeemTitle')}</h2>
-            <p className="mt-1 text-sm text-page-secondary">
-              {redeemCodeShopUrl ? t('topup.redeemShopHint') : t('topup.redeemHint')}
-            </p>
-          </div>
-          {redeemCodeShopUrl && (
+      <ConsoleSection
+        className="mt-6"
+        title={t('topup.redeemTitle')}
+        subtitle={redeemCodeShopUrl ? t('topup.redeemShopHint') : t('topup.redeemHint')}
+        action={
+          redeemCodeShopUrl ? (
             <a
               href={redeemCodeShopUrl}
               target="_blank"
@@ -692,8 +687,9 @@ export default function Topup() {
               {t('topup.buyRedeemCode')}
               <ExternalLink size={14} />
             </a>
-          )}
-        </div>
+          ) : null
+        }
+      >
         <form onSubmit={handleRedeem} className="flex flex-col gap-3 sm:flex-row">
           <input
             type="text"
@@ -706,7 +702,7 @@ export default function Topup() {
             {redeeming ? t('topup.redeeming') : t('topup.redeem')}
           </button>
         </form>
-      </div>
-    </div>
+      </ConsoleSection>
+    </ConsolePage>
   );
 }

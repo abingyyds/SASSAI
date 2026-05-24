@@ -56,7 +56,7 @@ export default function DarkHome() {
                   <Link to="/register" className="px-7 py-3 rounded-lg bg-emerald-500 text-black font-semibold text-sm hover:bg-emerald-400 transition-colors">
                     {t('home.getStarted')}
                   </Link>
-                  <Link to="/pricing" className="px-7 py-3 text-neutral-400 font-medium text-sm hover:text-white transition-colors">
+                  <Link to="/models?sort=price" className="px-7 py-3 text-neutral-400 font-medium text-sm hover:text-white transition-colors">
                     {t('home.viewPricing')} →
                   </Link>
                 </>
@@ -130,7 +130,7 @@ export default function DarkHome() {
                 <p className="text-neutral-500">{t('home.availableModelsDesc', { count: enabledModels.length })}</p>
               </div>
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
+                <Link to="/models?sort=price" className="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
                   {t('home.viewAllModels', { count: enabledModels.length })} →
                 </Link>
               )}

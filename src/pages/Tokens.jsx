@@ -823,7 +823,7 @@ function GroupPricingModal({
                 <thead>
                   <tr className="border-b border-page-divider">
                     <th className="text-left px-4 py-3 font-medium text-page-secondary">{t('pricing.model')}</th>
-                    <th className="text-left px-4 py-3 font-medium text-page-secondary">{t('定价方式')}</th>
+                    <th className="text-left px-4 py-3 font-medium text-page-secondary">Pricing mode</th>
                     <th className="text-right px-4 py-3 font-medium text-page-secondary">{t('tokens.groupPricingReferencePrice')}</th>
                     <th className="text-right px-4 py-3 font-medium text-page-secondary">{t('pricing.outputPrice')}</th>
                     <th className="text-right px-4 py-3 font-medium text-page-secondary">{t('pricing.cacheReadPrice')}</th>
@@ -846,7 +846,7 @@ function GroupPricingModal({
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-page-secondary">
-                        {item.billing_type === 'per_call' ? t('pricing.perCall') : t('按量计费')}
+                        {item.billing_type === 'per_call' ? t('pricing.perCall') : 'Pay as you go'}
                       </td>
                       <td className="px-4 py-3.5 text-right font-mono text-page-label whitespace-nowrap">
                         {item.status !== 'healthy'

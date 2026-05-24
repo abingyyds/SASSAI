@@ -83,7 +83,6 @@ export default function BrandLayout({ variant }) {
 
   const navItems = [
     { to: '/', label: t('nav.home'), auth: false },
-    { to: '/pricing', label: t('nav.pricing'), auth: false },
     { to: '/packages', label: t('nav.packages'), auth: false },
     ...(site?.allow_sub_dist ? [{ to: '/sub-site', label: t('subDist.nav'), auth: false }] : []),
     { to: '/dashboard', label: t('nav.dashboard'), auth: true },

@@ -128,7 +128,7 @@ const getModelFamily = (model) => {
   if (/\b(claude|anthropic|sonnet|haiku|opus)\b/.test(haystack)) return 'claude';
   if (/\b(gemini|gemma|google)\b/.test(haystack)) return 'gemini';
   if (/\b(deepseek|deepseek-chat|deepseek-reasoner|deepseek-r1)\b/.test(haystack)) return 'deepseek';
-  if (/\b(qwen|qwq|qvq|tongyi)\b|通义/.test(haystack)) return 'qwen';
+  if (/\b(qwen|qwq|qvq|tongyi)\b/.test(haystack)) return 'qwen';
   return 'generic';
 };
 
@@ -259,12 +259,17 @@ export const getCacheReadPrice = (item) => firstNumber(item, ['cache_read_price'
 export const getCacheCreationPrice = (item) => firstNumber(item, ['cache_creation_price', 'cache_write_price', 'cache_creation', 'cache_creation_price_5m']);
 
 export const getOfficialPricing = (model) => {
-  const pricing = model?.official_pricing;
+  const pricing = model?.officialPricing || model?.official_pricing || model?.pricing;
   if (!pricing || typeof pricing !== 'object') return null;
   if (pricing.type === 'per_call' && asNumber(pricing.modelPrice) !== null) return pricing;
   if (
     pricing.type === 'token' &&
-    (asNumber(pricing.inputRatio) !== null || asNumber(pricing.outputRatio) !== null)
+    (
+      asNumber(pricing.inputPrice) !== null ||
+      asNumber(pricing.outputPrice) !== null ||
+      asNumber(pricing.inputRatio) !== null ||
+      asNumber(pricing.outputRatio) !== null
+    )
   ) {
     return pricing;
   }
@@ -275,14 +280,14 @@ const getOfficialPriceValue = (model) => {
   const pricing = getOfficialPricing(model);
   if (!pricing) return Number.POSITIVE_INFINITY;
   if (pricing.type === 'per_call') return asNumber(pricing.modelPrice) ?? Number.POSITIVE_INFINITY;
-  return asNumber(pricing.inputRatio) ?? asNumber(pricing.outputRatio) ?? Number.POSITIVE_INFINITY;
+  return asNumber(pricing.inputPrice) ?? asNumber(pricing.outputPrice) ?? asNumber(pricing.inputRatio) ?? asNumber(pricing.outputRatio) ?? Number.POSITIVE_INFINITY;
 };
 
 export const formatOfficialNumber = (value) => {
   const number = asNumber(value);
   if (number === null) return '-';
   const abs = Math.abs(number);
-  const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : 4;
+  const decimals = abs >= 100 ? 0 : abs >= 10 ? 1 : abs >= 1 ? 2 : abs >= 0.01 ? 4 : abs >= 0.0001 ? 6 : 8;
   return number.toFixed(decimals).replace(/0+$/, '').replace(/\.$/, '');
 };
 
@@ -291,9 +296,25 @@ export const formatOfficialRatio = (value) => {
   return formatted === '-' ? '-' : `${formatted}x`;
 };
 
-export const formatOfficialPerCall = (value) => {
+export const formatOfficialUsd = (value) => {
   const formatted = formatOfficialNumber(value);
-  return formatted === '-' ? '-' : `${formatted}/call`;
+  return formatted === '-' ? '-' : `$${formatted}`;
+};
+
+export const formatOfficialTokenPrice = (value) => formatOfficialUsd(value);
+
+export const formatOfficialTokenPair = (inputPrice, outputPrice) => {
+  const input = formatOfficialTokenPrice(inputPrice);
+  const output = formatOfficialTokenPrice(outputPrice);
+  if (input === '-' && output === '-') return '-';
+  if (input === '-') return `${output} out`;
+  if (output === '-') return `${input} in`;
+  return `${input} in / ${output} out`;
+};
+
+export const formatOfficialPerCall = (value) => {
+  const formatted = formatOfficialUsd(value);
+  return formatted === '-' ? '-' : `${formatted} / call`;
 };
 
 export const getModelId = (model) =>

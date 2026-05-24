@@ -1,7 +1,8 @@
 import React from 'react';
 import {
   formatOfficialPerCall,
-  formatOfficialRatio,
+  formatOfficialTokenPair,
+  formatOfficialTokenPrice,
   getOfficialPricing,
 } from '../utils/modelMeta';
 
@@ -24,13 +25,15 @@ export default function ModelPrice({ model, compact = false }) {
     );
   }
 
-  const input = formatOfficialRatio(pricing.inputRatio);
-  const output = formatOfficialRatio(pricing.outputRatio);
+  const inputPrice = pricing.inputPrice ?? pricing.inputRatio;
+  const outputPrice = pricing.outputPrice ?? pricing.outputRatio;
+  const input = formatOfficialTokenPrice(inputPrice);
+  const output = formatOfficialTokenPrice(outputPrice);
 
   if (compact) {
     return (
-      <span className="font-mono text-sm text-slate-900" title="Official input and output pricing ratios">
-        <span className="text-xs text-slate-500">In</span> {input} <span className="text-slate-400">/</span> <span className="text-xs text-slate-500">Out</span> {output} <span className="text-xs text-slate-500">ratio</span>
+      <span className="font-mono text-sm text-slate-900" title="Official input and output USD pricing">
+        {formatOfficialTokenPair(inputPrice, outputPrice)}
       </span>
     );
   }
@@ -38,11 +41,11 @@ export default function ModelPrice({ model, compact = false }) {
   return (
     <div className="grid grid-cols-2 gap-2 text-xs">
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-        <p className="text-slate-500">Input ratio</p>
+        <p className="text-slate-500">Input USD</p>
         <p className="mt-1 font-mono font-semibold text-slate-950">{input}</p>
       </div>
       <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-        <p className="text-slate-500">Output ratio</p>
+        <p className="text-slate-500">Output USD</p>
         <p className="mt-1 font-mono font-semibold text-slate-950">{output}</p>
       </div>
     </div>

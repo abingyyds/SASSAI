@@ -23,8 +23,8 @@ export default function MaoqiuSplash() {
       <div className="maoqiu-splash__mark">
         <img src={maoqiuAiImage} alt="Maoqiu AI" />
       </div>
-      <div className="maoqiu-splash__title">毛球</div>
-      <div className="maoqiu-splash__subtitle">智能 · 创造 · 无限可能</div>
+      <div className="maoqiu-splash__title">Maoqiu</div>
+      <div className="maoqiu-splash__subtitle">Intelligence, creation, and endless possibility</div>
       <div className="maoqiu-splash__beam" />
     </div>
   );

@@ -90,7 +90,7 @@ export default function Models() {
               </div>
               <h1 className="text-4xl font-semibold tracking-normal text-slate-950">Models</h1>
               <p className="mt-4 text-base leading-7 text-slate-600">
-                Browse the public catalog grouped by model family. Duplicate routes are merged into one visible model entry, and internal routing details stay hidden.
+                Browse the public catalog grouped by model family. Duplicate catalog entries are merged into one visible model entry.
               </p>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-500">
                 Each card can include a short model description, so users can understand what the model is for before opening the detail or playground page.

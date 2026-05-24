@@ -16,7 +16,7 @@ const previewPackages = [
   {
     id: 'preview-basic',
     name: 'Starter Pack',
-    description: '适合个人试用和轻量 API 调用。',
+    description: 'Designed for personal trials and lightweight API calls.',
     price: 29,
     original_price: 49,
     duration: 30,
@@ -27,7 +27,7 @@ const previewPackages = [
   {
     id: 'preview-pro',
     name: 'Pro Relay',
-    description: '高频调用、自动路由、失败重试的主力套餐。',
+    description: 'Built for high-frequency calls, automatic routing, and retry workflows.',
     price: 99,
     original_price: 149,
     duration: 30,
@@ -38,7 +38,7 @@ const previewPackages = [
   {
     id: 'preview-team',
     name: 'Team Scale',
-    description: '适合团队共享密钥、模型分组和稳定生产调用。',
+    description: 'Made for shared team keys, model grouping, and stable production calls.',
     price: 299,
     original_price: 399,
     duration: 30,

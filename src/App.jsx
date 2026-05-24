@@ -48,7 +48,7 @@ function ThemedRoutes() {
           <Route path="/docs" element={<DocsQuickstart />} />
           <Route path="/docs/quickstart" element={<DocsQuickstart />} />
           <Route path="/apps" element={<Apps />} />
-          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/pricing" element={<Navigate to="/models?sort=price" replace />} />
           <Route path="/packages" element={<Packages />} />
           <Route path="/sub-site" element={<SubDistributor />} />
           <Route path="/site-admin/saas" element={<SaasAdmin />} />

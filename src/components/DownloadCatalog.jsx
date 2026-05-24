@@ -11,8 +11,7 @@ const iconMap = {
 };
 
 export default function DownloadCatalog() {
-  const { t, i18n } = useTranslation();
-  const isZh = i18n.resolvedLanguage?.startsWith('zh');
+  const { t } = useTranslation();
 
   return (
     <section className="space-y-6">
@@ -53,7 +52,7 @@ export default function DownloadCatalog() {
                     </span>
                   </div>
                   <p className="mt-1 text-sm leading-6 text-page-secondary">
-                    {isZh ? tool.descZh : tool.descEn}
+                    {tool.descEn}
                   </p>
                 </div>
               </div>

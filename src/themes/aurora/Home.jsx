@@ -70,7 +70,7 @@ export default function AuroraHome() {
                   {user ? t('home.goToDashboard') : t('home.getStarted')}
                 </PrimaryLink>
                 <Link
-                  to="/pricing"
+                  to="/models?sort=price"
                   className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-800 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50"
                 >
                   {t('home.viewPricing')}
@@ -121,7 +121,7 @@ export default function AuroraHome() {
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <SectionTitle title={t('home.availableModels')} desc={t('home.availableModelsDesc', { count: enabledModels.length })} compact />
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900">
+                <Link to="/models?sort=price" className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-700 hover:text-blue-900">
                   {t('home.viewAllModels', { count: enabledModels.length })}
                   <ArrowRight className="h-4 w-4" />
                 </Link>

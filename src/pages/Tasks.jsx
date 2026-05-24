@@ -1,8 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ExternalLink, Image, Loader2, RotateCcw, Search, Video, X } from 'lucide-react';
+import { ExternalLink, Image, Loader2, RotateCcw, Search, Video, X, Clock3 } from 'lucide-react';
 import { getUserMjTasks, getUserTasks } from '../api';
 import LogSubnav from '../components/LogSubnav';
+import {
+  ConsoleBadge,
+  ConsoleEmpty,
+  ConsoleHero,
+  ConsolePage,
+  ConsoleSection,
+  ConsoleStat,
+} from '../components/ConsoleSurface';
 
 const PAGE_SIZE = 20;
 
@@ -166,11 +174,7 @@ export default function Tasks() {
   const applyFilters = (event) => {
     event.preventDefault();
     setPage(1);
-    setAppliedFilters({
-      taskId: taskId.trim(),
-      startTime,
-      endTime,
-    });
+    setAppliedFilters({ taskId: taskId.trim(), startTime, endTime });
   };
 
   const resetFilters = () => {
@@ -184,11 +188,8 @@ export default function Tasks() {
   const setQuickRange = (days) => {
     const now = new Date();
     const start = new Date(now);
-    if (days === 0) {
-      start.setHours(0, 0, 0, 0);
-    } else {
-      start.setDate(start.getDate() - days);
-    }
+    if (days === 0) start.setHours(0, 0, 0, 0);
+    else start.setDate(start.getDate() - days);
     setStartTime(formatDateTimeLocal(start));
     setEndTime(formatDateTimeLocal(now));
   };
@@ -206,10 +207,7 @@ export default function Tasks() {
     return (
       <div className="flex min-w-[140px] items-center gap-2">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-page-inset">
-          <div
-            className={`h-full rounded-full ${status === 'FAILURE' ? 'bg-amber-500' : 'bg-brand-600'}`}
-            style={{ width: `${value}%` }}
-          />
+          <div className={`h-full rounded-full ${status === 'FAILURE' ? 'bg-amber-500' : 'bg-brand-600'}`} style={{ width: `${value}%` }} />
         </div>
         <span className="text-xs text-page-muted">{progress || `${value}%`}</span>
       </div>
@@ -228,13 +226,9 @@ export default function Tasks() {
         <td className="px-4 py-3">{renderProgress(item.progress, item.status)}</td>
         <td className="px-4 py-3">
           {resultUrl && item.status === 'SUCCESS' ? (
-            <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview({ type: 'video', url: resultUrl })}>
-              {t('tasks.previewVideo')}
-            </button>
+            <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview({ type: 'video', url: resultUrl })}>{t('tasks.previewVideo')}</button>
           ) : item.fail_reason ? (
-            <button type="button" className="max-w-[180px] truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>
-              {item.fail_reason}
-            </button>
+            <button type="button" className="max-w-[180px] truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>{item.fail_reason}</button>
           ) : '-'}
         </td>
       </tr>
@@ -253,32 +247,38 @@ export default function Tasks() {
         <td className="px-4 py-3">{renderProgress(item.progress, item.status)}</td>
         <td className="px-4 py-3">
           {result ? (
-            <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview(result)}>
-              {result.type === 'video' ? t('tasks.previewVideo') : t('tasks.previewImage')}
-            </button>
+            <button type="button" className="rounded-md border border-page-divider px-2.5 py-1 text-xs hover:bg-page-surface-hover" onClick={() => setPreview(result)}>{result.type === 'video' ? t('tasks.previewVideo') : t('tasks.previewImage')}</button>
           ) : item.fail_reason ? (
-            <button type="button" className="max-w-[180px] truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>
-              {item.fail_reason}
-            </button>
+            <button type="button" className="max-w-[180px] truncate text-left text-xs text-page-danger" title={item.fail_reason} onClick={() => setPreview({ type: 'text', text: item.fail_reason })}>{item.fail_reason}</button>
           ) : '-'}
         </td>
-        <td className="max-w-[220px] truncate px-4 py-3 text-xs text-page-secondary" title={item.prompt || item.prompt_en || ''}>
-          {item.prompt || item.prompt_en || '-'}
-        </td>
+        <td className="max-w-[220px] truncate px-4 py-3 text-xs text-page-secondary" title={item.prompt || item.prompt_en || ''}>{item.prompt || item.prompt_en || '-'}</td>
       </tr>
     );
   });
 
-  return (
-    <div className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-8">
-        <h1 className="mb-1 text-2xl font-heading font-bold text-page">{t('tasks.title')}</h1>
-        <p className="text-sm text-page-secondary">{t('tasks.subtitle')}</p>
-      </div>
-      <LogSubnav active="tasks" />
+  const stats = [
+    <ConsoleStat key="submitted" icon={Clock3} label={t('tasks.submitTime')} value={String(total)} helper="Filtered task records" tone="cyan" />,
+    <ConsoleStat key="mode" icon={mode === 'image' ? Image : Video} label="Current view" value={mode === 'image' ? 'Image tasks' : 'Video tasks'} helper="Toggle between generation records" tone="sky" />,
+  ];
 
-      <div className="mb-6 flex justify-center">
-        <div className="inline-flex rounded-full bg-page-surface p-1">
+  return (
+    <ConsolePage>
+      <ConsoleHero
+        eyebrow="Task records"
+        title={t('tasks.title')}
+        subtitle={t('tasks.subtitle')}
+        actions={[
+          <button key="reset" type="button" onClick={resetFilters} className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <RotateCcw className="h-4 w-4" />
+            {t('logs.clearFilter')}
+          </button>,
+        ]}
+        stats={stats}
+      />
+
+      <div className="mt-6 flex justify-center">
+        <div className="inline-flex rounded-full border border-page-divider bg-page-surface/40 p-1">
           {[
             { key: 'video', label: t('tasks.videoTasks'), icon: Video },
             { key: 'image', label: t('tasks.imageTasks'), icon: Image },
@@ -289,11 +289,7 @@ export default function Tasks() {
                 key={item.key}
                 type="button"
                 onClick={() => switchMode(item.key)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                  mode === item.key
-                    ? 'bg-brand-600 text-white'
-                    : 'text-page-muted hover:bg-page-surface-hover hover:text-page'
-                }`}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${mode === item.key ? 'bg-brand-600 text-white' : 'text-page-muted hover:bg-page-surface-hover hover:text-page'}`}
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
@@ -303,80 +299,62 @@ export default function Tasks() {
         </div>
       </div>
 
-      <form className="glass mb-6 rounded-2xl p-4" onSubmit={applyFilters}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="input w-full" title={t('tasks.startTime')} />
-          <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="input w-full" title={t('tasks.endTime')} />
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-page-muted" />
-            <input value={taskId} onChange={(e) => setTaskId(e.target.value)} className="input w-full pl-10" placeholder={mode === 'image' ? t('tasks.filterImageTask') : t('tasks.filterVideoTask')} />
+      <ConsoleSection className="mt-6" title="Filter tasks" subtitle="Filter by task ID and submission time.">
+        <form onSubmit={applyFilters} className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-4">
+            <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="input w-full" title={t('tasks.startTime')} />
+            <input type="datetime-local" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="input w-full" title={t('tasks.endTime')} />
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-page-muted" />
+              <input value={taskId} onChange={(e) => setTaskId(e.target.value)} className="input w-full pl-10" placeholder={mode === 'image' ? t('tasks.filterImageTask') : t('tasks.filterVideoTask')} />
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setQuickRange(0)} className="btn-secondary flex-1 px-3 text-xs">{t('logs.today')}</button>
+              <button type="button" onClick={() => setQuickRange(7)} className="btn-secondary flex-1 px-3 text-xs">{t('logs.last7Days')}</button>
+              <button type="button" onClick={() => setQuickRange(30)} className="btn-secondary flex-1 px-3 text-xs">{t('logs.last30Days')}</button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setQuickRange(0)} className="btn-secondary flex-1 px-3">{t('logs.today')}</button>
-            <button type="button" onClick={() => setQuickRange(7)} className="btn-secondary flex-1 px-3">{t('logs.last7Days')}</button>
-            <button type="button" onClick={() => setQuickRange(30)} className="btn-secondary flex-1 px-3">{t('logs.last30Days')}</button>
+          <div className="flex justify-end gap-2">
+            <button type="submit" className="btn-primary inline-flex items-center gap-2 px-4" disabled={loading}><Search className="h-4 w-4" />{t('logs.search')}</button>
           </div>
-        </div>
-        <div className="mt-4 flex justify-end gap-2">
-          <button type="button" onClick={resetFilters} className="btn-secondary inline-flex items-center gap-2 px-4">
-            <RotateCcw className="h-4 w-4" />
-            {t('logs.clearFilter')}
-          </button>
-          <button type="submit" className="btn-primary inline-flex items-center gap-2 px-4" disabled={loading}>
-            <Search className="h-4 w-4" />
-            {t('logs.search')}
-          </button>
-        </div>
-      </form>
+        </form>
+      </ConsoleSection>
 
-      <div className="glass overflow-hidden rounded-2xl">
+      <div className="mt-6">
         {loading && page === 1 ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 animate-spin text-page-muted" />
-          </div>
+          <div className="glass flex justify-center rounded-2xl py-16"><Loader2 className="h-8 w-8 animate-spin text-page-muted" /></div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-page-muted">
-            {mode === 'image' ? <Image className="mb-3 h-8 w-8" /> : <Video className="mb-3 h-8 w-8" />}
-            <p className="text-sm">{t('tasks.noTasks')}</p>
-          </div>
+          <ConsoleEmpty icon={mode === 'image' ? Image : Video} title={t('tasks.noTasks')} description="No tasks match the current filters." />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-page-divider text-left text-page-muted">
-                  <th className="px-4 py-3 font-medium">{t('tasks.submitTime')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.duration')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.type')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.taskId')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.status')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.progress')}</th>
-                  <th className="px-4 py-3 font-medium">{t('tasks.result')}</th>
-                  {mode === 'image' && <th className="px-4 py-3 font-medium">Prompt</th>}
-                </tr>
-              </thead>
-              <tbody>{mode === 'image' ? renderImageRows() : renderVideoRows()}</tbody>
-            </table>
+          <div className="glass overflow-hidden rounded-2xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-page-divider bg-page-surface/40 text-left text-page-muted">
+                    <th className="px-4 py-3 font-medium">{t('tasks.submitTime')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.duration')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.type')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.taskId')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.status')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.progress')}</th>
+                    <th className="px-4 py-3 font-medium">{t('tasks.result')}</th>
+                    {mode === 'image' && <th className="px-4 py-3 font-medium">Prompt</th>}
+                  </tr>
+                </thead>
+                <tbody>{mode === 'image' ? renderImageRows() : renderVideoRows()}</tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
 
       {total > PAGE_SIZE && (
         <div className="mt-6 flex items-center justify-between gap-3">
-          <p className="text-sm text-page-muted">
-            {t('logs.showing', {
-              from: (page - 1) * PAGE_SIZE + 1,
-              to: Math.min(page * PAGE_SIZE, total),
-              total,
-            })}
-          </p>
+          <p className="text-sm text-page-muted">{t('logs.showing', { from: (page - 1) * PAGE_SIZE + 1, to: Math.min(page * PAGE_SIZE, total), total })}</p>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || loading} className="btn-secondary px-3 disabled:opacity-40">
-              {t('logs.prev')}
-            </button>
+            <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || loading} className="btn-secondary px-3 disabled:opacity-40">{t('logs.prev')}</button>
             <span className="text-sm text-page-muted">{page} / {totalPages}</span>
-            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="btn-secondary px-3 disabled:opacity-40">
-              {t('logs.next')}
-            </button>
+            <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || loading} className="btn-secondary px-3 disabled:opacity-40">{t('logs.next')}</button>
           </div>
         </div>
       )}
@@ -384,29 +362,18 @@ export default function Tasks() {
       {preview && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" onClick={() => setPreview(null)}>
           <div className="relative max-h-[90vh] max-w-[92vw]" onClick={(event) => event.stopPropagation()}>
-            <button type="button" className="absolute -right-3 -top-3 z-10 rounded-full bg-white p-2 text-slate-900 shadow-lg" onClick={() => setPreview(null)}>
-              <X className="h-4 w-4" />
-            </button>
+            <button type="button" className="absolute -right-3 -top-3 z-10 rounded-full bg-white p-2 text-slate-900 shadow-lg" onClick={() => setPreview(null)}><X className="h-4 w-4" /></button>
             {preview.type === 'video' && (
               <div className="rounded-2xl bg-black p-2 shadow-2xl">
                 <video src={preview.url} controls autoPlay className="max-h-[82vh] max-w-[88vw] rounded-xl" />
-                <a href={preview.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white">
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {t('tasks.openNewTab')}
-                </a>
+                <a href={preview.url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-white/80 hover:text-white"><ExternalLink className="h-3.5 w-3.5" />{t('tasks.openNewTab')}</a>
               </div>
             )}
-            {preview.type === 'image' && (
-              <img src={preview.url} alt={t('tasks.previewImage')} className="max-h-[88vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl" onClick={() => window.open(preview.url, '_blank')} />
-            )}
-            {preview.type === 'text' && (
-              <div className="max-h-[70vh] w-[min(760px,90vw)] overflow-auto rounded-2xl bg-white p-5 text-sm text-slate-800 shadow-2xl">
-                <pre className="whitespace-pre-wrap break-words">{preview.text}</pre>
-              </div>
-            )}
+            {preview.type === 'image' && <img src={preview.url} alt={t('tasks.previewImage')} className="max-h-[88vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl" onClick={() => window.open(preview.url, '_blank')} />}
+            {preview.type === 'text' && <div className="max-h-[70vh] w-[min(760px,90vw)] overflow-auto rounded-2xl bg-white p-5 text-sm text-slate-800 shadow-2xl"><pre className="whitespace-pre-wrap break-words">{preview.text}</pre></div>}
           </div>
         </div>
       )}
-    </div>
+    </ConsolePage>
   );
 }

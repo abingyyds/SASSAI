@@ -251,7 +251,7 @@ Content-Type: application/json`}
 
             <DocCard id="pricing" icon={CreditCard} title="Pricing and cache pricing">
               <p className="text-sm leading-6 text-slate-600">
-                Model cards show official input and output ratios from the public pricing feed. Per-call models show a call price when one is returned.
+                Model cards show official USD input and output values from the public pricing feed. Per-call models show a call price when one is returned.
               </p>
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-600">
                 Always check the selected model details before production rollout because catalog pricing can change.

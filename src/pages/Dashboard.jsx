@@ -1,6 +1,19 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Banknote,
+  CreditCard,
+  KeyRound,
+  Link2,
+  Repeat2,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import {
   getUserUsage,
@@ -15,7 +28,13 @@ import {
 } from '../api';
 import { useCurrency, useSite } from '../context/SiteContext';
 import CountUp from '../components/bits/CountUp';
-import toast from 'react-hot-toast';
+import {
+  ConsoleBadge,
+  ConsoleHero,
+  ConsolePage,
+  ConsoleSection,
+  ConsoleStat,
+} from '../components/ConsoleSurface';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -26,7 +45,6 @@ export default function Dashboard() {
   const [redeemInput, setRedeemInput] = useState('');
   const [redeeming, setRedeeming] = useState(false);
 
-  // Invitation / Aff
   const [affLink, setAffLink] = useState('');
   const [affEarnings, setAffEarnings] = useState([]);
   const [showAffEarnings, setShowAffEarnings] = useState(false);
@@ -170,11 +188,8 @@ export default function Dashboard() {
   const balanceDollars = (quota / Q) * rate;
   const availableAffAmount = ((user?.aff_quota || 0) / Q) * rate;
   const defaultCommissionRate = Number(user?.default_commission_rate ?? 0.05);
-  const currentCommissionRate = Number(
-    user?.commission_rate ?? defaultCommissionRate,
-  );
-  const hasCustomCommissionRate =
-    currentCommissionRate > defaultCommissionRate + 1e-8;
+  const currentCommissionRate = Number(user?.commission_rate ?? defaultCommissionRate);
+  const hasCustomCommissionRate = currentCommissionRate > defaultCommissionRate + 1e-8;
 
   const handleWithdraw = async () => {
     const amount = Number.parseFloat(withdrawAmount);
@@ -238,15 +253,13 @@ export default function Dashboard() {
   const renderCommissionApplicationPanel = () => {
     if (distKolStatus?.status === 0) {
       return (
-        <div className="glass-sm rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.08] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-page">{t('topup.kolPendingTitle')}</p>
               <p className="mt-1 text-xs text-page-secondary">{t('topup.kolPendingDesc')}</p>
             </div>
-            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-600">
-              {t('topup.kolPendingBadge')}
-            </span>
+            <ConsoleBadge tone="amber">{t('topup.kolPendingBadge')}</ConsoleBadge>
           </div>
         </div>
       );
@@ -254,15 +267,13 @@ export default function Dashboard() {
 
     if (distKolStatus?.status === 1 || hasCustomCommissionRate) {
       return (
-        <div className="glass-sm rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+        <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.08] p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-page">{t('topup.kolApprovedTitle')}</p>
               <p className="mt-1 text-xs text-page-secondary">{t('topup.kolApprovedDesc')}</p>
             </div>
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600">
-              {(currentCommissionRate * 100).toFixed(1)}%
-            </span>
+            <ConsoleBadge tone="emerald">{(currentCommissionRate * 100).toFixed(1)}%</ConsoleBadge>
           </div>
           {distKolStatus?.admin_remark && (
             <p className="mt-3 text-xs text-page-muted">
@@ -275,7 +286,7 @@ export default function Dashboard() {
     }
 
     return (
-      <div className="glass-sm rounded-xl border border-brand-500/20 bg-brand-500/5 p-4">
+      <div className="rounded-2xl border border-brand-500/20 bg-brand-500/[0.08] p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-page">{t('topup.kolApplyTitle')}</p>
@@ -285,16 +296,12 @@ export default function Dashboard() {
               })}
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleOpenKolApply}
-            className="btn-primary whitespace-nowrap px-4 py-2 text-sm"
-          >
+          <button type="button" onClick={handleOpenKolApply} className="btn-primary whitespace-nowrap px-4 py-2 text-sm">
             {t('topup.kolApplyAction')}
           </button>
         </div>
         {distKolStatus?.status === 2 && (
-          <p className="mt-3 text-xs text-red-500">
+          <p className="mt-3 text-xs text-red-400">
             {t('topup.kolRejectedLabel')}
             {distKolStatus.admin_remark || t('topup.kolRejectedFallback')}
           </p>
@@ -303,55 +310,70 @@ export default function Dashboard() {
     );
   };
 
+  const heroStats = [
+    <ConsoleStat
+      key="balance"
+      icon={Wallet}
+      label={t('dashboard.balance')}
+      value={<span>{symbol}<CountUp from={0} to={balanceDollars} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: quota.toLocaleString() })}
+      tone="cyan"
+    />,
+    <ConsoleStat
+      key="used"
+      icon={BarChart3}
+      label={t('dashboard.used')}
+      value={<span>{symbol}<CountUp from={0} to={(usedQuota / Q) * rate} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: usedQuota.toLocaleString() })}
+      tone="sky"
+    />,
+    <ConsoleStat
+      key="package"
+      icon={Repeat2}
+      label={t('dashboard.packageUsed')}
+      value={<span>{symbol}<CountUp from={0} to={(packageUsedQuota / Q) * rate} duration={1.4} decimals={2} /></span>}
+      helper={t('dashboard.quotaUnits', { count: packageUsedQuota.toLocaleString() })}
+      tone="emerald"
+    />,
+    <ConsoleStat
+      key="requests"
+      icon={Sparkles}
+      label={t('dashboard.totalRequests')}
+      value={<CountUp from={0} to={requestCount} duration={1.4} />}
+      helper="Total API requests across all keys"
+      tone="amber"
+    />,
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-6 py-10">
-      <div className="mb-8">
-        <h1 className="text-2xl font-heading font-bold text-page mb-1">
-          {t('dashboard.welcome')} {user?.display_name || user?.username || 'User'}
-        </h1>
-        <p className="text-sm text-page-secondary">{t('dashboard.manageDesc')}</p>
-      </div>
+    <ConsolePage>
+      <ConsoleHero
+        eyebrow="Console overview"
+        title={`${t('dashboard.welcome')} ${user?.display_name || user?.username || 'User'}`}
+        subtitle={t('dashboard.manageDesc')}
+        actions={[
+          <Link key="tokens" to="/tokens" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <KeyRound className="h-4 w-4" />
+            {t('dashboard.apiKeys')}
+          </Link>,
+          <Link key="logs" to="/logs" className="btn-secondary inline-flex items-center gap-2 px-4 py-2.5">
+            <Activity className="h-4 w-4" />
+            {t('dashboard.logs')}
+          </Link>,
+          <Link key="topup" to="/topup" className="btn-primary inline-flex items-center gap-2 px-4 py-2.5">
+            <CreditCard className="h-4 w-4" />
+            {t('nav.topup')}
+          </Link>,
+        ]}
+        stats={heroStats}
+      />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10">
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.balance')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}
-            <CountUp from={0} to={balanceDollars} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: quota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.used')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}
-            <CountUp from={0} to={(usedQuota / Q) * rate} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: usedQuota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.packageUsed')}</p>
-          <div className="text-3xl font-bold text-page">
-            {symbol}
-            <CountUp from={0} to={(packageUsedQuota / Q) * rate} duration={1.5} decimals={2} />
-          </div>
-          <p className="text-xs text-page-muted mt-1">{t('dashboard.quotaUnits', { count: packageUsedQuota.toLocaleString() })}</p>
-        </div>
-
-        <div className="glass rounded-2xl p-6">
-          <p className="text-sm text-page-secondary mb-2">{t('dashboard.totalRequests')}</p>
-          <div className="text-3xl font-bold text-page">
-            <CountUp from={0} to={requestCount} duration={1.5} />
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-page mb-4">{t('dashboard.redeemCode')}</h2>
-          <form onSubmit={handleRedeem} className="flex gap-3">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <ConsoleSection
+          title={t('dashboard.redeemCode')}
+          subtitle="Redeem a code and refresh your balance immediately."
+        >
+          <form onSubmit={handleRedeem} className="flex flex-col gap-3 sm:flex-row">
             <input
               type="text"
               value={redeemInput}
@@ -363,300 +385,287 @@ export default function Dashboard() {
               {redeeming ? t('dashboard.redeeming') : t('dashboard.redeem')}
             </button>
           </form>
-        </div>
+        </ConsoleSection>
 
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-page mb-4">{t('dashboard.quickLinks')}</h2>
+        <ConsoleSection
+          title={t('dashboard.quickLinks')}
+          subtitle="Frequently used console areas."
+        >
           <div className="grid grid-cols-2 gap-3">
-            <Link to="/tokens" className="glass-sm !rounded-xl px-4 py-3 hover:bg-page-surface-hover transition-colors group">
-              <p className="text-sm font-medium text-page group-hover:text-page-link transition-colors">{t('dashboard.apiKeys')}</p>
-              <p className="text-xs text-page-muted">{t('dashboard.manageKeys')}</p>
-            </Link>
-            <Link to="/packages" className="glass-sm !rounded-xl px-4 py-3 hover:bg-page-surface-hover transition-colors group">
-              <p className="text-sm font-medium text-page group-hover:text-page-link transition-colors">{t('dashboard.packages')}</p>
-              <p className="text-xs text-page-muted">Manage subscription billing</p>
-            </Link>
-            <Link to="/pricing" className="glass-sm !rounded-xl px-4 py-3 hover:bg-page-surface-hover transition-colors group">
-              <p className="text-sm font-medium text-page group-hover:text-page-link transition-colors">{t('dashboard.pricing')}</p>
-              <p className="text-xs text-page-muted">{t('dashboard.modelPrices')}</p>
-            </Link>
-            <Link to="/logs" className="glass-sm !rounded-xl px-4 py-3 hover:bg-page-surface-hover transition-colors group">
-              <p className="text-sm font-medium text-page group-hover:text-page-link transition-colors">{t('dashboard.logs')}</p>
-              <p className="text-xs text-page-muted">{t('dashboard.viewLogs')}</p>
-            </Link>
+            <QuickLinkCard to="/tokens" title={t('dashboard.apiKeys')} desc={t('dashboard.manageKeys')} icon={KeyRound} />
+            <QuickLinkCard to="/packages" title={t('dashboard.packages')} desc="Manage subscription billing" icon={Banknote} />
+            <QuickLinkCard to="/pricing" title={t('dashboard.pricing')} desc={t('dashboard.modelPrices')} icon={Sparkles} />
+            <QuickLinkCard to="/logs" title={t('dashboard.logs')} desc={t('dashboard.viewLogs')} icon={Activity} />
             {site?.allow_sub_dist && (
-              <Link to="/sub-site" className="glass-sm !rounded-xl px-4 py-3 hover:bg-page-surface-hover transition-colors group">
-                <p className="text-sm font-medium text-page group-hover:text-page-link transition-colors">{t('subDist.nav')}</p>
-                <p className="text-xs text-page-muted">{t('subDist.dashboardEntry')}</p>
-              </Link>
+              <QuickLinkCard to="/sub-site" title={t('subDist.nav')} desc={t('subDist.dashboardEntry')} icon={Link2} />
             )}
           </div>
-        </div>
+        </ConsoleSection>
       </div>
 
       {affLink && (
-        <div className="glass rounded-2xl p-6 mt-6">
-          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-page mb-1">{t('topup.inviteTitle')}</h2>
-              <p className="text-sm text-page-secondary">{t('topup.inviteSubtitle')}</p>
-            </div>
-            <div className="inline-flex items-center gap-2 self-start rounded-full border border-brand-500/20 bg-brand-500/10 px-3 py-1 text-xs font-medium text-page">
-              <span className="text-page-secondary">{t('topup.currentCommissionRateLabel')}</span>
-              <span className="text-page-link">{(currentCommissionRate * 100).toFixed(1)}%</span>
-            </div>
-          </div>
-
+        <ConsoleSection
+          className="mt-6"
+          title={t('topup.inviteTitle')}
+          subtitle={t('topup.inviteSubtitle')}
+          action={
+            <ConsoleBadge tone="brand">
+              {t('topup.currentCommissionRateLabel')} { (currentCommissionRate * 100).toFixed(1)}%
+            </ConsoleBadge>
+          }
+        >
           <p className="mb-5 text-xs text-page-muted">
             {t('topup.currentCommissionRateDesc', {
               rate: (defaultCommissionRate * 100).toFixed(1),
             })}
           </p>
 
-          <div className="mb-5">
-            {renderCommissionApplicationPanel()}
+          <div className="mb-5">{renderCommissionApplicationPanel()}</div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <MiniMetric label={t('topup.affAvailable')} value={`${symbol}${(((user?.aff_quota || 0) / Q) * rate).toFixed(2)}`} />
+            <MiniMetric label={t('topup.affTotal')} value={`${symbol}${(((user?.aff_history_quota || 0) / Q) * rate).toFixed(2)}`} />
+            <MiniMetric label={t('topup.affCount')} value={String(user?.aff_count || 0)} />
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div className="glass-sm rounded-xl p-4 text-center">
-              <p className="text-xs text-page-secondary mb-1">{t('topup.affAvailable')}</p>
-              <p className="text-xl font-bold text-page">
-                {symbol}{(((user?.aff_quota || 0) / Q) * rate).toFixed(2)}
-              </p>
+          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.inviteLink')}</label>
+              <div className="flex gap-2">
+                <input type="text" readOnly value={affLink} className="input flex-1 text-sm" />
+                <button onClick={handleCopyAffLink} className="btn-secondary whitespace-nowrap px-4 py-2 text-sm">
+                  {t('topup.copy')}
+                </button>
+              </div>
             </div>
-            <div className="glass-sm rounded-xl p-4 text-center">
-              <p className="text-xs text-page-secondary mb-1">{t('topup.affTotal')}</p>
-              <p className="text-xl font-bold text-page">
-                {symbol}{(((user?.aff_history_quota || 0) / Q) * rate).toFixed(2)}
-              </p>
-            </div>
-            <div className="glass-sm rounded-xl p-4 text-center">
-              <p className="text-xs text-page-secondary mb-1">{t('topup.affCount')}</p>
-              <p className="text-xl font-bold text-page">{user?.aff_count || 0}</p>
-            </div>
-          </div>
 
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-page-label mb-2">{t('topup.inviteLink')}</label>
-            <div className="flex gap-2">
-              <input type="text" readOnly value={affLink} className="input flex-1 text-sm" />
-              <button onClick={handleCopyAffLink} className="btn-primary whitespace-nowrap text-sm px-4">
-                {t('topup.copy')}
-              </button>
-            </div>
-          </div>
-
-          {(user?.aff_quota || 0) > 0 && (
-            <div className="mb-5">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-page-label">{t('topup.transferToBalance')}</label>
+            {(user?.aff_quota || 0) > 0 && (
+              <div className="flex items-end gap-2">
                 <button type="button" onClick={handleOpenWithdraw} className="btn-secondary whitespace-nowrap px-4 py-2 text-sm">
                   {t('topup.withdraw')}
                 </button>
+                <div className="flex-1">
+                  <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.transferToBalance')}</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={transferAmount}
+                      onChange={(e) => setTransferAmount(e.target.value)}
+                      placeholder={t('topup.transferPlaceholder')}
+                      className="input flex-1 text-sm"
+                      min={1}
+                    />
+                    <button onClick={handleTransfer} disabled={transferring} className="btn-primary whitespace-nowrap px-4 py-2 text-sm">
+                      {transferring ? t('topup.processing') : t('topup.transfer')}
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="number"
-                  value={transferAmount}
-                  onChange={(e) => setTransferAmount(e.target.value)}
-                  placeholder={t('topup.transferPlaceholder')}
-                  className="input flex-1 text-sm"
-                  min={1}
-                />
-                <button onClick={handleTransfer} disabled={transferring} className="btn-primary whitespace-nowrap text-sm px-4">
-                  {transferring ? t('topup.processing') : t('topup.transfer')}
-                </button>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          <div>
+          <div className="mt-5">
             <button
               onClick={() => {
                 setShowAffEarnings(!showAffEarnings);
                 if (!showAffEarnings) loadAffEarnings();
               }}
-              className="text-sm text-page-secondary hover:text-page transition-colors"
+              className="text-sm font-medium text-page-secondary transition-colors hover:text-page"
             >
               {showAffEarnings ? t('topup.hideEarnings') : t('topup.viewEarnings')}
             </button>
             {showAffEarnings && (
-              <div className="mt-3">
+              <div className="mt-3 space-y-2">
                 {affEarningsLoading ? (
                   <div className="flex justify-center py-6">
-                    <div className="w-6 h-6 border-2 border-brand-500/30 border-t-brand-500 rounded-full animate-spin" />
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand-500/30 border-t-brand-500" />
                   </div>
                 ) : affEarnings.length === 0 ? (
-                  <p className="text-sm text-page-muted text-center py-6">{t('topup.noEarnings')}</p>
+                  <p className="py-6 text-center text-sm text-page-muted">{t('topup.noEarnings')}</p>
                 ) : (
-                  <div className="space-y-2">
-                    {affEarnings.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between glass-sm rounded-xl px-4 py-3">
-                        <div>
-                          <p className="text-sm text-page">{item.model_name}</p>
-                          <p className="text-xs text-page-muted">
-                            {new Date(item.created_time * 1000).toLocaleString()} · {(item.commission_rate * 100).toFixed(1)}%
-                          </p>
-                        </div>
-                        <span className="text-sm font-medium text-page-success">
-                          +{symbol}{((item.commission_quota / Q) * rate).toFixed(4)}
-                        </span>
+                  affEarnings.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between rounded-2xl border border-page-divider bg-page-surface/50 px-4 py-3">
+                      <div>
+                        <p className="text-sm text-page">{item.model_name}</p>
+                        <p className="text-xs text-page-muted">
+                          {new Date(item.created_time * 1000).toLocaleString()} · {(item.commission_rate * 100).toFixed(1)}%
+                        </p>
                       </div>
-                    ))}
-                  </div>
+                      <span className="text-sm font-medium text-page-success">
+                        +{symbol}{((item.commission_quota / Q) * rate).toFixed(4)}
+                      </span>
+                    </div>
+                  ))
                 )}
               </div>
             )}
           </div>
-        </div>
+        </ConsoleSection>
       )}
 
       {showWithdrawModal && (
-        <div
-          className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={handleCloseWithdraw}
-        >
-          <div className="glass w-full max-w-md rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-5">
-              <h3 className="text-lg font-semibold text-page mb-1">{t('topup.withdrawTitle')}</h3>
-              <p className="text-sm text-page-secondary">{t('topup.withdrawSubtitle')}</p>
+        <ModalShell title={t('topup.withdrawTitle')} subtitle={t('topup.withdrawSubtitle')} onClose={handleCloseWithdraw}>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawAvailable')}</label>
+              <input type="text" readOnly value={`${symbol}${availableAffAmount.toFixed(2)}`} className="input bg-page-surface-hover/60 text-page-secondary" />
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawAvailable')}</label>
-                <input
-                  type="text"
-                  readOnly
-                  value={`${symbol}${availableAffAmount.toFixed(2)}`}
-                  className="input bg-page-surface-hover/60 text-page-secondary"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawAmount')}</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-page-muted">
-                      {symbol}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="0.00"
-                      className="input pl-8"
-                    />
-                  </div>
-                  <button type="button" onClick={() => setWithdrawAmount(availableAffAmount.toFixed(2))} className="btn-secondary whitespace-nowrap px-4">
-                    {t('topup.withdrawAll')}
-                  </button>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawAmount')}</label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-page-muted">{symbol}</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="input pl-8"
+                  />
                 </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawMethod')}</label>
-                <input
-                  type="text"
-                  value={withdrawMethod}
-                  onChange={(e) => setWithdrawMethod(e.target.value)}
-                  placeholder={t('topup.withdrawMethodPlaceholder')}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawRemark')}</label>
-                <textarea
-                  value={withdrawRemark}
-                  onChange={(e) => setWithdrawRemark(e.target.value)}
-                  placeholder={t('topup.withdrawRemarkPlaceholder')}
-                  className="input min-h-[96px] resize-y"
-                />
+                <button type="button" onClick={() => setWithdrawAmount(availableAffAmount.toFixed(2))} className="btn-secondary whitespace-nowrap px-4">
+                  {t('topup.withdrawAll')}
+                </button>
               </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={handleCloseWithdraw} disabled={withdrawing} className="btn-secondary px-4 py-2">
-                {t('tokens.cancel')}
-              </button>
-              <button type="button" onClick={handleWithdraw} disabled={withdrawing} className="btn-primary px-4 py-2">
-                {withdrawing ? t('topup.processing') : t('topup.submitWithdraw')}
-              </button>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawMethod')}</label>
+              <input
+                type="text"
+                value={withdrawMethod}
+                onChange={(e) => setWithdrawMethod(e.target.value)}
+                placeholder={t('topup.withdrawMethodPlaceholder')}
+                className="input"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.withdrawRemark')}</label>
+              <textarea
+                value={withdrawRemark}
+                onChange={(e) => setWithdrawRemark(e.target.value)}
+                placeholder={t('topup.withdrawRemarkPlaceholder')}
+                className="input min-h-[96px] resize-y"
+              />
             </div>
           </div>
-        </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={handleCloseWithdraw} disabled={withdrawing} className="btn-secondary px-4 py-2">
+              {t('tokens.cancel')}
+            </button>
+            <button type="button" onClick={handleWithdraw} disabled={withdrawing} className="btn-primary px-4 py-2">
+              {withdrawing ? t('topup.processing') : t('topup.submitWithdraw')}
+            </button>
+          </div>
+        </ModalShell>
       )}
 
       {showKolApplyModal && (
-        <div
-          className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
-          onClick={handleCloseKolApply}
-        >
-          <div className="glass w-full max-w-md rounded-2xl p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-5">
-              <h3 className="text-lg font-semibold text-page mb-1">{t('topup.kolApplyModalTitle')}</h3>
-              <p className="text-sm text-page-secondary">{t('topup.kolApplyModalDesc')}</p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.kolSocialLabel')}</label>
-                <input
-                  type="text"
-                  value={socialLink}
-                  onChange={(e) => setSocialLink(e.target.value)}
-                  placeholder={t('topup.kolSocialPlaceholder')}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.kolFollowersLabel')}</label>
-                <input
-                  type="text"
-                  value={followers}
-                  onChange={(e) => setFollowers(e.target.value)}
-                  placeholder={t('topup.kolFollowersPlaceholder')}
-                  className="input"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.kolPlanLabel')}</label>
-                <textarea
-                  value={promotionPlan}
-                  onChange={(e) => setPromotionPlan(e.target.value)}
-                  placeholder={t('topup.kolPlanPlaceholder')}
-                  className="input min-h-[96px] resize-y"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-page-label">{t('topup.kolContactLabel')}</label>
-                <input
-                  type="text"
-                  value={contactInfo}
-                  onChange={(e) => setContactInfo(e.target.value)}
-                  placeholder={t('topup.kolContactPlaceholder')}
-                  className="input"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={handleCloseKolApply} disabled={kolApplyLoading} className="btn-secondary px-4 py-2">
-                {t('tokens.cancel')}
-              </button>
-              <button type="button" onClick={handleKolApply} disabled={kolApplyLoading} className="btn-primary px-4 py-2">
-                {kolApplyLoading ? t('topup.processing') : t('topup.kolApplySubmit')}
-              </button>
-            </div>
+        <ModalShell title={t('topup.kolApplyModalTitle')} subtitle={t('topup.kolApplyModalDesc')} onClose={handleCloseKolApply}>
+          <div className="space-y-4">
+            <Field label={t('topup.kolSocialLabel')}>
+              <input
+                type="text"
+                value={socialLink}
+                onChange={(e) => setSocialLink(e.target.value)}
+                placeholder={t('topup.kolSocialPlaceholder')}
+                className="input"
+              />
+            </Field>
+            <Field label={t('topup.kolFollowersLabel')}>
+              <input
+                type="text"
+                value={followers}
+                onChange={(e) => setFollowers(e.target.value)}
+                placeholder={t('topup.kolFollowersPlaceholder')}
+                className="input"
+              />
+            </Field>
+            <Field label={t('topup.kolPlanLabel')}>
+              <textarea
+                value={promotionPlan}
+                onChange={(e) => setPromotionPlan(e.target.value)}
+                placeholder={t('topup.kolPlanPlaceholder')}
+                className="input min-h-[96px] resize-y"
+              />
+            </Field>
+            <Field label={t('topup.kolContactLabel')}>
+              <input
+                type="text"
+                value={contactInfo}
+                onChange={(e) => setContactInfo(e.target.value)}
+                placeholder={t('topup.kolContactPlaceholder')}
+                className="input"
+              />
+            </Field>
           </div>
-        </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={handleCloseKolApply} disabled={kolApplyLoading} className="btn-secondary px-4 py-2">
+              {t('tokens.cancel')}
+            </button>
+            <button type="button" onClick={handleKolApply} disabled={kolApplyLoading} className="btn-primary px-4 py-2">
+              {kolApplyLoading ? t('topup.processing') : t('topup.kolApplySubmit')}
+            </button>
+          </div>
+        </ModalShell>
       )}
+    </ConsolePage>
+  );
+}
+
+function QuickLinkCard({ to, title, desc, icon: Icon }) {
+  return (
+    <Link to={to} className="group rounded-2xl border border-page-divider bg-page-surface/40 p-4 transition-colors hover:border-brand-500/30 hover:bg-page-surface">
+      <div className="flex items-start gap-3">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-page-divider bg-white/50 text-brand-500">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-page group-hover:text-page-link">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-page-secondary">{desc}</p>
+        </div>
+      </div>
+      <div className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-brand-500">
+        Open <ArrowRight className="h-3.5 w-3.5" />
+      </div>
+    </Link>
+  );
+}
+
+function MiniMetric({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-page-divider bg-page-surface/50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-page-muted">{label}</p>
+      <p className="mt-2 text-xl font-semibold text-page">{value}</p>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <div>
+      <label className="mb-2 block text-sm font-medium text-page-label">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function ModalShell({ title, subtitle, onClose, children }) {
+  return (
+    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="glass w-full max-w-md rounded-3xl p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-5">
+          <h3 className="text-lg font-semibold text-page mb-1">{title}</h3>
+          <p className="text-sm text-page-secondary">{subtitle}</p>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

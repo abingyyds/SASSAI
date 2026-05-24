@@ -54,7 +54,7 @@ export default function CorporateHome() {
                   <Link to="/register" className="px-7 py-3 rounded-lg bg-slate-900 text-white font-medium text-sm hover:bg-slate-800 transition-colors">
                     {t('home.getStarted')}
                   </Link>
-                  <Link to="/pricing" className="px-7 py-3 text-slate-500 font-medium text-sm hover:text-slate-900 transition-colors">
+                  <Link to="/models?sort=price" className="px-7 py-3 text-slate-500 font-medium text-sm hover:text-slate-900 transition-colors">
                     {t('home.viewPricing')} →
                   </Link>
                 </>
@@ -142,7 +142,7 @@ export default function CorporateHome() {
                 <p className="text-slate-500">{t('home.availableModelsDesc', { count: enabledModels.length })}</p>
               </div>
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">
+                <Link to="/models?sort=price" className="text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">
                   {t('home.viewAllModels', { count: enabledModels.length })} →
                 </Link>
               )}

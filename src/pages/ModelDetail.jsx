@@ -17,7 +17,7 @@ import {
   firstNumber,
   formatCompactNumber,
   formatOfficialPerCall,
-  formatOfficialRatio,
+  formatOfficialTokenPrice,
   getModelCategory,
   getModelDisplayName,
   getModelId,
@@ -94,7 +94,7 @@ export default function ModelDetail() {
   const capabilities = [
     { label: 'Modes', value: supportedModes.map((mode) => mode.toUpperCase()).join(', ') },
     { label: 'Context', value: contextTokens ? `${formatCompactNumber(contextTokens)} tokens` : 'Catalog default' },
-    { label: 'Billing', value: officialPricing?.type === 'per_call' ? 'Per request' : officialPricing?.type === 'token' ? 'Token ratio' : 'Unavailable' },
+    { label: 'Billing', value: officialPricing?.type === 'per_call' ? 'Per request' : officialPricing?.type === 'token' ? 'Token USD' : 'Unavailable' },
     { label: 'API base', value: baseUrl },
   ];
 
@@ -217,28 +217,28 @@ export default function ModelDetail() {
           <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-semibold text-slate-950">Price table</h2>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Public prices come from the official pricing feed. Token models show normalized ratios because this public feed does not expose a safe fiat conversion here.
+              Public prices come from the official pricing feed. Token models show the USD input and output values returned by the feed.
             </p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full min-w-[560px] text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 text-left text-slate-500">
                     <th className="px-3 py-3 font-medium">Billing</th>
-                    <th className="px-3 py-3 text-right font-medium">Input ratio</th>
-                    <th className="px-3 py-3 text-right font-medium">Output ratio</th>
+                    <th className="px-3 py-3 text-right font-medium">Input USD</th>
+                    <th className="px-3 py-3 text-right font-medium">Output USD</th>
                     <th className="px-3 py-3 text-right font-medium">Per call</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr className="border-b border-slate-100 last:border-0">
                     <td className="px-3 py-3 font-medium text-slate-950">
-                      {officialPricing?.type === 'per_call' ? 'Per call' : officialPricing?.type === 'token' ? 'Token ratio' : 'Unavailable'}
+                      {officialPricing?.type === 'per_call' ? 'Per call' : officialPricing?.type === 'token' ? 'Token USD' : 'Unavailable'}
                     </td>
                     <td className="px-3 py-3 text-right font-mono text-slate-700">
-                      {officialPricing?.type === 'token' ? formatOfficialRatio(officialPricing.inputRatio) : '-'}
+                      {officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.inputPrice ?? officialPricing.inputRatio) : '-'}
                     </td>
                     <td className="px-3 py-3 text-right font-mono text-slate-700">
-                      {officialPricing?.type === 'token' ? formatOfficialRatio(officialPricing.outputRatio) : '-'}
+                      {officialPricing?.type === 'token' ? formatOfficialTokenPrice(officialPricing.outputPrice ?? officialPricing.outputRatio) : '-'}
                     </td>
                     <td className="px-3 py-3 text-right font-mono text-slate-700">
                       {officialPricing?.type === 'per_call' ? formatOfficialPerCall(officialPricing.modelPrice) : '-'}

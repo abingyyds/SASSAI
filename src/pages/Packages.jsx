@@ -248,7 +248,7 @@ export default function Packages() {
         {enabledPackages.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
             <p className="text-slate-600">{t('packages.noPackages')}</p>
-            <Link to="/pricing" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700">
+            <Link to="/models?sort=price" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700">
               {t('packages.checkPricing')} <ArrowRight size={16} />
             </Link>
           </div>

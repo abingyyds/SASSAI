@@ -66,7 +66,7 @@ export default function MaoqiuHome() {
                   {user ? t('home.goToDashboard') : t('home.getStarted')}
                 </PrimaryLink>
                 <Link
-                  to="/pricing"
+                  to="/models?sort=price"
                   className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-[#071337] shadow-sm transition-colors hover:border-blue-200 hover:bg-[#f7f9ff]"
                 >
                   {t('home.viewPricing')}
@@ -113,7 +113,7 @@ export default function MaoqiuHome() {
             <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
               <SectionTitle title={t('home.availableModels')} desc={t('home.availableModelsDesc', { count: enabledModels.length })} compact />
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2352ff] hover:text-[#071337]">
+                <Link to="/models?sort=price" className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2352ff] hover:text-[#071337]">
                   {t('home.viewAllModels', { count: enabledModels.length })}
                   <ArrowRight className="h-4 w-4" />
                 </Link>

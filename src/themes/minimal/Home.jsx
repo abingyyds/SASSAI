@@ -54,7 +54,7 @@ export default function MinimalHome() {
                   <Link to="/register" className="px-7 py-3 rounded-lg bg-white text-neutral-900 font-medium text-sm hover:bg-neutral-200 transition-colors">
                     {t('home.getStarted')} →
                   </Link>
-                  <Link to="/pricing" className="px-7 py-3 text-neutral-400 font-medium text-sm hover:text-white transition-colors">
+                  <Link to="/models?sort=price" className="px-7 py-3 text-neutral-400 font-medium text-sm hover:text-white transition-colors">
                     {t('home.viewPricing')}
                   </Link>
                 </>
@@ -128,7 +128,7 @@ export default function MinimalHome() {
                 <p className="text-neutral-500">{t('home.availableModelsDesc', { count: enabledModels.length })}</p>
               </div>
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="text-sm text-neutral-400 hover:text-white transition-colors">
+                <Link to="/models?sort=price" className="text-sm text-neutral-400 hover:text-white transition-colors">
                   {t('home.viewAllModels', { count: enabledModels.length })} →
                 </Link>
               )}

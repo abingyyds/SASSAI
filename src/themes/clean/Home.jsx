@@ -52,7 +52,7 @@ export default function CleanHome() {
                   <Link to="/register" className="px-7 py-3 rounded-xl bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors shadow-sm">
                     {t('home.getStarted')}
                   </Link>
-                  <Link to="/pricing" className="px-7 py-3 text-gray-500 font-medium text-sm hover:text-gray-900 transition-colors">
+                  <Link to="/models?sort=price" className="px-7 py-3 text-gray-500 font-medium text-sm hover:text-gray-900 transition-colors">
                     {t('home.viewPricing')} →
                   </Link>
                 </>
@@ -140,7 +140,7 @@ export default function CleanHome() {
                 <p className="text-gray-500">{t('home.availableModelsDesc', { count: enabledModels.length })}</p>
               </div>
               {enabledModels.length > 8 && (
-                <Link to="/pricing" className="text-sm text-blue-600 hover:text-blue-700 transition-colors">
+                <Link to="/models?sort=price" className="text-sm text-blue-600 hover:text-blue-700 transition-colors">
                   {t('home.viewAllModels', { count: enabledModels.length })} →
                 </Link>
               )}
