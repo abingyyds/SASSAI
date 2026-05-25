@@ -104,6 +104,30 @@ function siteForwardHeaders(config) {
   }
 }
 
+function normalizeHost(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  try {
+    return new URL(text.includes('://') ? text : `https://${text}`).host;
+  } catch {
+    return text.replace(/^https?:\/\//i, '').split('/')[0].trim();
+  }
+}
+
+function shouldConnectViaSiteHost(baseUrl, siteHost) {
+  const baseHostname = baseUrl.hostname.toLowerCase();
+  return Boolean(siteHost) && ['subrouter.ai', 'subrouter.com'].includes(baseHostname);
+}
+
+function subRouterRequestUrl(pathname, config) {
+  const baseUrl = new URL(config.subrouter_base_url);
+  const siteHost = normalizeHost(config.subrouter_site_host || '');
+  if (shouldConnectViaSiteHost(baseUrl, siteHost)) {
+    baseUrl.host = siteHost;
+  }
+  return new URL(pathname, baseUrl).toString();
+}
+
 function sendJson(res, status, payload) {
   res.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -333,7 +357,7 @@ function periodEndFromEvent(event) {
 
 async function redeemSubRouterCode(store, { userId, code }) {
   const config = getConfig(store);
-  const url = new URL('/api/dist/topup/redeem', config.subrouter_base_url).toString();
+  const url = subRouterRequestUrl('/api/dist/topup/redeem', config);
   const headers = {
     'Content-Type': 'application/json',
     'New-Api-User': String(userId),
@@ -353,7 +377,7 @@ async function redeemSubRouterCode(store, { userId, code }) {
 
 async function subscribeSubRouterPackage(store, { userId, packageId }) {
   const config = getConfig(store);
-  const url = new URL('/api/dist/package/subscribe', config.subrouter_base_url).toString();
+  const url = subRouterRequestUrl('/api/dist/package/subscribe', config);
   const headers = {
     'Content-Type': 'application/json',
     'New-Api-User': String(userId),

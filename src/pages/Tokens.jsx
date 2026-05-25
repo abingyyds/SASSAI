@@ -339,7 +339,7 @@ export default function Tokens() {
       <ConsoleFrame className="mt-6">
         <ConsoleFrameHeader
           title="Quickstart"
-          subtitle="Public API calls use the API subdomain, not this website origin with a /v1 path."
+          subtitle="Public API calls use the API base URL shown here, including its /v1 path."
         />
         <div className="p-4 sm:p-5">
           <div className="grid gap-3 lg:grid-cols-3">

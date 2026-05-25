@@ -157,7 +157,7 @@ export default function ModelDetail() {
                 <MetaRow label="Model ID" value={id} copy />
               </dl>
               <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                Use the API subdomain for requests. {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.
+                Use the API base URL for requests. {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls.
               </p>
             </CossCardFrame>
           </div>
@@ -217,7 +217,7 @@ export default function ModelDetail() {
               <h2 className="text-xl font-semibold text-slate-950">API usage</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              Use the OpenAI-compatible chat completions shape with this model id, your SubRouter API key, and the API subdomain base URL.
+              Use the OpenAI-compatible chat completions shape with this model id, your SubRouter API key, and the API base URL.
             </p>
             <div className="mt-5 grid gap-5">
               <CodeBlock title="curl" language="bash" code={buildCurlSnippet({ baseUrl, modelId: id })} />

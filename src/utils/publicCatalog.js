@@ -1,4 +1,4 @@
-import { getMarketplaceModels, getPublicPricing, getSiteModels } from '../api';
+import { getMarketplaceModels, getPublicPricing, getSiteModels, getSitePricing } from '../api';
 import { PUBLIC_API_BASE_URL } from '../constants/api';
 import {
   extractCollection,
@@ -74,6 +74,12 @@ const normalizeCatalog = (catalogResponse, pricingResponse) =>
     'popular',
   );
 
+const readModelsFrom = (catalogResponse, pricingResponse, dataSource) => {
+  const models = normalizeCatalog(catalogResponse, pricingResponse);
+  if (models.length === 0) return null;
+  return { models, dataSource };
+};
+
 const cacheKeyFor = (query) => stableCacheKey(query);
 
 const FALLBACK_MODELS = [
@@ -99,29 +105,26 @@ const readCatalogCache = (query) => {
 };
 
 const fetchCatalog = async (query) => {
-  const pricingPromise = getPublicPricing().catch(() => null);
+  const sitePricingPromise = getSitePricing().catch(() => null);
+  const publicPricingPromise = getPublicPricing().catch(() => null);
+
+  try {
+    const catalogResponse = await getSiteModels();
+    const siteCatalog = readModelsFrom(catalogResponse, await sitePricingPromise, 'site');
+    if (siteCatalog) return siteCatalog;
+  } catch (siteError) {
+    // Fall through to the public marketplace catalog.
+  }
 
   try {
     const catalogResponse = await getMarketplaceModels(query);
-    const models = normalizeCatalog(catalogResponse, await pricingPromise);
-    if (models.length === 0) return fallbackCatalog;
-    return {
-      models,
-      dataSource: 'public',
-    };
-  } catch (error) {
-    try {
-      const catalogResponse = await getSiteModels();
-      const models = normalizeCatalog(catalogResponse, null);
-      if (models.length === 0) return fallbackCatalog;
-      return {
-        models,
-        dataSource: 'fallback',
-      };
-    } catch (fallbackError) {
-      return fallbackCatalog;
-    }
+    const marketplaceCatalog = readModelsFrom(catalogResponse, await publicPricingPromise, 'public');
+    if (marketplaceCatalog) return marketplaceCatalog;
+  } catch (marketplaceError) {
+    // Fall through to static fallback models.
   }
+
+  return fallbackCatalog;
 };
 
 export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {

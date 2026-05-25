@@ -12,7 +12,7 @@ const rootDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(process.env.STATIC_DIR || path.join(rootDir, 'dist'));
 const port = Number(process.env.PORT || 8080);
 const subrouterBase = process.env.SUBROUTER_API_BASE || 'http://localhost:3000';
-const subrouterSiteHost = String(process.env.SUBROUTER_SITE_HOST || '').trim();
+const subrouterSiteHost = normalizeHost(process.env.SUBROUTER_SITE_HOST || '');
 
 const hopByHopHeaders = new Set([
   'connection',
@@ -63,6 +63,32 @@ function filteredHeaders(headers) {
   return next;
 }
 
+function normalizeHost(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  try {
+    return new URL(text.includes('://') ? text : `https://${text}`).host;
+  } catch {
+    return text.replace(/^https?:\/\//i, '').split('/')[0].trim();
+  }
+}
+
+function hostnameOnly(host) {
+  return normalizeHost(host).split(':')[0].toLowerCase();
+}
+
+function shouldConnectViaSiteHost(baseUrl, siteHost) {
+  const baseHostname = baseUrl.hostname.toLowerCase();
+  return Boolean(siteHost) && ['subrouter.ai', 'subrouter.com'].includes(baseHostname);
+}
+
+function proxyTargetBaseUrl(baseUrl, siteHost) {
+  if (!shouldConnectViaSiteHost(baseUrl, siteHost)) return baseUrl;
+  const targetUrl = new URL(baseUrl.toString());
+  targetUrl.host = normalizeHost(siteHost);
+  return targetUrl;
+}
+
 function proxyPath(baseUrl, reqUrl, reqHost) {
   const incoming = new URL(reqUrl, `http://${reqHost || 'localhost'}`);
   const basePath = baseUrl.pathname.replace(/\/$/, '');
@@ -82,6 +108,30 @@ function formatProxyError(error, baseUrl) {
   return detail || error?.name || String(error) || `unknown network error while connecting to ${target}`;
 }
 
+function getProxyTargetState(req) {
+  let baseUrl;
+  try {
+    baseUrl = new URL(subrouterBase);
+  } catch {
+    return {
+      valid: false,
+      subrouterBase,
+      error: 'SUBROUTER_API_BASE is not a valid URL',
+    };
+  }
+  const publicHost = req.headers.host || baseUrl.host;
+  const upstreamHost = subrouterSiteHost || publicHost;
+  const targetBaseUrl = proxyTargetBaseUrl(baseUrl, upstreamHost);
+  return {
+    valid: true,
+    configuredBase: `${baseUrl.protocol}//${baseUrl.host}`,
+    connectBase: `${targetBaseUrl.protocol}//${targetBaseUrl.host}`,
+    upstreamHost,
+    publicHost,
+    connectsViaSiteHost: targetBaseUrl.host !== baseUrl.host,
+  };
+}
+
 function proxySubRouter(req, res) {
   let baseUrl;
   try {
@@ -95,6 +145,7 @@ function proxySubRouter(req, res) {
 
   const publicHost = req.headers.host || baseUrl.host;
   const upstreamHost = subrouterSiteHost || publicHost;
+  const targetBaseUrl = proxyTargetBaseUrl(baseUrl, upstreamHost);
   const headers = filteredHeaders(req.headers);
   delete headers.host;
   Object.assign(headers, {
@@ -105,12 +156,13 @@ function proxySubRouter(req, res) {
     'X-Forwarded-For': [req.headers['x-forwarded-for'], req.socket.remoteAddress].filter(Boolean).join(', '),
   });
 
-  const transport = baseUrl.protocol === 'https:' ? https : http;
+  const transport = targetBaseUrl.protocol === 'https:' ? https : http;
   const upstreamReq = transport.request(
     {
-      protocol: baseUrl.protocol,
-      hostname: baseUrl.hostname,
-      port: baseUrl.port || undefined,
+      protocol: targetBaseUrl.protocol,
+      hostname: targetBaseUrl.hostname,
+      port: targetBaseUrl.port || undefined,
+      servername: hostnameOnly(upstreamHost) || targetBaseUrl.hostname,
       method: req.method,
       path: proxyPath(baseUrl, req.url, publicHost),
       headers,
@@ -122,9 +174,9 @@ function proxySubRouter(req, res) {
   );
 
   upstreamReq.on('error', (error) => {
-    const detail = formatProxyError(error, baseUrl);
+    const detail = formatProxyError(error, targetBaseUrl);
     console.error('[subrouter-proxy] request failed', {
-      upstream: `${baseUrl.protocol}//${baseUrl.host}`,
+      upstream: `${targetBaseUrl.protocol}//${targetBaseUrl.host}`,
       upstreamHost,
       publicHost,
       method: req.method,
@@ -204,11 +256,18 @@ createServer(async (req, res) => {
     return sendText(res, 200, 'ok');
   }
 
+  if (url.pathname === '/api/site/saas/proxy-target') {
+    return sendJson(res, 200, {
+      success: true,
+      data: getProxyTargetState(req),
+    });
+  }
+
   if (url.pathname.startsWith('/api/site/')) {
     return handleSiteSaasRequest(req, res);
   }
 
-  if (url.pathname.startsWith('/api/')) {
+  if (url.pathname.startsWith('/api/') || url.pathname === '/v1' || url.pathname.startsWith('/v1/')) {
     return proxySubRouter(req, res);
   }
 

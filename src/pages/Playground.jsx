@@ -281,7 +281,7 @@ export default function Playground() {
                   <div className="min-w-0">
                     <p className="break-all font-mono text-xs text-page-muted">{request.endpoint}</p>
                     <p className="mt-1 text-xs text-page-muted">Requires Authorization: Bearer $SUBROUTER_API_KEY</p>
-                    <p className="mt-1 text-xs text-amber-700">Use {baseUrl}; {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.</p>
+                    <p className="mt-1 text-xs text-amber-700">Use {baseUrl}; {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls.</p>
                   </div>
                   <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
                     <CopyButton text={request.curl} label="Copy cURL" className="min-h-11 w-full px-4 text-sm sm:w-auto" />

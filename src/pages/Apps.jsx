@@ -71,7 +71,7 @@ Model: choose from /models`;
               <h2 className="font-semibold text-slate-950">Universal settings</h2>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-600">
-              These values work for clients that expose OpenAI-compatible configuration fields. Use the API subdomain; {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.
+              These values work for clients that expose OpenAI-compatible configuration fields. Use the API base URL; {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls.
             </p>
           </CossCardFrame>
           <CodeBlock title="Client values" language="text" code={config} />

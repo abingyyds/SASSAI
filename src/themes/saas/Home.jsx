@@ -904,7 +904,7 @@ function ApiBasePanel({ baseUrl }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-950">API base URL</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Use the API host below. {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.
+            Use the API base URL below. {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls.
           </p>
         </div>
         <CopyButton text={baseUrl} className="shrink-0" />

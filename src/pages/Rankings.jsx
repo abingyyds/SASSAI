@@ -96,7 +96,7 @@ export default function Rankings() {
             />
             <div className="coss-chip">
               <Database size={13} />
-              {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
+              {loading ? 'Loading catalog' : dataSource === 'site' ? 'Live site catalog' : dataSource === 'public' ? 'Live public catalog' : 'Static fallback catalog'}
             </div>
           </div>
         )}

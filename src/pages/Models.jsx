@@ -107,7 +107,7 @@ export default function Models() {
         )}
       >
         <div className="mt-5 coss-chip">
-          {loading ? 'Loading catalog' : dataSource === 'public' ? 'Live public catalog' : 'Site catalog fallback'}
+          {loading ? 'Loading catalog' : dataSource === 'site' ? 'Live site catalog' : dataSource === 'public' ? 'Live public catalog' : 'Static fallback catalog'}
         </div>
       </CossPageHeader>
 

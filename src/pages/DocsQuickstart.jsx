@@ -113,7 +113,7 @@ for await (const part of stream) {
         eyebrow="Documentation"
         icon={BookOpen}
         title="SubRouter API quickstart"
-        description="Use a SubRouter API key with the API subdomain base URL, choose a public model id, and send OpenAI-compatible chat completions requests."
+        description="Use a SubRouter API key with the API base URL, choose a public model id, and send OpenAI-compatible chat completions requests."
         secondary="The quickstart focuses on key creation, base URL, model selection, request shapes, multimodal input, pricing, and migration notes."
         actions={(
           <CossCardFrame className="p-5">
@@ -127,7 +127,7 @@ for await (const part of stream) {
               <CopyRow label="Model id" value={chatModelId} />
             </div>
             <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls. Use the API subdomain base URL shown above.
+              {INVALID_WEBSITE_API_BASE_URL} alone is invalid for API calls. Use the API base URL shown above.
             </p>
           </CossCardFrame>
         )}
@@ -171,17 +171,17 @@ for await (const part of stream) {
           <div className="min-w-0 space-y-6">
             <DocCard id="api-key" icon={KeyRound} title="Get API key">
               <p className="text-sm leading-6 text-slate-600">
-                Create an account, open API Keys, and generate a key. Send it as a bearer token on every request to the API subdomain.
+                Create an account, open API Keys, and generate a key. Send it as a bearer token on every request to the API base URL.
               </p>
               <CodeBlock title="Environment" language="bash" code={envSnippet} />
             </DocCard>
 
             <DocCard id="base-url" icon={Server} title="Base URL">
               <p className="text-sm leading-6 text-slate-600">
-                Use the API subdomain base URL for OpenAI-compatible requests. Do not derive the API base URL from the website origin.
+                Use the API base URL shown here for OpenAI-compatible requests. It must include the API path, such as /v1.
               </p>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-                <code className="font-mono">{INVALID_WEBSITE_API_BASE_URL}</code> is invalid for API calls. Clients must use <code className="font-mono">{baseUrl}</code>.
+                <code className="font-mono">{INVALID_WEBSITE_API_BASE_URL}</code> alone is invalid for API calls. Clients must use <code className="font-mono">{baseUrl}</code>.
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <CopyRow label="API key" value="sk-your-api-key" />
@@ -275,7 +275,7 @@ Content-Type: application/json`}
 
             <DocCard id="migration" icon={RefreshCw} title="Migrating from OpenAI or OpenRouter">
               <p className="text-sm leading-6 text-slate-600">
-                Keep the OpenAI SDK shape for chat. Change the base URL to the SubRouter API subdomain, replace the API key, and use a public catalog model id. Optional headers from other gateways are not required unless your own app depends on them.
+                Keep the OpenAI SDK shape for chat. Change the base URL to the API base URL shown here, replace the API key, and use a public catalog model id. Optional headers from other gateways are not required unless your own app depends on them.
               </p>
               <CodeBlock
                 title="Before and after"
