@@ -3,10 +3,57 @@ import {
   formatOfficialPerCall,
   formatOfficialTokenPair,
   formatOfficialTokenPrice,
+  formatPerCallPrice,
+  formatTokenPrice,
+  getCacheCreationPrice,
+  getCacheReadPrice,
+  getFixedPrice,
+  getInputPrice,
   getOfficialPricing,
+  getOutputPrice,
+  hasSitePricing,
+  isPerCallModel,
 } from '../utils/modelMeta';
+import { useCurrency } from '../context/SiteContext';
 
 export default function ModelPrice({ model, compact = false }) {
+  const { symbol, rate } = useCurrency();
+  const showSitePricing = hasSitePricing(model);
+
+  if (showSitePricing) {
+    const perCall = isPerCallModel(model);
+    const inputPrice = getInputPrice(model);
+    const outputPrice = getOutputPrice(model);
+    const fixedPrice = getFixedPrice(model);
+    const cacheReadPrice = getCacheReadPrice(model);
+    const cacheCreationPrice = getCacheCreationPrice(model);
+
+    if (perCall) {
+      return (
+        <span className="font-mono text-sm text-page" title="Site per-call pricing">
+          {formatPerCallPrice(fixedPrice, symbol, rate)}
+        </span>
+      );
+    }
+
+    if (compact) {
+      return (
+        <span className="font-mono text-sm text-page" title="Site input and output pricing per 1M tokens">
+          {formatTokenPrice(inputPrice, symbol, rate)} in / {formatTokenPrice(outputPrice, symbol, rate)} out
+        </span>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <PriceBox label="Input / 1M" value={formatTokenPrice(inputPrice, symbol, rate)} />
+        <PriceBox label="Output / 1M" value={formatTokenPrice(outputPrice, symbol, rate)} />
+        {cacheReadPrice !== null && <PriceBox label="Cache read / 1M" value={formatTokenPrice(cacheReadPrice, symbol, rate)} />}
+        {cacheCreationPrice !== null && <PriceBox label="Cache create / 1M" value={formatTokenPrice(cacheCreationPrice, symbol, rate)} />}
+      </div>
+    );
+  }
+
   const pricing = getOfficialPricing(model);
 
   if (!pricing) {
@@ -40,14 +87,17 @@ export default function ModelPrice({ model, compact = false }) {
 
   return (
     <div className="grid grid-cols-2 gap-2 text-xs">
-      <div className="rounded-lg border border-page-divider bg-page-surface/50 px-3 py-2">
-        <p className="text-page-muted">Input USD</p>
-        <p className="mt-1 font-mono font-semibold text-page">{input}</p>
-      </div>
-      <div className="rounded-lg border border-page-divider bg-page-surface/50 px-3 py-2">
-        <p className="text-page-muted">Output USD</p>
-        <p className="mt-1 font-mono font-semibold text-page">{output}</p>
-      </div>
+      <PriceBox label="Input USD" value={input} />
+      <PriceBox label="Output USD" value={output} />
+    </div>
+  );
+}
+
+function PriceBox({ label, value }) {
+  return (
+    <div className="rounded-lg border border-page-divider bg-page-surface/50 px-3 py-2">
+      <p className="text-page-muted">{label}</p>
+      <p className="mt-1 font-mono font-semibold text-page">{value}</p>
     </div>
   );
 }

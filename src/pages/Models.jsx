@@ -93,11 +93,11 @@ export default function Models() {
   return (
     <CossPage>
       <CossPageHeader
-        eyebrow="Public catalog"
+        eyebrow="Site catalog"
         icon={Boxes}
         title="Models"
-        description="Browse public model families, compare official USD pricing, and open any model directly in the playground."
-        secondary="Catalog entries are merged by public model id so users choose a stable model rather than an internal delivery path."
+        description="Browse the models listed on this site, compare site prices, and open any model directly in the playground."
+        secondary="The model list is loaded from this site's distributor catalog. Public marketplace data is only used as a fallback when the site catalog is unavailable."
         stats={(
           <>
             <CossStat label="Models" value={formatCompactNumber(enabledModels.length)} />
@@ -148,7 +148,7 @@ export default function Models() {
         {loading ? (
           <ModelListSkeleton />
         ) : filteredModels.length === 0 ? (
-          <CossEmptyState title="No matching models" text="Adjust the search, category, or sort settings to view more public model families." />
+          <CossEmptyState title="No matching models" text="Adjust the search, category, or sort settings to view more listed models." />
         ) : (
           <>
             <CossCardFrame className="hidden overflow-hidden lg:block">
@@ -157,7 +157,7 @@ export default function Models() {
                   <tr className="border-b border-slate-200 bg-slate-50 text-left text-slate-500">
                     <th className="px-5 py-3 font-medium">Model</th>
                     <th className="px-5 py-3 font-medium">Category</th>
-                    <th className="px-5 py-3 text-right font-medium">Official price</th>
+                    <th className="px-5 py-3 text-right font-medium">Site price</th>
                     <th className="px-5 py-3 text-right font-medium">Actions</th>
                   </tr>
                 </thead>

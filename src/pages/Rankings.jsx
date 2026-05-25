@@ -13,13 +13,15 @@ import {
   CossTabs,
   CossTableFrame,
 } from '../components/public/CossLayout';
-import { getPublicModelCatalog, readPublicModelCatalog } from '../utils/publicCatalog';
+import { getRankedModelCatalog, readRankedModelCatalog } from '../utils/publicCatalog';
 import {
+  formatCompactNumber,
   formatTokenUsageValue,
   getModelCategory,
   getModelDisplayName,
   getModelId,
   getModelRoute,
+  getRequestCount,
   sortModels,
 } from '../utils/modelMeta';
 
@@ -30,7 +32,7 @@ const sortOptions = [
 ];
 
 export default function Rankings() {
-  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const cachedCatalog = useMemo(() => readRankedModelCatalog(), []);
   const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [loading, setLoading] = useState(() => !cachedCatalog);
   const [sort, setSort] = useState('popular');
@@ -41,7 +43,7 @@ export default function Rankings() {
     let cancelled = false;
     if (!cachedCatalog) setLoading(true);
 
-    getPublicModelCatalog()
+    getRankedModelCatalog()
       .then((catalog) => {
         if (cancelled) return;
         setModels(catalog.models);
@@ -83,8 +85,8 @@ export default function Rankings() {
         eyebrow="Model rankings"
         icon={Trophy}
         title="Rankings"
-        description="Compare public model families by token usage, catalog rank, category, and official pricing."
-        secondary="Popularity uses token totals when the public catalog returns them. Missing values are displayed as unavailable."
+        description="Rank this site's listed models by total marketplace token usage across all providers."
+        secondary="The model set comes from this site. Token and request totals come from the main marketplace ranking feed when a matching model exists."
         actions={(
           <div className="space-y-3">
             <CossSearchInput
@@ -96,7 +98,7 @@ export default function Rankings() {
             />
             <div className="coss-chip">
               <Database size={13} />
-              {loading ? 'Loading catalog' : dataSource === 'site' ? 'Live site catalog' : dataSource === 'public' ? 'Live public catalog' : 'Static fallback catalog'}
+              {loading ? 'Loading rankings' : dataSource === 'site_ranked' ? 'Site models + marketplace totals' : dataSource === 'site' ? 'Live site catalog' : dataSource === 'public' ? 'Live public catalog' : 'Static fallback catalog'}
             </div>
           </div>
         )}
@@ -117,7 +119,7 @@ export default function Rankings() {
               <BarChart3 size={14} />
               {filteredModels.length} models shown
             </span>
-            <span>Public model families only</span>
+            <span>Only models listed on this site are shown</span>
           </div>
         </CossCardFrame>
 
@@ -132,8 +134,9 @@ export default function Rankings() {
                   <th className="px-5 py-3 font-medium">#</th>
                   <th className="px-5 py-3 font-medium">Model</th>
                   <th className="px-5 py-3 font-medium">Category</th>
-                  <th className="px-5 py-3 text-right font-medium">Usage (tokens)</th>
-                  <th className="px-5 py-3 text-right font-medium">Official price</th>
+                  <th className="px-5 py-3 text-right font-medium">Marketplace tokens</th>
+                  <th className="px-5 py-3 text-right font-medium">Marketplace requests</th>
+                  <th className="px-5 py-3 text-right font-medium">Site price</th>
                 </tr>
               </thead>
               {loading ? (
@@ -151,6 +154,7 @@ export default function Rankings() {
                       </td>
                       <td className="px-5 py-4 text-slate-700">{getModelCategory(model)}</td>
                       <td className="px-5 py-4 text-right font-mono text-slate-700">{formatTokenUsageValue(model)}</td>
+                      <td className="px-5 py-4 text-right font-mono text-slate-700">{formatCompactNumber(getRequestCount(model))}</td>
                       <td className="px-5 py-4 text-right"><ModelPrice model={model} compact /></td>
                     </tr>
                   ))}
@@ -181,8 +185,9 @@ export default function Rankings() {
                       <p className="mt-1 break-all font-mono text-xs text-slate-500">{getModelId(model)}</p>
                     </div>
                     <div className="shrink-0 text-right">
-                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Token usage</p>
+                      <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Marketplace tokens</p>
                       <p className="mt-1 font-mono text-xs text-slate-700">{formatTokenUsageValue(model)}</p>
+                      <p className="mt-1 font-mono text-xs text-slate-500">{formatCompactNumber(getRequestCount(model))} requests</p>
                       <div className="mt-2"><ModelPrice model={model} compact /></div>
                     </div>
                   </div>
@@ -209,6 +214,7 @@ function RankingSkeletonRows() {
           <td className="px-5 py-4"><div className="h-4 w-6 animate-pulse rounded bg-slate-100" /></td>
           <td className="px-5 py-4"><div className="h-4 w-56 animate-pulse rounded bg-slate-200" /></td>
           <td className="px-5 py-4"><div className="h-4 w-20 animate-pulse rounded bg-slate-100" /></td>
+          <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-100" /></td>
           <td className="px-5 py-4"><div className="ml-auto h-4 w-16 animate-pulse rounded bg-slate-100" /></td>
           <td className="px-5 py-4"><div className="ml-auto h-4 w-24 animate-pulse rounded bg-slate-100" /></td>
         </tr>

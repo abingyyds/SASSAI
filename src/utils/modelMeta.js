@@ -259,6 +259,21 @@ export const getCacheReadPrice = (item) => firstNumber(item, ['cache_read_price'
 
 export const getCacheCreationPrice = (item) => firstNumber(item, ['cache_creation_price', 'cache_write_price', 'cache_creation', 'cache_creation_price_5m']);
 
+export const hasSitePricing = (model) =>
+  getInputPrice(model) !== null ||
+  getOutputPrice(model) !== null ||
+  getFixedPrice(model) !== null;
+
+export const getSitePriceValue = (model) => {
+  const input = getInputPrice(model);
+  const output = getOutputPrice(model);
+  const fixed = getFixedPrice(model);
+  if (model?.billing_type === 'per_call' || model?.is_per_call || (fixed !== null && input === null && output === null)) {
+    return fixed;
+  }
+  return input ?? output ?? fixed;
+};
+
 export const getOfficialPricing = (model) => {
   const pricing = model?.officialPricing || model?.official_pricing || model?.pricing;
   if (!pricing || typeof pricing !== 'object') return null;
@@ -719,7 +734,7 @@ export const getRating = (model) => {
 };
 
 export const getPriceValue = (model) => {
-  return getOfficialPriceValue(model);
+  return getSitePriceValue(model) ?? getOfficialPriceValue(model);
 };
 
 export const getMarketplaceScore = (model) => {
