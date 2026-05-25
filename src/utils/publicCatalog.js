@@ -76,6 +76,22 @@ const normalizeCatalog = (catalogResponse, pricingResponse) =>
 
 const cacheKeyFor = (query) => stableCacheKey(query);
 
+const FALLBACK_MODELS = [
+  { id: 'gpt-4o-mini', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', category: 'Chat', enabled: true },
+  { id: 'claude-sonnet-4-5', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', category: 'Chat', enabled: true },
+  { id: 'gemini-2.5-pro', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', category: 'Multimodal', enabled: true },
+  { id: 'deepseek-chat', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', category: 'Chat', enabled: true },
+  { id: 'qwen-max', model_name: 'qwen-max', display_name: 'Qwen Max', category: 'Chat', enabled: true },
+  { id: 'grok-4', model_name: 'grok-4', display_name: 'Grok 4', category: 'Chat', enabled: true },
+  { id: 'claude-haiku-4-5', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', category: 'Chat', enabled: true },
+  { id: 'gpt-5-mini', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', category: 'Chat', enabled: true },
+];
+
+export const fallbackCatalog = {
+  models: FALLBACK_MODELS,
+  dataSource: 'fallback',
+};
+
 const readCatalogCache = (query) => {
   const cached = catalogCache.get(cacheKeyFor(query));
   if (!cached?.result || cached.expiresAt <= Date.now()) return null;
@@ -87,16 +103,24 @@ const fetchCatalog = async (query) => {
 
   try {
     const catalogResponse = await getMarketplaceModels(query);
+    const models = normalizeCatalog(catalogResponse, await pricingPromise);
+    if (models.length === 0) return fallbackCatalog;
     return {
-      models: normalizeCatalog(catalogResponse, await pricingPromise),
+      models,
       dataSource: 'public',
     };
   } catch (error) {
-    const catalogResponse = await getSiteModels();
-    return {
-      models: normalizeCatalog(catalogResponse, await pricingPromise),
-      dataSource: 'fallback',
-    };
+    try {
+      const catalogResponse = await getSiteModels();
+      const models = normalizeCatalog(catalogResponse, null);
+      if (models.length === 0) return fallbackCatalog;
+      return {
+        models,
+        dataSource: 'fallback',
+      };
+    } catch (fallbackError) {
+      return fallbackCatalog;
+    }
   }
 };
 
@@ -127,7 +151,7 @@ export const getPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => {
   return promise;
 };
 
-export const readPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => readCatalogCache(query);
+export const readPublicModelCatalog = (query = PUBLIC_CATALOG_QUERY) => readCatalogCache(query) || fallbackCatalog;
 
 export const getDocsModelCatalog = () => getPublicModelCatalog(DOCS_CATALOG_QUERY);
 

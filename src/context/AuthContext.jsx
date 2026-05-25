@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { getUserSelf, login as loginApi, register as registerApi, logout as logoutApi } from '../api';
+import { AUTH_RESTORE_TIMEOUT_MS, getUserSelf, login as loginApi, register as registerApi, logout as logoutApi } from '../api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const userId = localStorage.getItem('dist_user_id');
     if (userId) {
-      getUserSelf()
+      getUserSelf({ timeout: AUTH_RESTORE_TIMEOUT_MS, skipErrorHandler: true })
         .then((res) => {
           if (res.data.success) {
             setUser(res.data.data);

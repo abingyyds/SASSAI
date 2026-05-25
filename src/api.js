@@ -99,6 +99,8 @@ const devPublicResponse = (requestFn, data) =>
 
 const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000;
 const publicRequestCache = new Map();
+const PUBLIC_REQUEST_TIMEOUT_MS = 6000;
+export const AUTH_RESTORE_TIMEOUT_MS = 8000;
 
 const stableCacheKey = (value) => {
   if (Array.isArray(value)) {
@@ -191,35 +193,65 @@ export const getSiteInfo = () => {
   if (theme) {
     return previewResponse(previewSite(theme));
   }
-  return devPublicResponse(() => api.get('/api/dist/site/info'), previewSite('saas'));
+  return cachedPublicRequest('site-info', () => devPublicResponse(
+    () => api.get('/api/dist/site/info', {
+      timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+      skipErrorHandler: true,
+    }),
+    previewSite('saas'),
+  ));
 };
 export const getSiteModels = () => {
   const theme = getPreviewTheme();
   return cachedPublicRequest(`site-models:${theme || 'default'}:${shouldUseDevMock()}`, () => (
     theme
       ? previewResponse(previewModels)
-      : devPublicResponse(() => api.get('/api/dist/site/models'), previewModels)
+      : devPublicResponse(
+        () => api.get('/api/dist/site/models', {
+          timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+          skipErrorHandler: true,
+        }),
+        previewModels,
+      )
   ));
 };
 export const getMarketplaceModels = (params = {}) => cachedPublicRequest(
   `marketplace-models:${shouldUseDevMock()}:${stableCacheKey(params)}`,
   () => (shouldUseDevMock()
     ? previewResponse(previewMarketplaceModels)
-    : api.get('/api/marketplace/models', { params, skipErrorHandler: true })),
+    : api.get('/api/marketplace/models', {
+      params,
+      timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+      skipErrorHandler: true,
+    })),
 );
 export const getPublicPricing = () => cachedPublicRequest(
   'public-pricing',
-  () => (shouldUseDevMock() ? previewResponse([]) : api.get('/api/pricing', { skipErrorHandler: true })),
+  () => (shouldUseDevMock()
+    ? previewResponse([])
+    : api.get('/api/pricing', {
+      timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+      skipErrorHandler: true,
+    })),
 );
 export const getSitePricing = () => cachedPublicRequest('site-pricing', () => (shouldUseDevMock()
   ? previewResponse([])
-  : api.get('/api/dist/site/pricing')));
+  : api.get('/api/dist/site/pricing', {
+    timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+    skipErrorHandler: true,
+  })));
 export const getSitePackages = () => {
   const theme = getPreviewTheme();
   return cachedPublicRequest(`site-packages:${theme || 'default'}:${shouldUseDevMock()}`, () => (
     theme
       ? previewResponse(previewPackages)
-      : devPublicResponse(() => api.get('/api/dist/site/packages'), previewPackages)
+      : devPublicResponse(
+        () => api.get('/api/dist/site/packages', {
+          timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+          skipErrorHandler: true,
+        }),
+        previewPackages,
+      )
   ));
 };
 export const getSiteKeyGroups = () => (shouldUseDevMock()

@@ -3,6 +3,22 @@ import { getSiteInfo } from '../api';
 
 const SiteContext = createContext(null);
 
+const DEFAULT_SITE = {
+  name: 'SubRouter',
+  theme_template: 'saas',
+  enable_topup: true,
+  top_up_link: '',
+  allow_sub_dist: false,
+  currency: {
+    code: 'USD',
+    symbol: '$',
+    exchange_rate: 1,
+    usd_exchange_rate: 7,
+  },
+};
+
+const siteCacheKey = 'dist-site-info-cache-v1';
+
 // Map theme template name → CSS class(es) to apply on <body>
 const themeClassMap = {
   saas: 'theme-light theme-saas',
@@ -76,14 +92,47 @@ function applySiteDocumentMeta(site) {
   upsertLink('manifest', '/site.webmanifest');
 }
 
+function getCachedSite() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(siteCacheKey) || 'null');
+    return cached && typeof cached === 'object' ? cached : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function cacheSite(site) {
+  try {
+    localStorage.setItem(siteCacheKey, JSON.stringify(site));
+  } catch (e) {}
+}
+
+function normalizeSite(data) {
+  const publicDomain = typeof window !== 'undefined' ? window.location.origin : data?.domain;
+  return {
+    ...DEFAULT_SITE,
+    ...data,
+    domain: publicDomain,
+    theme_template: data?.theme_template || DEFAULT_SITE.theme_template,
+    currency: {
+      ...DEFAULT_SITE.currency,
+      ...(data?.currency || {}),
+    },
+  };
+}
+
 export function SiteProvider({ children }) {
-  const [site, setSite] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [site, setSite] = useState(() => normalizeSite({
+    ...(getCachedSite() || DEFAULT_SITE),
+    theme_template: DEFAULT_SITE.theme_template,
+  }));
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const previewTheme = getDevPreviewTheme();
     if (previewTheme) {
-      const previewSite = {
+      const previewSite = normalizeSite({
+        ...DEFAULT_SITE,
         name: 'AstraLayer',
         theme_template: previewTheme,
         enable_topup: true,
@@ -95,26 +144,27 @@ export function SiteProvider({ children }) {
           exchange_rate: 1,
           usd_exchange_rate: 7,
         },
-      };
+      });
       setSite(previewSite);
       applyThemeClass(previewTheme);
       applySiteDocumentMeta({ ...previewSite, name: `${previewSite.name} · ${previewTheme}` });
-      setLoading(false);
       return;
     }
+
+    applyThemeClass(site.theme_template || DEFAULT_SITE.theme_template);
+    applySiteDocumentMeta(site);
 
     getSiteInfo()
       .then((res) => {
         if (res.data.success) {
-          const publicDomain = typeof window !== 'undefined' ? window.location.origin : res.data.data?.domain;
-          const siteData = { ...res.data.data, domain: publicDomain, theme_template: 'saas' };
+          const siteData = normalizeSite({ ...res.data.data, theme_template: DEFAULT_SITE.theme_template });
           setSite(siteData);
-          applyThemeClass('saas');
+          cacheSite(siteData);
+          applyThemeClass(siteData.theme_template || DEFAULT_SITE.theme_template);
           applySiteDocumentMeta(siteData);
         }
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch(() => {});
   }, []);
 
   return (

@@ -30,6 +30,7 @@ import {
   getSitePackages,
   Q,
 } from '../api';
+import { readPublicModelCatalog } from '../utils/publicCatalog';
 
 const resetLabelKeys = {
   never: 'packages.resetNever',
@@ -76,9 +77,10 @@ export default function Packages() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, refreshUser } = useAuth();
   const { fmtPlanPrice, symbol, rate } = useCurrency();
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
 
   const [packages, setPackages] = useState([]);
-  const [models, setModels] = useState([]);
+  const [models, setModels] = useState(() => cachedCatalog.models || []);
   const [activeSubs, setActiveSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
@@ -92,10 +94,26 @@ export default function Packages() {
   };
 
   useEffect(() => {
-    Promise.all([
-      getSitePackages().then((r) => { if (r.data.success) setPackages(r.data.data || []); }).catch(() => {}),
-      getSiteModels().then((r) => { if (r.data.success) setModels(r.data.data || []); }).catch(() => {}),
-    ]).finally(() => setLoading(false));
+    let cancelled = false;
+
+    getSitePackages()
+      .then((r) => {
+        if (!cancelled && r.data.success) setPackages(r.data.data || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    getSiteModels()
+      .then((r) => {
+        if (!cancelled && r.data.success) setModels(r.data.data || []);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
