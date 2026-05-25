@@ -5,6 +5,8 @@ const SiteContext = createContext(null);
 
 const DEFAULT_SITE = {
   name: 'SubRouter',
+  logo: '/sassai-logo.png',
+  favicon: '/favicon.png',
   theme_template: 'saas',
   enable_topup: true,
   top_up_link: '',
@@ -113,6 +115,8 @@ function normalizeSite(data) {
     ...DEFAULT_SITE,
     ...data,
     domain: publicDomain,
+    logo: data?.logo || DEFAULT_SITE.logo,
+    favicon: data?.favicon || DEFAULT_SITE.favicon,
     theme_template: data?.theme_template || DEFAULT_SITE.theme_template,
     currency: {
       ...DEFAULT_SITE.currency,

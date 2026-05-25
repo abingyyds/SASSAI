@@ -5,7 +5,7 @@ import { ArrowRight, LogOut, Menu, UserCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
 import LanguageSwitch from '../../components/LanguageSwitch';
-import maoqiuAiImage from '../../assets/maoqiu-ai.png';
+import sassaiLogo from '../../assets/sassai-logo.png';
 
 const configs = {
   aurora: {
@@ -67,7 +67,7 @@ const configs = {
     mobileActive: 'bg-[#eef5ff] text-[#2352ff]',
     mobileIdle: 'text-slate-600 hover:bg-[#f4f7ff] hover:text-[#071337]',
     footer: 'mt-auto border-t border-slate-200 bg-white',
-    logoImage: maoqiuAiImage,
+    logoImage: sassaiLogo,
   },
 };
 

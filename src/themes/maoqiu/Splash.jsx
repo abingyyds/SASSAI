@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import maoqiuAiImage from '../../assets/maoqiu-ai.png';
+import sassaiLogo from '../../assets/sassai-logo.png';
 
 export default function MaoqiuSplash() {
   const [visible, setVisible] = useState(true);
@@ -21,9 +21,9 @@ export default function MaoqiuSplash() {
     <div className={`maoqiu-splash ${leaving ? 'maoqiu-splash--leaving' : ''}`}>
       <div className="maoqiu-splash__halo" />
       <div className="maoqiu-splash__mark">
-        <img src={maoqiuAiImage} alt="Maoqiu AI" />
+        <img src={sassaiLogo} alt="SASSAI" />
       </div>
-      <div className="maoqiu-splash__title">Maoqiu</div>
+      <div className="maoqiu-splash__title">SASSAI</div>
       <div className="maoqiu-splash__subtitle">Intelligence, creation, and endless possibility</div>
       <div className="maoqiu-splash__beam" />
     </div>
