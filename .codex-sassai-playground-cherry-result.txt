@@ -1,0 +1,18 @@
+Implemented the Cherry-style chat Playground in [src/pages/Playground.jsx](/Users/minihanshi/project/SASSAI/src/pages/Playground.jsx).
+
+What changed:
+- Added localStorage conversation persistence with key `sassai.playground.conversations.v1`.
+- Added left history panel with new chat, search, rename, delete, previews, timestamps, model/mode summary.
+- Added center chat transcript, empty state, quick prompts, composer, message copy, user/assistant/system/error bubbles.
+- Moved model picker, mode selector, settings, API key handling, curl/JS/Python preview, JSON body, and run controls into the right inspector.
+- Send now saves messages and either calls the existing OpenAI-compatible request path with an API key or saves an honest missing-key error message.
+
+Verification passed:
+- `npm run build`
+- grep counts: `localStorage: 3`, `conversation: 105`, `history: 9`, `messages: 33`, `sassai.playground.conversations: 1`
+- wrong API base scan: `subrouter.com/v1: 0`
+- `git diff --check src/pages/Playground.jsx`
+
+Wrote the required report to [.codex-sassai-playground-cherry-result.txt](/Users/minihanshi/project/SASSAI/.codex-sassai-playground-cherry-result.txt).
+
+Note: `vite.config.js` still appears in the requested diff stat from an existing working-tree change; I did not edit it in this run. I did not touch OpenAsstAI, commit, or push.
