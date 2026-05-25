@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite, useCurrency } from '../../context/SiteContext';
-import { getSiteModels, getSitePackages, Q } from '../../api';
+import { getSitePackages, Q } from '../../api';
 import { calcOfficialEquivList } from '../../utils/officialEquiv';
 import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import CountUp from '../../components/bits/CountUp';
@@ -22,17 +22,19 @@ import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
 import { PUBLIC_API_BASE_URL } from '../../constants/api';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 
 export default function DefaultHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { site } = useSite();
   const { fmtCNY } = useCurrency();
-  const [models, setModels] = useState([]);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [packages, setPackages] = useState([]);
 
   useEffect(() => {
-    getSiteModels().then(r => { if (r.data.success) setModels(r.data.data || []); }).catch(() => {});
+    getPublicModelCatalog().then((catalog) => setModels(catalog.models)).catch(() => {});
     getSitePackages().then(r => { if (r.data.success) setPackages(r.data.data || []); }).catch(() => {});
   }, []);
 

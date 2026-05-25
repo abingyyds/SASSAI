@@ -34,7 +34,7 @@ export default function DownloadCatalog() {
           const metaLinks = [
             tool.officialRepo ? { label: t('downloads.officialRepo'), href: tool.officialRepo } : null,
             tool.installGuide ? { label: t('downloads.installGuide'), href: tool.installGuide } : null,
-            tool.providerDocs ? { label: t('downloads.providerDocs'), href: tool.providerDocs } : null,
+            tool.connectionDocs ? { label: t('downloads.connectionDocs'), href: tool.connectionDocs } : null,
             tool.releases ? { label: t('downloads.releases'), href: tool.releases } : null,
           ].filter(Boolean);
 

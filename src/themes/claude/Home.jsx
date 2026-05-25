@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSite, useCurrency } from '../../context/SiteContext';
-import { getSiteModels, getSitePackages, Q } from '../../api';
+import { getSitePackages, Q } from '../../api';
 import { calcOfficialEquivList } from '../../utils/officialEquiv';
 import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import CountUp from '../../components/bits/CountUp';
@@ -11,17 +11,19 @@ import FadeContent from '../../components/bits/FadeContent';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 
 export default function ClaudeHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { site } = useSite();
   const { symbol, rate, fmtCNY } = useCurrency();
-  const [models, setModels] = useState([]);
+  const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
+  const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [packages, setPackages] = useState([]);
 
   useEffect(() => {
-    getSiteModels().then(r => { if (r.data.success) setModels(r.data.data || []); }).catch(() => {});
+    getPublicModelCatalog().then((catalog) => setModels(catalog.models)).catch(() => {});
     getSitePackages().then(r => { if (r.data.success) setPackages(r.data.data || []); }).catch(() => {});
   }, []);
 

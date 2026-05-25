@@ -210,7 +210,7 @@ function MarketBoard({ models, t }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         {[
           { label: 'Catalog', value: `${rows.length}+` },
-          { label: 'Routing', value: 'Auto' },
+          { label: 'Models', value: 'Ready' },
           { label: 'Billing', value: 'Clear' },
         ].map((item) => (
           <div key={item.label} className="rounded-xl border border-stone-200 bg-white p-3">
@@ -235,7 +235,7 @@ function ModelCard({ model, index, compact = false }) {
         <span className={`rounded-md ${accent.soft} px-2 py-1 text-[10px] font-black ${accent.text}`}>LIVE</span>
       </div>
       <p className="mt-4 truncate font-mono text-sm font-black text-stone-950">{model.display_name || model.model_name}</p>
-      {!compact && <p className="mt-2 text-xs font-semibold text-stone-500">provider ready / transparent price</p>}
+      {!compact && <p className="mt-2 text-xs font-semibold text-stone-500">catalog ready / transparent price</p>}
     </div>
   );
 }

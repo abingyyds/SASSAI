@@ -656,11 +656,11 @@ function TokenRow({
                   {t('tokens.supportedModels')} ({modelState?.count || 0})
                 </p>
                 {modelState?.restricted_by_models && <ConsoleBadge tone="brand">{t('tokens.restrictedByModels')}</ConsoleBadge>}
-                {modelState?.restricted_by_providers && <ConsoleBadge tone="brand">{t('tokens.restrictedByProviders')}</ConsoleBadge>}
+                {modelState?.restricted_by_providers && <ConsoleBadge tone="brand">{t('tokens.restrictedBySources')}</ConsoleBadge>}
               </div>
               {modelState?.[providerNamesField]?.length > 0 && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="text-xs text-page-muted">{t('tokens.supportedProviders')}</span>
+                  <span className="text-xs text-page-muted">{t('tokens.supportedSources')}</span>
                   {modelState[providerNamesField].map((name) => (
                     <span key={name} className="rounded-full bg-page-inset px-2 py-0.5 text-[11px] text-page-secondary">
                       {name}
@@ -839,7 +839,7 @@ function GroupPricingModal({
             )}
             {summary?.provider_limited && (
               <span className="px-2.5 py-1 rounded-full text-xs bg-page-surface text-page-secondary">
-                {t('tokens.restrictedByProviders')}
+                {t('tokens.restrictedBySources')}
               </span>
             )}
             {summary?.model_limited && (

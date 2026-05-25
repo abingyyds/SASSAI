@@ -212,13 +212,13 @@ function HeroPanel({ models, siteName }) {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-sm font-black">
                   <Layers3 className="h-4 w-4 text-[#7ac7ff]" />
-                  Smart Route
+                  Smart Model
                 </div>
                 <span className="rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold text-[#f0b8ff]">LIVE</span>
               </div>
               <div className="space-y-2">
                 {preview.slice(0, 4).map((model, index) => (
-                  <RouteRow key={model.id || index} model={model} index={index} />
+                  <ModelChoiceRow key={model.id || index} model={model} index={index} />
                 ))}
               </div>
             </div>
@@ -234,13 +234,13 @@ function HeroPanel({ models, siteName }) {
   );
 }
 
-function RouteRow({ model, index }) {
+function ModelChoiceRow({ model, index }) {
   const active = index === 0;
   return (
     <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${active ? 'border-[#7ac7ff]/30 bg-white/12' : 'border-white/10 bg-white/[0.06]'}`}>
       <span className="min-w-0 truncate font-mono text-xs font-semibold text-slate-100">{model.display_name || model.model_name}</span>
       <span className={active ? 'text-xs font-black text-[#7ac7ff]' : 'text-xs font-semibold text-slate-400'}>
-        {active ? 'BEST' : `R${index + 1}`}
+        {active ? 'BEST' : `M${index + 1}`}
       </span>
     </div>
   );
@@ -271,7 +271,7 @@ function ModelTile({ model, index }) {
         </span>
       </div>
       <p className="truncate font-mono text-sm font-semibold text-[#071337]">{model.display_name || model.model_name}</p>
-      <p className="mt-2 text-xs font-semibold text-slate-500">balanced route pool</p>
+      <p className="mt-2 text-xs font-semibold text-slate-500">public catalog model</p>
     </div>
   );
 }

@@ -4,14 +4,14 @@ import toast from 'react-hot-toast';
 export const Q = 500000; // QuotaPerUnit — single source of truth
 
 const previewModels = [
-  { id: 'preview-1', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', vendor_name: 'OpenAI', input_price: 0.00015, output_price: 0.0006, cache_read_price: 0.000075, cache_creation_price: 0.00015, status: 'healthy', enabled: true },
-  { id: 'preview-2', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', vendor_name: 'Anthropic', input_price: 0.003, output_price: 0.015, cache_read_price: 0.0003, cache_creation_price: 0.00375, cache_creation_price_1h: 0.006, status: 'healthy', enabled: true },
-  { id: 'preview-3', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', vendor_name: 'Google', input_price: 0.00125, output_price: 0.005, cache_read_price: 0.00031, cache_creation_price: 0.00125, status: 'healthy', enabled: true },
-  { id: 'preview-4', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', vendor_name: 'DeepSeek', input_price: 0.00014, output_price: 0.00028, cache_read_price: 0.000014, cache_creation_price: 0.00014, status: 'healthy', enabled: true },
-  { id: 'preview-5', model_name: 'qwen-max', display_name: 'Qwen Max', vendor_name: 'Alibaba Cloud', input_price: 0.0016, output_price: 0.0064, cache_read_price: 0.00016, cache_creation_price: 0.0016, status: 'healthy', enabled: true },
-  { id: 'preview-6', model_name: 'grok-4', display_name: 'Grok 4', vendor_name: 'xAI', input_price: 0.003, output_price: 0.015, cache_read_price: 0.00075, cache_creation_price: 0.003, status: 'healthy', enabled: true },
-  { id: 'preview-7', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', vendor_name: 'Anthropic', input_price: 0.0008, output_price: 0.004, cache_read_price: 0.00008, cache_creation_price: 0.001, cache_creation_price_1h: 0.0016, status: 'healthy', enabled: true },
-  { id: 'preview-8', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', vendor_name: 'OpenAI', input_price: 0.00025, output_price: 0.002, cache_read_price: 0.000025, cache_creation_price: 0.00025, status: 'healthy', enabled: true },
+  { id: 'preview-1', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', input_price: 0.00015, output_price: 0.0006, cache_read_price: 0.000075, cache_creation_price: 0.00015, status: 'healthy', enabled: true },
+  { id: 'preview-2', model_name: 'claude-sonnet-4-5', display_name: 'Claude Sonnet 4.5', input_price: 0.003, output_price: 0.015, cache_read_price: 0.0003, cache_creation_price: 0.00375, cache_creation_price_1h: 0.006, status: 'healthy', enabled: true },
+  { id: 'preview-3', model_name: 'gemini-2.5-pro', display_name: 'Gemini 2.5 Pro', input_price: 0.00125, output_price: 0.005, cache_read_price: 0.00031, cache_creation_price: 0.00125, status: 'healthy', enabled: true },
+  { id: 'preview-4', model_name: 'deepseek-chat', display_name: 'DeepSeek Chat', input_price: 0.00014, output_price: 0.00028, cache_read_price: 0.000014, cache_creation_price: 0.00014, status: 'healthy', enabled: true },
+  { id: 'preview-5', model_name: 'qwen-max', display_name: 'Qwen Max', input_price: 0.0016, output_price: 0.0064, cache_read_price: 0.00016, cache_creation_price: 0.0016, status: 'healthy', enabled: true },
+  { id: 'preview-6', model_name: 'grok-4', display_name: 'Grok 4', input_price: 0.003, output_price: 0.015, cache_read_price: 0.00075, cache_creation_price: 0.003, status: 'healthy', enabled: true },
+  { id: 'preview-7', model_name: 'claude-haiku-4-5', display_name: 'Claude Haiku 4.5', input_price: 0.0008, output_price: 0.004, cache_read_price: 0.00008, cache_creation_price: 0.001, cache_creation_price_1h: 0.0016, status: 'healthy', enabled: true },
+  { id: 'preview-8', model_name: 'gpt-5-mini', display_name: 'GPT-5 Mini', input_price: 0.00025, output_price: 0.002, cache_read_price: 0.000025, cache_creation_price: 0.00025, status: 'healthy', enabled: true },
 ];
 
 const previewMarketplaceModels = previewModels.map((model, index) => ({
@@ -24,57 +24,6 @@ const previewMarketplaceModels = previewModels.map((model, index) => ({
   rating: [4.9, 4.8, 4.7, 4.6, 4.5, 4.4, 4.4, 4.3][index],
   availability: 'online',
 }));
-
-const previewMarketplaceProviders = [
-  {
-    id: 'openai',
-    name: 'OpenAI',
-    company_name: 'OpenAI',
-    verified: true,
-    availability: 'online',
-    rating: 4.9,
-    model_count: 2,
-    subscription_count: 12800,
-    description: 'General purpose chat, multimodal, and generation models.',
-    website: 'https://openai.com',
-  },
-  {
-    id: 'anthropic',
-    name: 'Anthropic',
-    company_name: 'Anthropic',
-    verified: true,
-    availability: 'online',
-    rating: 4.8,
-    model_count: 2,
-    subscription_count: 9400,
-    description: 'Claude models for reasoning, coding, and long-context assistants.',
-    website: 'https://anthropic.com',
-  },
-  {
-    id: 'google',
-    name: 'Google',
-    company_name: 'Google',
-    verified: true,
-    availability: 'online',
-    rating: 4.7,
-    model_count: 1,
-    subscription_count: 7100,
-    description: 'Gemini models for text, vision, and large context workloads.',
-    website: 'https://ai.google.dev',
-  },
-  {
-    id: 'deepseek',
-    name: 'DeepSeek',
-    company_name: 'DeepSeek',
-    verified: true,
-    availability: 'online',
-    rating: 4.6,
-    model_count: 1,
-    subscription_count: 6600,
-    description: 'Cost-efficient chat and reasoning routes.',
-    website: 'https://deepseek.com',
-  },
-];
 
 const previewPackages = [
   {
@@ -94,7 +43,7 @@ const previewPackages = [
   {
     id: 'preview-pro',
     name: 'Scale',
-    description: 'For production teams that need higher throughput, priority routing, and renewal-safe credits.',
+    description: 'For production teams that need higher throughput, priority access, and renewal-safe credits.',
     price: 99,
     original_price: 129,
     currency: 'USD',
@@ -257,12 +206,6 @@ export const getMarketplaceModels = (params = {}) => cachedPublicRequest(
   () => (shouldUseDevMock()
     ? previewResponse(previewMarketplaceModels)
     : api.get('/api/marketplace/models', { params, skipErrorHandler: true })),
-);
-export const getMarketplaceProviders = (params = {}) => cachedPublicRequest(
-  `marketplace-providers:${shouldUseDevMock()}:${stableCacheKey(params)}`,
-  () => (shouldUseDevMock()
-    ? previewResponse(previewMarketplaceProviders)
-    : api.get('/api/marketplace/providers', { params, skipErrorHandler: true })),
 );
 export const getPublicPricing = () => cachedPublicRequest(
   'public-pricing',

@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getTokenSupportedModels } from '../api';
-import { PUBLIC_API_ORIGIN } from '../constants/api';
+import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../constants/api';
 import { useSite } from '../context/SiteContext';
 import {
   CCSWITCH_PRIMARY_DOWNLOAD,
@@ -40,7 +40,7 @@ const CCSWITCH_APPS = [
 const API_ENDPOINTS = [
   {
     id: 'official',
-    url: PUBLIC_API_ORIGIN,
+    url: PUBLIC_API_BASE_URL,
     nameKey: 'config.apiEndpointOfficialName',
     descKey: 'config.apiEndpointOfficialDesc',
   },
@@ -210,7 +210,7 @@ const ConfigExporter = ({ tokens = [] }) => {
       API_ENDPOINTS[0],
     [selectedEndpointId],
   );
-  const apiServerAddress = selectedEndpoint.url;
+  const apiBaseUrl = selectedEndpoint.url;
 
   const selectedToken = useMemo(
     () => tokens.find((token) => token.id === selectedTokenId) || null,
@@ -302,7 +302,7 @@ const ConfigExporter = ({ tokens = [] }) => {
     if (lower.includes('claude')) {
       return {
         family: 'anthropic',
-        baseUrl: `${apiServerAddress}/v1`,
+        baseUrl: apiBaseUrl,
         openclawApi: 'anthropic-messages',
         openclawProviderId: 'subrouter-anthropic',
         opencodeProviderId: 'anthropic',
@@ -310,7 +310,7 @@ const ConfigExporter = ({ tokens = [] }) => {
     }
     return {
       family: 'openai',
-      baseUrl: `${apiServerAddress}/v1`,
+      baseUrl: apiBaseUrl,
       openclawApi: 'openai-completions',
       openclawProviderId: 'openai',
       opencodeProviderId: 'openai',
@@ -318,7 +318,7 @@ const ConfigExporter = ({ tokens = [] }) => {
   };
 
   const getCCSwitchEndpoint = () => {
-    return `${apiServerAddress}/v1`;
+    return apiBaseUrl;
   };
 
   const encodeBase64Utf8 = (value) => {
@@ -471,10 +471,10 @@ requires_openai_auth = true
 
     switch (selectedTool) {
       case 'claudecode':
-        return `{
+    return `{
   "env": {
     "ANTHROPIC_API_KEY": "${apiKey}",
-    "ANTHROPIC_BASE_URL": "${apiServerAddress}/v1",
+    "ANTHROPIC_BASE_URL": "${apiBaseUrl}",
     "ANTHROPIC_MODEL": "${selectedModel}"
   }
 }`;
@@ -497,7 +497,7 @@ cat > "$PROFILE_DIR/config.yaml" <<'YAML'
 model:
   default: ${selectedModel}
   provider: custom
-  base_url: ${apiServerAddress}/v1
+  base_url: ${apiBaseUrl}
   api_key: ${apiKey}
 YAML
 
@@ -567,10 +567,10 @@ echo "Hermes profile exported to ./$PROFILE_NAME.tar.gz"`;
       }
       case 'cursor':
         return `API Key: ${apiKey}
-Base URL: ${apiServerAddress}/v1
+Base URL: ${apiBaseUrl}
 Model: ${selectedModel}`;
       case 'curl':
-        return `curl ${apiServerAddress}/v1/chat/completions \\
+        return `curl ${apiBaseUrl}/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer ${apiKey}" \\
   -d '{
@@ -584,7 +584,7 @@ Model: ${selectedModel}`;
 
 client = OpenAI(
     api_key="${apiKey}",
-    base_url="${apiServerAddress}/v1"
+    base_url="${apiBaseUrl}"
 )
 
 response = client.chat.completions.create(
@@ -600,7 +600,7 @@ print(response.choices[0].message.content)`;
 
 client = anthropic.Anthropic(
     api_key="${apiKey}",
-    base_url="${apiServerAddress}/v1"
+    base_url="${apiBaseUrl}"
 )
 
 message = client.messages.create(
@@ -656,7 +656,7 @@ print(message.content[0].text)`;
     if (selectedTool === 'openclaw' || selectedTool === 'opencode') {
       return preset.baseUrl;
     }
-    return `${apiServerAddress}/v1`;
+    return apiBaseUrl;
   };
 
   const handleCopyValue = async (text, successKey = 'config.copied') => {
@@ -911,7 +911,7 @@ print(message.content[0].text)`;
                   {t('config.apiUrlTitle')}
                 </p>
                 <p className="text-xs text-page-muted mt-1">
-                  {t('config.apiUrlHint')}
+                  {t('config.apiUrlHint', { invalidBaseUrl: INVALID_WEBSITE_API_BASE_URL })}
                 </p>
               </div>
               <button
@@ -943,7 +943,7 @@ print(message.content[0].text)`;
                 <button
                   onClick={() =>
                     handleCopyValue(
-                      `${apiServerAddress}/v1`,
+                      apiBaseUrl,
                       'config.apiUrlCopied',
                     )
                   }
@@ -953,12 +953,12 @@ print(message.content[0].text)`;
                     {t('config.openaiApiUrl')}
                   </div>
                   <code className="block mt-1 text-[11px] text-page-muted break-all">
-                    {apiServerAddress}/v1
+                    {apiBaseUrl}
                   </code>
                 </button>
                 <button
                   onClick={() =>
-                    handleCopyValue(`${apiServerAddress}/v1`, 'config.apiUrlCopied')
+                    handleCopyValue(apiBaseUrl, 'config.apiUrlCopied')
                   }
                   className="rounded-lg border border-page-divider bg-page-inset/40 px-3 py-2 text-left hover:bg-page-surface-hover transition-colors"
                 >
@@ -966,7 +966,7 @@ print(message.content[0].text)`;
                     {t('config.anthropicApiUrl')}
                   </div>
                   <code className="block mt-1 text-[11px] text-page-muted break-all">
-                    {apiServerAddress}/v1
+                    {apiBaseUrl}
                   </code>
                 </button>
               </div>

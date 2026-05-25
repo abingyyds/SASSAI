@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, CheckCircle2, Cpu, KeyRound, LockKeyhole, RadioTower, ShieldCheck, TerminalSquare, Zap } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Cpu, KeyRound, Layers3, LockKeyhole, ShieldCheck, TerminalSquare, Zap } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite, useCurrency } from '../../context/SiteContext';
 import { calcOfficialEquivList } from '../../utils/officialEquiv';
@@ -77,7 +77,7 @@ export default function TerminalHome() {
           {homeContent.heroImage ? (
             <HomeHeroImage src={homeContent.heroImage} alt={site?.name} variant="dark" className="aspect-[4/3]" />
           ) : (
-            <RouteConsole models={previewModels} t={t} />
+            <ModelConsole models={previewModels} t={t} />
           )}
         </FadeContent>
       </section>
@@ -118,7 +118,7 @@ export default function TerminalHome() {
                     <span className="text-[10px] font-black text-emerald-400">READY</span>
                   </div>
                   <p className="truncate text-sm font-bold text-emerald-50">{model.display_name || model.model_name}</p>
-                  <p className="mt-2 text-xs text-emerald-100/45">route.auto=true</p>
+                  <p className="mt-2 text-xs text-emerald-100/45">model.ready=true</p>
                 </div>
               ))}
             </div>
@@ -179,14 +179,14 @@ function SectionTitle({ title, desc }) {
   );
 }
 
-function RouteConsole({ models, t }) {
+function ModelConsole({ models, t }) {
   const rows = models.length ? models : [{ display_name: 'gpt-4o-mini' }, { display_name: 'claude-sonnet' }, { display_name: 'gemini-pro' }];
   return (
     <div className="rounded-xl border border-emerald-400/20 bg-[#030504] shadow-2xl shadow-emerald-950/60">
       <div className="flex items-center justify-between border-b border-emerald-400/15 px-4 py-3 font-mono">
         <div className="flex items-center gap-2 text-xs font-black text-emerald-300">
-          <RadioTower className="h-4 w-4" />
-          subrouter-live
+          <Layers3 className="h-4 w-4" />
+          catalog-live
         </div>
         <span className="text-xs text-emerald-100/45">200 OK</span>
       </div>
@@ -199,9 +199,9 @@ function RouteConsole({ models, t }) {
           <pre className="overflow-hidden rounded-lg border border-emerald-400/10 bg-emerald-400/[0.04] p-4 font-mono text-xs leading-6 text-emerald-100/72">
 {`$ curl ${PUBLIC_API_BASE_URL}/chat/completions
 > model=${rows[0]?.display_name || rows[0]?.model_name}
-> strategy=latency_first
-< routed=true
-< fallback=armed`}
+> response_format=json
+< status=ready
+< choices=1`}
           </pre>
         </div>
         <div className="p-5">

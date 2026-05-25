@@ -11,7 +11,6 @@ const Tokens = lazy(() => import('./pages/Tokens'));
 const Packages = lazy(() => import('./pages/Packages'));
 const Models = lazy(() => import('./pages/Models'));
 const ModelDetail = lazy(() => import('./pages/ModelDetail'));
-const Providers = lazy(() => import('./pages/Providers'));
 const Rankings = lazy(() => import('./pages/Rankings'));
 const Playground = lazy(() => import('./pages/Playground'));
 const DocsQuickstart = lazy(() => import('./pages/DocsQuickstart'));
@@ -40,7 +39,7 @@ function ThemedRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/models" element={<Models />} />
           <Route path="/models/:modelId" element={<ModelDetail />} />
-          <Route path="/providers" element={<Providers />} />
+          <Route path="/providers" element={<Navigate to="/models" replace />} />
           <Route path="/rankings" element={<Rankings />} />
           <Route path="/chat" element={<Playground />} />
           <Route path="/playground" element={<Playground />} />

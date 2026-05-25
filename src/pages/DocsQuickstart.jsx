@@ -26,6 +26,7 @@ import {
   getSupportedModes,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
+import { INVALID_WEBSITE_API_BASE_URL } from '../constants/api';
 
 const navItems = [
   { id: 'api-key', label: 'Get API key' },
@@ -126,7 +127,7 @@ for await (const part of stream) {
               <CopyRow label="Model id" value={chatModelId} />
             </div>
             <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-              The main website domain with a /v1 path is not a valid API base. Use the API subdomain base URL shown above.
+              {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls. Use the API subdomain base URL shown above.
             </p>
           </CossCardFrame>
         )}
@@ -180,7 +181,7 @@ for await (const part of stream) {
                 Use the API subdomain base URL for OpenAI-compatible requests. Do not derive the API base URL from the website origin.
               </p>
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-800">
-                The main website domain with a /v1 path is not a valid API base. Clients must use <code className="font-mono">{baseUrl}</code>.
+                <code className="font-mono">{INVALID_WEBSITE_API_BASE_URL}</code> is invalid for API calls. Clients must use <code className="font-mono">{baseUrl}</code>.
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <CopyRow label="API key" value="sk-your-api-key" />

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getSiteModels, getSitePackages, Q } from '../../api';
+import { getSitePackages, Q } from '../../api';
+import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 
 const previewModels = [
   { id: 'preview-1', model_name: 'gpt-4o-mini', display_name: 'GPT-4o Mini', enabled: true },
@@ -27,7 +28,7 @@ const previewPackages = [
   {
     id: 'preview-pro',
     name: 'Pro Relay',
-    description: 'Built for high-frequency calls, automatic routing, and retry workflows.',
+    description: 'Built for high-frequency calls, stable model access, and retry workflows.',
     price: 99,
     original_price: 149,
     duration: 30,
@@ -54,12 +55,13 @@ const devPreviewTheme =
     : '';
 
 export function useHomeData() {
-  const [models, setModels] = useState(devPreviewTheme ? previewModels : []);
+  const cachedCatalog = useMemo(() => (devPreviewTheme ? null : readPublicModelCatalog()), []);
+  const [models, setModels] = useState(devPreviewTheme ? previewModels : cachedCatalog?.models || []);
   const [packages, setPackages] = useState(devPreviewTheme ? previewPackages : []);
 
   useEffect(() => {
     if (devPreviewTheme) return;
-    getSiteModels().then(r => { if (r.data.success) setModels(r.data.data || []); }).catch(() => {});
+    getPublicModelCatalog().then((catalog) => setModels(catalog.models)).catch(() => {});
     getSitePackages().then(r => { if (r.data.success) setPackages(r.data.data || []); }).catch(() => {});
   }, []);
 

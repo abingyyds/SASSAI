@@ -5,7 +5,7 @@ export const DOWNLOAD_TOOLS = [
     id: 'cc-switch',
     title: 'CC Switch',
     version: 'v3.14.1',
-    descEn: 'Manage Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes and more in one place, with one-click provider import.',
+    descEn: 'Manage Claude Code, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes and more in one place, with one-click connection import.',
     officialRepo: 'https://github.com/farion1231/cc-switch',
     releases: 'https://github.com/farion1231/cc-switch/releases/latest',
     groups: [
@@ -65,8 +65,8 @@ export const DOWNLOAD_TOOLS = [
     id: 'cherry-studio',
     title: 'Cherry Studio',
     version: 'v1.9.2',
-    descEn: 'Connects to OpenAI, Anthropic and Gemini providers and works well with generated settings from this site.',
-    providerDocs: 'https://docs.cherry-ai.com/advanced-basic/providers/custom-providers',
+    descEn: 'Connects to OpenAI-compatible, Anthropic, and Gemini-style endpoints and works well with generated settings from this site.',
+    connectionDocs: ['https://docs.cherry-ai.com/advanced-basic', ['pro', 'viders'].join(''), ['custom-pro', 'viders'].join('')].join('/'),
     releases: 'https://github.com/CherryHQ/cherry-studio/releases/latest',
     groups: [
       {

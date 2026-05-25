@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { PUBLIC_API_BASE_URL } from '../constants/api';
+import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../constants/api';
 
 const SHARED_API_ENDPOINTS = [
   {
@@ -54,7 +54,7 @@ export default function ApiEndpoints() {
               {t('home.apiEndpointsTitle')}
             </p>
             <p className="mt-1 text-xs text-page-muted">
-              {t('home.apiEndpointsDesc')}
+              {t('home.apiEndpointsDesc', { invalidBaseUrl: INVALID_WEBSITE_API_BASE_URL })}
             </p>
           </div>
           <span className="text-[11px] text-page-muted">

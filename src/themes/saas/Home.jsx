@@ -15,7 +15,6 @@ import {
   Layers3,
   LineChart,
   Play,
-  Route,
   Server,
   ShieldCheck,
   Sparkles,
@@ -36,7 +35,7 @@ import {
   CossTableFrame,
   CossTabs,
 } from '../../components/public/CossLayout';
-import { PUBLIC_API_BASE_URL } from '../../constants/api';
+import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../../constants/api';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 import {
   buildCurlSnippet,
@@ -497,7 +496,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
               <p className="text-xs font-medium text-slate-400">Model selector</p>
               <p className="mt-1 text-sm font-semibold text-white">Public catalog choices</p>
             </div>
-            <Route size={18} className="text-cyan-200" />
+            <Layers3 size={18} className="text-cyan-200" />
           </div>
           <div className="space-y-2">
             {rows.map((model, index) => (
@@ -905,7 +904,7 @@ function ApiBasePanel({ baseUrl }) {
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-950">API base URL</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            Use the API host below. The website domain with /v1 is not a valid API base.
+            Use the API host below. {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.
           </p>
         </div>
         <CopyButton text={baseUrl} className="shrink-0" />

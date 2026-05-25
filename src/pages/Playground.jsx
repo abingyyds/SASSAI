@@ -30,6 +30,7 @@ import {
   readPublicModelCatalog,
   SUBROUTER_API_BASE_URL,
 } from '../utils/publicCatalog';
+import { INVALID_WEBSITE_API_BASE_URL } from '../constants/api';
 import {
   getModelCategory,
   getModelDisplayName,
@@ -169,8 +170,8 @@ export default function Playground() {
   return (
     <ConsolePage className="overflow-x-hidden">
       <ConsoleHero
-        eyebrow="Request builder"
-        title="Test requests"
+        eyebrow="Playground"
+        title="Playground"
         subtitle="Compose chat, image, video, or audio requests for the selected model and copy them to run with an API key."
         actions={[
           <Link key="docs" to="/docs/quickstart" className="btn-secondary inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 py-2.5 sm:w-auto">
@@ -251,7 +252,7 @@ export default function Playground() {
                     <Bot size={17} />
                   </div>
                   <div className="min-w-0 max-w-3xl rounded-xl border border-page-divider bg-page-surface/50 p-3 text-sm leading-6 text-page-secondary sm:p-4">
-                    <p className="font-semibold text-page">Request builder mode</p>
+                    <p className="font-semibold text-page">Playground mode</p>
                     <p className="mt-1">
                       {getModeDescription(activeMode)} Browser execution is disabled because this frontend does not expose a session-safe inference endpoint. Use an API key and copy a request.
                     </p>
@@ -280,6 +281,7 @@ export default function Playground() {
                   <div className="min-w-0">
                     <p className="break-all font-mono text-xs text-page-muted">{request.endpoint}</p>
                     <p className="mt-1 text-xs text-page-muted">Requires Authorization: Bearer $SUBROUTER_API_KEY</p>
+                    <p className="mt-1 text-xs text-amber-700">Use {baseUrl}; {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.</p>
                   </div>
                   <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
                     <CopyButton text={request.curl} label="Copy cURL" className="min-h-11 w-full px-4 text-sm sm:w-auto" />

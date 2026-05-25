@@ -20,6 +20,7 @@ import {
   readPublicModelCatalog,
   SUBROUTER_API_BASE_URL,
 } from '../utils/publicCatalog';
+import { INVALID_WEBSITE_API_BASE_URL } from '../constants/api';
 import {
   buildCurlSnippet,
   buildJsSnippet,
@@ -156,7 +157,7 @@ export default function ModelDetail() {
                 <MetaRow label="Model ID" value={id} copy />
               </dl>
               <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                Use the API subdomain for requests. The main website domain with a /v1 path is not a valid API base.
+                Use the API subdomain for requests. {INVALID_WEBSITE_API_BASE_URL} is invalid for API calls.
               </p>
             </CossCardFrame>
           </div>

@@ -8,7 +8,6 @@ import {
   Gauge,
   KeyRound,
   Layers3,
-  Route,
   ShieldCheck,
   Sparkles,
   WalletCards,
@@ -203,8 +202,8 @@ function RoutingWorkbench({ models, t }) {
   ];
   const rows = [
     { label: 'latency', value: '42ms', tone: 'text-blue-200' },
-    { label: 'fallback', value: 'armed', tone: 'text-teal-200' },
-    { label: 'providers', value: `${preview.length}+`, tone: 'text-slate-100' },
+    { label: 'catalog', value: 'ready', tone: 'text-teal-200' },
+    { label: 'models', value: `${preview.length}+`, tone: 'text-slate-100' },
   ];
 
   return (
@@ -213,11 +212,11 @@ function RoutingWorkbench({ models, t }) {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-slate-950">
-              <Route className="h-5 w-5" />
+              <Layers3 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-sm font-black">Routing Workbench</p>
-              <p className="mt-1 text-xs font-medium text-slate-400">live model orchestration</p>
+              <p className="text-sm font-black">Model Playground</p>
+              <p className="mt-1 text-xs font-medium text-slate-400">public catalog workspace</p>
             </div>
           </div>
           <span className="w-fit rounded-md bg-teal-400/15 px-2.5 py-1 text-xs font-black text-teal-200 ring-1 ring-teal-300/20">HEALTHY</span>
@@ -236,9 +235,9 @@ function RoutingWorkbench({ models, t }) {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
               <Layers3 className="h-4 w-4 text-blue-300" />
-              route decision
+              model choice
             </div>
-            <span className="font-mono text-xs text-slate-500">POST {PUBLIC_API_BASE_URL}/chat</span>
+            <span className="font-mono text-xs text-slate-500">POST {PUBLIC_API_BASE_URL}/chat/completions</span>
           </div>
 
           <div className="space-y-3">
@@ -271,8 +270,8 @@ function RoutingWorkbench({ models, t }) {
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-400">policy</p>
-          <p className="mt-2 text-sm font-black text-slate-950">best price + low latency</p>
-          <p className="mt-2 text-xs leading-5 text-slate-500">fallback enabled across healthy providers</p>
+          <p className="mt-2 text-sm font-black text-slate-950">price + latency context</p>
+          <p className="mt-2 text-xs leading-5 text-slate-500">choose a listed model for your workload</p>
         </div>
       </div>
     </div>
@@ -309,7 +308,7 @@ function ModelTile({ model, index }) {
         </span>
       </div>
       <p className="truncate font-mono text-sm font-semibold text-slate-900">{model.display_name || model.model_name}</p>
-      <p className="mt-2 text-xs font-semibold text-slate-500">balanced route pool</p>
+      <p className="mt-2 text-xs font-semibold text-slate-500">public catalog model</p>
     </div>
   );
 }
