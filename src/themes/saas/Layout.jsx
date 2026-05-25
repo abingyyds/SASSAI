@@ -18,6 +18,7 @@ import {
   PackageCheck,
   Settings2,
   Trophy,
+  UserCircle,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -32,11 +33,15 @@ export default function SaasLayout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [consoleMenuOpen, setConsoleMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const closeConsoleTimer = useRef(null);
+  const closeAccountTimer = useRef(null);
 
   const siteName = site?.name || 'AstraLayer';
   const isAdmin = user?.is_admin || user?.role === 'admin';
-  const displayName = user?.display_name || user?.username;
+  const displayName = user?.display_name || user?.username || user?.email;
+  const accountPrimary = user?.email || displayName || 'Account';
+  const accountSecondary = displayName && displayName !== accountPrimary ? displayName : 'Account';
   const consolePath = user ? '/dashboard' : '/login';
   const publicNavItems = [
     { to: '/', label: 'Home', icon: Home, exact: true },
@@ -79,6 +84,7 @@ export default function SaasLayout() {
   const closeMenus = () => {
     setMobileMenuOpen(false);
     setConsoleMenuOpen(false);
+    setAccountMenuOpen(false);
   };
 
   const cancelConsoleClose = () => {
@@ -90,6 +96,7 @@ export default function SaasLayout() {
 
   const openConsoleMenu = () => {
     cancelConsoleClose();
+    setAccountMenuOpen(false);
     setConsoleMenuOpen(true);
   };
 
@@ -98,6 +105,27 @@ export default function SaasLayout() {
     closeConsoleTimer.current = setTimeout(() => {
       setConsoleMenuOpen(false);
       closeConsoleTimer.current = null;
+    }, 180);
+  };
+
+  const cancelAccountClose = () => {
+    if (closeAccountTimer.current) {
+      clearTimeout(closeAccountTimer.current);
+      closeAccountTimer.current = null;
+    }
+  };
+
+  const openAccountMenu = () => {
+    cancelAccountClose();
+    setConsoleMenuOpen(false);
+    setAccountMenuOpen(true);
+  };
+
+  const scheduleAccountClose = () => {
+    cancelAccountClose();
+    closeAccountTimer.current = setTimeout(() => {
+      setAccountMenuOpen(false);
+      closeAccountTimer.current = null;
     }, 180);
   };
 
@@ -110,9 +138,13 @@ export default function SaasLayout() {
   useEffect(() => {
     setMobileMenuOpen(false);
     setConsoleMenuOpen(false);
+    setAccountMenuOpen(false);
   }, [location.pathname]);
 
-  useEffect(() => () => cancelConsoleClose(), []);
+  useEffect(() => () => {
+    cancelConsoleClose();
+    cancelAccountClose();
+  }, []);
 
   return (
     <div className="theme-saas min-h-screen bg-[#fbfcff] text-slate-950">
@@ -188,12 +220,6 @@ export default function SaasLayout() {
 
               {consoleMenuOpen && (
                 <div className="absolute left-0 top-full z-50 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
-                  {user && (
-                    <div className="border-b border-slate-100 px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-slate-950">{displayName}</p>
-                      <p className="text-xs text-slate-500">Account</p>
-                    </div>
-                  )}
                   {consoleMenuItems.map((item) => {
                     const { label, icon: Icon } = item;
                     return (
@@ -212,17 +238,6 @@ export default function SaasLayout() {
                       </Link>
                     );
                   })}
-                  {user && (
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={handleLogout}
-                      className="mt-2 flex w-full items-center gap-3 rounded-lg border-t border-slate-100 px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-                    >
-                      <LogOut size={16} />
-                      {t('nav.logout')}
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -231,8 +246,50 @@ export default function SaasLayout() {
           <div className="flex items-center gap-2">
             <LanguageSwitch className="text-slate-500 hover:bg-slate-100 hover:text-slate-900" />
             {user ? (
-              <div className="hidden max-w-[210px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 sm:flex">
-                <span className="truncate">{displayName}</span>
+              <div
+                className="relative hidden py-2 sm:block"
+                onMouseEnter={openAccountMenu}
+                onMouseLeave={scheduleAccountClose}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setAccountMenuOpen(false);
+                  }
+                }}
+              >
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={accountMenuOpen}
+                  onFocus={openAccountMenu}
+                  onClick={openAccountMenu}
+                  className={`inline-flex max-w-[230px] items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    accountMenuOpen
+                      ? 'bg-slate-100 text-slate-950'
+                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                  }`}
+                >
+                  <UserCircle size={16} className="shrink-0" />
+                  <span className="truncate">{accountPrimary}</span>
+                  <ChevronDown size={14} className={`shrink-0 transition-transform ${accountMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {accountMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 w-64 rounded-xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-950/10" role="menu">
+                    <div className="border-b border-slate-100 px-3 py-2">
+                      <p className="truncate text-sm font-semibold text-slate-950">{accountPrimary}</p>
+                      <p className="truncate text-xs text-slate-500">{accountSecondary}</p>
+                    </div>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleLogout}
+                      className="mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+                    >
+                      <LogOut size={16} />
+                      {t('nav.logout')}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
@@ -313,8 +370,8 @@ export default function SaasLayout() {
               {user && (
                 <div className="mt-2 border-t border-slate-100 pt-3">
                   <div className="px-3 pb-1">
-                    <p className="truncate text-sm font-semibold text-slate-950">{displayName}</p>
-                    <p className="text-xs text-slate-500">Account</p>
+                    <p className="truncate text-sm font-semibold text-slate-950">{accountPrimary}</p>
+                    <p className="truncate text-xs text-slate-500">{accountSecondary}</p>
                   </div>
                   <div className="grid gap-1 pl-3">
                     <button
@@ -371,16 +428,6 @@ export default function SaasLayout() {
                     );
                   })}
                 </nav>
-                {user && (
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="mt-2 flex w-full items-center gap-3 rounded-xl border-t border-slate-100 px-3 py-2.5 text-left text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-                  >
-                    <LogOut size={16} />
-                    {t('nav.logout')}
-                  </button>
-                )}
               </div>
             </aside>
             <div className="min-w-0">
