@@ -19,6 +19,19 @@ import {
 } from '../components/ConsoleSurface';
 
 const adminTokenKey = 'site_saas_admin_token';
+const invalidTokenMessage = 'Invalid site admin token. Enter the current SITE_ADMIN_TOKEN from the site backend and reconnect.';
+
+function fallbackPackagesFromState(data) {
+  const packageIds = new Set([
+    ...Object.keys(data?.config?.package_mappings || {}),
+    ...(data?.code_stats || []).map((stat) => stat.package_id).filter(Boolean),
+  ]);
+  return [...packageIds].map((id) => ({
+    id,
+    name: id,
+    enabled: true,
+  }));
+}
 
 function emptyConfig() {
   return {
@@ -33,6 +46,7 @@ function emptyConfig() {
 
 export default function SaasAdmin() {
   const [token, setToken] = useState(() => localStorage.getItem(adminTokenKey) || '');
+  const [accessError, setAccessError] = useState('');
   const [state, setState] = useState(null);
   const [packages, setPackages] = useState([]);
   const [config, setConfig] = useState(emptyConfig());
@@ -57,15 +71,34 @@ export default function SaasAdmin() {
     }
   };
 
-  const loadState = async () => {
+  const loadState = async (nextToken = token) => {
     setLoading(true);
-    localStorage.setItem(adminTokenKey, token);
-    const res = await getSiteSaasAdminState(token).catch((error) => {
-      toast.error(error.response?.data?.message || 'Unable to load SaaS admin state');
+    setAccessError('');
+    const adminToken = String(nextToken || '').trim();
+    if (adminToken) {
+      localStorage.setItem(adminTokenKey, adminToken);
+    } else {
+      localStorage.removeItem(adminTokenKey);
+    }
+    setToken(adminToken);
+
+    const res = await getSiteSaasAdminState(adminToken).catch((error) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem(adminTokenKey);
+        setToken('');
+        setAccessError(invalidTokenMessage);
+        setState(null);
+        toast.error(invalidTokenMessage);
+        return null;
+      }
+      const message = error.response?.data?.message || 'Unable to load SaaS admin state';
+      setAccessError(message);
+      toast.error(message);
       return null;
     });
     if (res?.data?.success) {
       const data = res.data.data;
+      setAccessError('');
       setState(data);
       setConfig((current) => ({
         ...current,
@@ -74,6 +107,7 @@ export default function SaasAdmin() {
         subrouter_base_url: data.config?.subrouter_base_url || current.subrouter_base_url,
       }));
       setMappings(data.config?.package_mappings || {});
+      setPackages((current) => (current.length ? current : fallbackPackagesFromState(data)));
     }
     setLoading(false);
   };
@@ -98,6 +132,7 @@ export default function SaasAdmin() {
 
   const handleSaveConfig = async () => {
     setSaving(true);
+    const adminToken = token.trim();
     const payload = {
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
@@ -108,7 +143,7 @@ export default function SaasAdmin() {
     if (config.creem_webhook_secret.trim()) payload.creem_webhook_secret = config.creem_webhook_secret.trim();
     if (config.subrouter_internal_token.trim()) payload.subrouter_internal_token = config.subrouter_internal_token.trim();
 
-    const res = await updateSiteSaasAdminConfig(token, payload).catch((error) => {
+    const res = await updateSiteSaasAdminConfig(adminToken, payload).catch((error) => {
       toast.error(error.response?.data?.message || 'Failed to save SaaS config');
       return null;
     });
@@ -121,6 +156,7 @@ export default function SaasAdmin() {
         subrouter_internal_token: '',
       }));
       setState(res.data.data);
+      setPackages((current) => (current.length ? current : fallbackPackagesFromState(res.data.data)));
     }
     setSaving(false);
   };
@@ -131,7 +167,8 @@ export default function SaasAdmin() {
       return;
     }
     setImporting(true);
-    const res = await importSiteSaasCodes(token, {
+    const adminToken = token.trim();
+    const res = await importSiteSaasCodes(adminToken, {
       package_id: selectedPackage,
       codes: codesInput,
     }).catch((error) => {
@@ -142,6 +179,7 @@ export default function SaasAdmin() {
       toast.success(`Imported ${res.data.data.imported} new codes`);
       setCodesInput('');
       setState(res.data.data.state);
+      setPackages((current) => (current.length ? current : fallbackPackagesFromState(res.data.data.state)));
     }
     setImporting(false);
   };
@@ -156,7 +194,7 @@ export default function SaasAdmin() {
           <button
             key="refresh"
             type="button"
-            onClick={loadState}
+            onClick={() => loadState()}
             disabled={loading}
             className="btn-secondary inline-flex items-center justify-center gap-2 px-4 py-2.5"
           >
@@ -183,10 +221,15 @@ export default function SaasAdmin() {
               placeholder="SITE_ADMIN_TOKEN"
             />
           </div>
-          <button type="button" onClick={loadState} className="btn-primary inline-flex items-center justify-center px-4 py-2.5">
-            Connect
+          <button type="button" onClick={() => loadState()} disabled={loading} className="btn-primary inline-flex items-center justify-center px-4 py-2.5 disabled:opacity-60">
+            {loading ? 'Connecting...' : 'Connect'}
           </button>
         </div>
+        {accessError && (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+            {accessError}
+          </p>
+        )}
       </ConsoleSection>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
@@ -209,7 +252,7 @@ export default function SaasAdmin() {
               </div>
               <div className="overflow-hidden rounded-xl border border-page-divider">
                 {enabledPackages.length === 0 ? (
-                  <p className="p-4 text-sm text-page-muted">No SubRouter packages loaded.</p>
+                  <p className="p-4 text-sm text-page-muted">No SubRouter packages loaded. Add package mappings after the public package API is available.</p>
                 ) : (
                   enabledPackages.map((pkg) => (
                     <div key={pkg.id} className="grid gap-3 border-b border-page-divider p-4 last:border-0 md:grid-cols-[1fr_1.2fr] md:items-center">
@@ -246,9 +289,13 @@ export default function SaasAdmin() {
           <div className="p-4 sm:p-5">
             <ConsoleField label="Target package">
               <select value={selectedPackage} onChange={(event) => setSelectedPackage(event.target.value)} className="input">
-                {enabledPackages.map((pkg) => (
-                  <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.id})</option>
-                ))}
+                {enabledPackages.length === 0 ? (
+                  <option value="">No packages loaded</option>
+                ) : (
+                  enabledPackages.map((pkg) => (
+                    <option key={pkg.id} value={pkg.id}>{pkg.name} ({pkg.id})</option>
+                  ))
+                )}
               </select>
             </ConsoleField>
             <ConsoleField label="Activation codes" className="mt-4">

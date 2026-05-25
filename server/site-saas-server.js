@@ -68,13 +68,13 @@ function getConfig(store) {
 }
 
 function adminToken() {
-  return process.env.SITE_ADMIN_TOKEN || '';
+  return String(process.env.SITE_ADMIN_TOKEN || '').trim();
 }
 
 function requireAdmin(req) {
   const token = adminToken();
   if (!token) return true;
-  const got = req.headers['x-site-admin-token'] || req.headers.authorization?.replace(/^Bearer\s+/i, '');
+  const got = String(req.headers['x-site-admin-token'] || req.headers.authorization?.replace(/^Bearer\s+/i, '') || '').trim();
   return got === token;
 }
 

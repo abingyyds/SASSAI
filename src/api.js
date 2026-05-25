@@ -311,10 +311,12 @@ export const getSiteSaasAdminState = (token) =>
   });
 export const updateSiteSaasAdminConfig = (token, data) =>
   api.put('/api/site/admin/saas/config', data, {
+    skipErrorHandler: true,
     headers: { 'X-Site-Admin-Token': token },
   });
 export const importSiteSaasCodes = (token, data) =>
   api.post('/api/site/admin/saas/codes/import', data, {
+    skipErrorHandler: true,
     headers: { 'X-Site-Admin-Token': token },
   });
 
