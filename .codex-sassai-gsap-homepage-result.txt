@@ -1,0 +1,23 @@
+Implemented the SaaS homepage redesign in [Home.jsx](/Users/minihanshi/project/SASSAI/src/themes/saas/Home.jsx:1) and wrote the required summary at [.codex-sassai-gsap-homepage-result.txt](/Users/minihanshi/project/SASSAI/.codex-sassai-gsap-homepage-result.txt:1).
+
+Key points:
+- Premium enterprise LLM gateway hero, command-center visual, model marketplace, quickstart, official pricing, API keys, usage/observability-oriented copy.
+- Homepage API base is pinned to `https://api.subrouter.com/v1`.
+- Existing model catalog/pricing helpers and Playground/model-detail links are preserved.
+- Scoped GSAP runtime enhancement uses a homepage ref, `gsap.context()`, timeline labels/stagger, transform/opacity only, reduced-motion handling, and cleanup.
+- `npm install gsap @gsap/react` failed because the sandbox could not resolve `registry.npmjs.org`, so package files were not changed; the page loads GSAP from CDN at runtime and remains usable if unavailable.
+
+Verification:
+- `npm run build` passed.
+- Homepage scan found no merchant/provider/routing public copy.
+- API scan found no website-origin `/v1` API base pattern; `https://api.subrouter.com/v1` appears.
+
+`git diff --stat` currently also includes pre-existing unrelated changes:
+```text
+src/pages/Playground.jsx | 544 ++++++++++++++++++++++++++++++++++++++++++++---
+src/themes/saas/Home.jsx | 242 +++++++++++++++------
+vite.config.js           |   5 +
+3 files changed, 700 insertions(+), 91 deletions(-)
+```
+
+I did not commit or push.

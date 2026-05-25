@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Activity,
@@ -35,7 +35,7 @@ import {
   CossTableFrame,
   CossTabs,
 } from '../../components/public/CossLayout';
-import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../../constants/api';
+import { INVALID_WEBSITE_API_BASE_URL } from '../../constants/api';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 import {
   buildCurlSnippet,
@@ -67,7 +67,110 @@ const snippetTabs = [
   { key: 'python', label: 'Python' },
 ];
 
+const HOMEPAGE_API_BASE_URL = 'https://api.subrouter.com/v1';
+const GSAP_CDN_URL = 'https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js';
+const GSAP_SCRIPT_ID = 'sassai-home-gsap';
+
+function useHomeMotion(scopeRef) {
+  useEffect(() => {
+    const scope = scopeRef.current;
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !scope) {
+      return undefined;
+    }
+
+    let context;
+    let observer;
+    let cancelled = false;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    const getGsap = () => {
+      if (window.gsap) return Promise.resolve(window.gsap);
+
+      const existingScript = document.getElementById(GSAP_SCRIPT_ID);
+      if (existingScript) {
+        return new Promise((resolve, reject) => {
+          existingScript.addEventListener('load', () => resolve(window.gsap), { once: true });
+          existingScript.addEventListener('error', reject, { once: true });
+        });
+      }
+
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.id = GSAP_SCRIPT_ID;
+        script.src = GSAP_CDN_URL;
+        script.async = true;
+        script.onload = () => resolve(window.gsap);
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    };
+
+    const runMotion = (gsap) => {
+      if (cancelled || !gsap?.context) return;
+
+      context = gsap.context(() => {
+        const select = gsap.utils.selector(scope);
+        const heroItems = select('[data-home-reveal="hero"]');
+        const heroPanel = scope.querySelector('[data-home-panel]');
+        const stats = select('[data-home-reveal="stats"] > *');
+        const sections = select('[data-home-reveal="section"]');
+        const animated = [...heroItems, heroPanel, ...stats, ...sections].filter(Boolean);
+
+        gsap.set(animated, { willChange: 'transform, opacity' });
+
+        if (reduceMotion) {
+          gsap.set(animated, { autoAlpha: 1, y: 0, scale: 1, clearProps: 'willChange' });
+          return;
+        }
+
+        const intro = gsap.timeline({
+          defaults: { duration: 0.68, ease: 'power3.out' },
+        });
+
+        intro
+          .addLabel('intro', 0)
+          .from(heroItems, { autoAlpha: 0, y: 24, stagger: 0.07 }, 'intro')
+          .from(heroPanel, { autoAlpha: 0, y: 30, scale: 0.98 }, 'intro+=0.12')
+          .from(stats, { autoAlpha: 0, y: 16, stagger: 0.06 }, 'intro+=0.28');
+
+        if (!('IntersectionObserver' in window)) {
+          gsap.set(sections, { autoAlpha: 1, y: 0, clearProps: 'willChange' });
+          return;
+        }
+
+        gsap.set(sections, { autoAlpha: 0, y: 26 });
+        observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            observer.unobserve(entry.target);
+            gsap.to(entry.target, {
+              autoAlpha: 1,
+              y: 0,
+              duration: 0.7,
+              ease: 'power3.out',
+              clearProps: 'willChange',
+            });
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -12% 0px' });
+
+        sections.forEach((section) => observer.observe(section));
+      }, scope);
+    };
+
+    getGsap().then(runMotion).catch(() => {
+      scope.setAttribute('data-gsap-unavailable', 'true');
+    });
+
+    return () => {
+      cancelled = true;
+      observer?.disconnect();
+      context?.revert();
+    };
+  }, [scopeRef]);
+}
+
 export default function SaasHome() {
+  const homeRef = useRef(null);
   const { user } = useAuth();
   const { site } = useSite();
   const { fmtPlanPrice } = useCurrency();
@@ -77,7 +180,9 @@ export default function SaasHome() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSnippet, setActiveSnippet] = useState('curl');
   const siteName = site?.name || 'SubRouter';
-  const baseUrl = PUBLIC_API_BASE_URL;
+  const baseUrl = HOMEPAGE_API_BASE_URL;
+
+  useHomeMotion(homeRef);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,35 +235,35 @@ export default function SaasHome() {
   ], [categoryGroups, displayModels.length, enabledModels.length]);
 
   const heroStats = [
-    { label: 'Public models', value: `${enabledModels.length || 50}+`, detail: 'searchable catalog' },
-    { label: 'Capability groups', value: `${categoryGroups.length || 6}+`, detail: 'organized by use case' },
-    { label: 'Plan credits', value: totalCredits > 0 ? `$${formatCompactNumber(totalCredits)}` : 'API', detail: 'existing package flow' },
+    { label: 'Public models', value: `${enabledModels.length || 50}+`, detail: 'catalog ready' },
+    { label: 'Capability groups', value: `${categoryGroups.length || 6}+`, detail: 'use-case filters' },
+    { label: 'Plan credits', value: totalCredits > 0 ? `$${formatCompactNumber(totalCredits)}` : 'API', detail: 'account controlled' },
   ];
 
   const valueCards = [
     {
       icon: Database,
       tone: 'cyan',
-      title: 'Catalog first',
-      text: 'Browse public model ids, availability, capability tags, and official pricing before choosing a production default.',
+      title: 'Model marketplace',
+      text: 'Search public model ids, availability, capability tags, and fit signals before choosing a production default.',
     },
     {
       icon: ShieldCheck,
       tone: 'emerald',
-      title: 'Stable access',
-      text: 'API keys, model ids, and the OpenAI-compatible base URL stay predictable from prototype to launch.',
+      title: 'Enterprise access',
+      text: 'API keys, account controls, and the OpenAI-compatible base URL stay predictable from prototype to launch.',
     },
     {
       icon: Code2,
       tone: 'slate',
-      title: 'SDK friendly',
-      text: `Use existing OpenAI-style clients by setting the base URL to ${baseUrl}.`,
+      title: 'Drop-in integration',
+      text: `Keep existing OpenAI-style clients and set the base URL to ${baseUrl}.`,
     },
     {
       icon: Gauge,
       tone: 'amber',
-      title: 'Price aware',
-      text: 'Compare input, output, cache, and per-call economics through the existing official pricing helpers.',
+      title: 'Official pricing',
+      text: 'Compare input, output, cache, and per-call economics using the public pricing surface already used across the app.',
     },
   ];
 
@@ -171,36 +276,37 @@ export default function SaasHome() {
   const activeSnippetConfig = snippetTabs.find((item) => item.key === activeSnippet) || snippetTabs[0];
 
   return (
-    <div className="coss-page overflow-hidden">
+    <div ref={homeRef} className="coss-page overflow-hidden">
       <HomeMotionStyles />
 
       <section className="relative overflow-hidden border-b border-slate-200/80 bg-white">
         <div className="saas-home-ambient absolute inset-0" />
         <div className="saas-home-hero-grid absolute inset-0 opacity-80" />
+        <div className="saas-home-noise absolute inset-0 opacity-[0.13]" />
         <CossSection className="relative py-10 sm:py-14 lg:py-16">
           <div className="grid gap-8 lg:grid-cols-[minmax(0,0.96fr)_minmax(390px,0.78fr)] lg:items-center">
             <div className="min-w-0">
-              <div className="coss-chip mb-5">
+              <div data-home-reveal="hero" className="coss-chip mb-5">
                 <Sparkles size={15} />
-                AI model marketplace and gateway
+                {siteName} model gateway
               </div>
-              <h1 className="max-w-3xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-                {siteName}
+              <h1 data-home-reveal="hero" className="max-w-4xl text-4xl font-semibold tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
+                One enterprise-grade OpenAI-compatible gateway for production LLM apps.
               </h1>
-              <p className="mt-5 max-w-3xl text-xl leading-8 text-slate-700 sm:text-2xl sm:leading-9">
-                Compare public models, create API keys, and ship AI features through one OpenAI-compatible endpoint.
+              <p data-home-reveal="hero" className="mt-5 max-w-3xl text-xl leading-8 text-slate-700 sm:text-2xl sm:leading-9">
+                Discover models, compare official prices, issue API keys, and ship through a single stable endpoint built for teams moving AI workloads into production.
               </p>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
-                SubRouter keeps the public catalog, official pricing, and developer quickstart close together so teams can move from model discovery to production calls without changing their integration shape.
+              <p data-home-reveal="hero" className="mt-4 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                {siteName} brings model discovery, developer credentials, usage visibility, and SDK-compatible requests into one business-grade control plane.
               </p>
 
-              <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
+              <div data-home-reveal="hero" className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
                 <Link
                   to={user ? '/tokens' : '/register'}
                   className="coss-button-primary w-full px-5 py-3 sm:w-auto"
                 >
                   <KeyRound size={17} />
-                  Get API key
+                  Start building / Get API key
                 </Link>
                 <Link
                   to="/models"
@@ -218,17 +324,20 @@ export default function SaasHome() {
                 </Link>
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-2">
+              <div data-home-reveal="hero" className="mt-6 flex flex-wrap items-center gap-2">
                 <TrustBadge label="OpenAI-compatible" />
-                <TrustBadge label="Official pricing" />
+                <TrustBadge label="Official USD pricing" />
+                <TrustBadge label="Usage visibility" />
                 <TrustBadge label={`Base URL: ${baseUrl}`} wide />
               </div>
             </div>
 
-            <HeroGatewayPanel models={routeModels} baseUrl={baseUrl} totalModels={enabledModels.length} />
+            <div data-home-panel>
+              <HeroGatewayPanel models={routeModels} baseUrl={baseUrl} totalModels={enabledModels.length} />
+            </div>
           </div>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+          <div data-home-reveal="stats" className="mt-8 grid gap-3 sm:grid-cols-3">
             {heroStats.map((stat) => (
               <CossStat key={stat.label} label={stat.label} value={stat.value} detail={stat.detail} />
             ))}
@@ -236,19 +345,19 @@ export default function SaasHome() {
         </CossSection>
       </section>
 
-      <CossSection className="pt-7">
+      <CossSection className="pt-7" data-home-reveal="section">
         <div className="grid gap-4 md:grid-cols-3">
           <EndpointCard title="API base URL" value={baseUrl} icon={Server} copyText={baseUrl} />
           <EndpointCard title="Chat completions" value={`${baseUrl}/chat/completions`} icon={TerminalSquare} copyText={`${baseUrl}/chat/completions`} />
-          <EndpointCard title="Model catalog" value="/models" icon={Boxes} link="/models" />
+          <EndpointCard title="Model marketplace" value="/models" icon={Boxes} link="/models" />
         </div>
       </CossSection>
 
-      <CossSection>
+      <CossSection data-home-reveal="section">
         <SectionHeader
-          eyebrow="Featured models"
-          title="A model card should answer the launch question fast."
-          text="Each card surfaces status, public capability, official pricing, and a direct Playground path without exposing private platform internals."
+          eyebrow="Model marketplace"
+          title="Choose production models with price and capability context."
+          text="Every public card keeps the decision surface focused on model id, availability, use case, official pricing, and a direct Playground path."
           action={{ to: '/models', label: 'View model catalog' }}
         />
 
@@ -272,15 +381,15 @@ export default function SaasHome() {
         </div>
       </CossSection>
 
-      <CossSection>
+      <CossSection data-home-reveal="section">
         <GatewayFlowVisual models={routeModels} baseUrl={baseUrl} />
       </CossSection>
 
-      <CossSection>
+      <CossSection data-home-reveal="section">
         <SectionHeader
-          eyebrow="Gateway capabilities"
-          title="Polished primitives for model discovery and production calls."
-          text="The homepage uses the same public catalog and billing surfaces as the rest of the app, then presents them as compact controls, badges, cards, tabs, and tables."
+          eyebrow="Platform primitives"
+          title="Everything a production LLM team expects before launch."
+          text="The public surface connects model discovery, official prices, API keys, usage context, and SDK-friendly requests without exposing internal operating details."
         />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {valueCards.map((card) => (
@@ -289,15 +398,15 @@ export default function SaasHome() {
         </div>
       </CossSection>
 
-      <CossSection>
+      <CossSection data-home-reveal="section">
         <div className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
             <p className="text-sm font-semibold text-slate-700">Catalog families</p>
             <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-              Models grouped by public capability.
+              Model families grouped by public capability.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">
-              These groups are generated from the same public model families used by pricing, keys, and catalog pages.
+              These groups are generated from the same public model data used by pricing, keys, and catalog pages.
             </p>
             <Link to="/models" className="coss-button-primary mt-7">
               Browse models <ArrowRight size={16} />
@@ -318,12 +427,12 @@ export default function SaasHome() {
         </div>
       </CossSection>
 
-      <CossSection>
+      <CossSection data-home-reveal="section">
         <div className="grid gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-start">
           <div>
-            <p className="text-sm font-semibold text-slate-700">Quickstart</p>
+            <p className="text-sm font-semibold text-slate-700">Developer quickstart</p>
             <h2 className="mt-2 max-w-xl text-3xl font-semibold leading-tight text-slate-950 sm:text-4xl">
-              Use your first model in minutes.
+              Point your app at one OpenAI-compatible base URL.
             </h2>
             <p className="mt-4 text-sm leading-6 text-slate-600">
               Keep the request shape familiar: generate a key, choose a public model id, and send traffic to the API base.
@@ -352,11 +461,11 @@ export default function SaasHome() {
       </CossSection>
 
       {enabledPackages.length > 0 && (
-        <CossSection>
+        <CossSection data-home-reveal="section">
           <SectionHeader
-            eyebrow="Platform access"
-            title="Plans keep the existing credit and package flow intact."
-            text="Public package cards stay focused on plan value while billing, activation, and access controls continue through the existing platform flow."
+            eyebrow="Enterprise access"
+            title="Plans connect credits, billing, and API access."
+            text="Public package cards stay focused on plan value while billing, activation, and account controls continue through the existing platform flow."
             action={{ to: '/packages', label: 'View packages' }}
           />
           <div className="grid gap-4 lg:grid-cols-3">
@@ -373,6 +482,10 @@ export default function SaasHome() {
 function HomeMotionStyles() {
   return (
     <style>{`
+      [data-home-reveal],
+      [data-home-panel] {
+        will-change: transform, opacity;
+      }
       @keyframes saas-home-flow {
         0% { transform: translateX(-120%); }
         100% { transform: translateX(120%); }
@@ -383,10 +496,9 @@ function HomeMotionStyles() {
       }
       .saas-home-ambient {
         background:
-          radial-gradient(circle at 14% 18%, rgba(34, 211, 238, 0.15), transparent 28%),
-          radial-gradient(circle at 82% 12%, rgba(16, 185, 129, 0.13), transparent 26%),
-          radial-gradient(circle at 72% 72%, rgba(245, 158, 11, 0.10), transparent 28%),
-          linear-gradient(180deg, #ffffff 0%, #f8fafc 72%, #ffffff 100%);
+          linear-gradient(115deg, rgba(8, 145, 178, 0.14) 0%, rgba(255, 255, 255, 0) 35%),
+          linear-gradient(235deg, rgba(16, 185, 129, 0.12) 0%, rgba(255, 255, 255, 0) 34%),
+          linear-gradient(180deg, #ffffff 0%, #f8fafc 66%, #eef6f8 100%);
       }
       .saas-home-hero-grid {
         background-image:
@@ -394,6 +506,10 @@ function HomeMotionStyles() {
           linear-gradient(90deg, rgba(15, 23, 42, 0.055) 1px, transparent 1px);
         background-size: 44px 44px;
         mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0.18));
+      }
+      .saas-home-noise {
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 220 220' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.38'/%3E%3C/svg%3E");
+        mix-blend-mode: multiply;
       }
       .saas-home-flow {
         position: relative;
@@ -405,6 +521,9 @@ function HomeMotionStyles() {
         inset: 0;
         background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.34), transparent);
         animation: saas-home-flow 3.2s ease-in-out infinite;
+      }
+      .saas-home-control-line {
+        background: linear-gradient(90deg, rgba(34, 211, 238, 0.18), rgba(16, 185, 129, 0.22), rgba(148, 163, 184, 0.08));
       }
       .saas-home-shimmer {
         position: relative;
@@ -443,9 +562,8 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
 
   return (
     <div className="relative min-w-0">
-      <div className="absolute -right-4 -top-4 h-28 w-28 rounded-full bg-cyan-200/60 blur-3xl" />
-      <div className="absolute -bottom-5 -left-5 h-28 w-28 rounded-full bg-emerald-200/60 blur-3xl" />
       <div className="relative rounded-xl border border-slate-900 bg-slate-950 p-3 shadow-[0_24px_80px_rgba(15,23,42,0.18)] sm:p-4">
+        <div className="saas-home-control-line pointer-events-none absolute inset-x-0 top-0 h-px" />
         <div className="flex items-center justify-between gap-3 border-b border-white/10 px-1 pb-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-rose-300" />
@@ -454,14 +572,14 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
           </div>
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-xs font-semibold text-emerald-100">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-            Live catalog
+            Production ready
           </span>
         </div>
 
         <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-400">Request endpoint</p>
+              <p className="text-xs font-medium text-slate-400">OpenAI-compatible request</p>
               <p className="mt-1 break-all font-mono text-sm font-semibold text-white">{baseUrl}/chat/completions</p>
             </div>
             <CopyButton
@@ -473,7 +591,7 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
           <div className="grid gap-2 rounded-lg border border-white/10 bg-slate-900/90 p-3 font-mono text-xs text-slate-200">
             <div className="flex min-w-0 items-center gap-2">
               <span className="rounded-md bg-cyan-300/10 px-2 py-1 text-cyan-100">POST</span>
-              <span className="min-w-0 truncate">/v1/chat/completions</span>
+              <span className="min-w-0 truncate">/chat/completions</span>
             </div>
             <div className="grid gap-1 text-slate-400 sm:grid-cols-[auto_1fr]">
               <span>model</span>
@@ -485,9 +603,9 @@ function HeroGatewayPanel({ models, baseUrl, totalModels }) {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <GatewaySignal icon={Boxes} label="Catalog" value={`${totalModels || 50}+`} />
-          <GatewaySignal icon={Activity} label="Status" value="Ready" tone="emerald" />
-          <GatewaySignal icon={Zap} label="Mode" value="API" tone="amber" />
+          <GatewaySignal icon={Boxes} label="Catalog" value={`${totalModels || 50}+ models`} />
+          <GatewaySignal icon={Activity} label="Health" value="Ready" tone="emerald" />
+          <GatewaySignal icon={Zap} label="Access" value="Keys" tone="amber" />
         </div>
 
         <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.04] p-3">
