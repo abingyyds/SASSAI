@@ -5,7 +5,7 @@ const SiteContext = createContext(null);
 
 const DEFAULT_SITE = {
   name: 'SubRouter',
-  logo: '/sassai-logo.png',
+  logo: '/sassai-logo.svg',
   favicon: '/favicon.png',
   theme_template: 'saas',
   enable_topup: true,
