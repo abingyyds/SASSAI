@@ -25,10 +25,12 @@ import {
 } from '../components/public/CossLayout';
 import {
   createSiteSaasCheckout,
+  getActiveSubscriptions,
   getSiteSaasSubscriptions,
   getSiteModels,
   getSitePackages,
   Q,
+  subscribePackage,
 } from '../api';
 import { readPublicModelCatalog } from '../utils/publicCatalog';
 
@@ -61,6 +63,10 @@ function getSubscriptionStatus(sub) {
   return String(sub.status || sub.subscription_status || 'active').toLowerCase();
 }
 
+function isBalanceError(message = '') {
+  return /balance|余额|insufficient|不足|not enough|quota/i.test(String(message));
+}
+
 function BillingStep({ icon: Icon, title, desc }) {
   return (
     <CossCard className="p-5">
@@ -76,7 +82,7 @@ export default function Packages() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, refreshUser } = useAuth();
-  const { fmtPlanPrice, symbol, rate } = useCurrency();
+  const { fmtPlanPrice, symbol, rate, code, usdRate } = useCurrency();
   const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
 
   const [packages, setPackages] = useState([]);
@@ -84,13 +90,26 @@ export default function Packages() {
   const [activeSubs, setActiveSubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(null);
+  const [balanceLoading, setBalanceLoading] = useState(null);
+  const [confirmBalancePkg, setConfirmBalancePkg] = useState(null);
+  const [insufficientPkg, setInsufficientPkg] = useState(null);
 
   const getResetLabel = (period) => t(resetLabelKeys[period] || resetLabelKeys.never);
 
   const loadSubscriptions = async () => {
-    if (!user) return;
-    const res = await getSiteSaasSubscriptions({ skipErrorHandler: true }).catch(() => null);
-    if (res?.data?.success) setActiveSubs(res.data.data || []);
+    if (!user) {
+      setActiveSubs([]);
+      return;
+    }
+    const [siteRes, balanceRes] = await Promise.all([
+      getSiteSaasSubscriptions({ skipErrorHandler: true }).catch(() => null),
+      getActiveSubscriptions({ skipErrorHandler: true }).catch(() => null),
+    ]);
+    const siteSubscriptions = (siteRes?.data?.success ? siteRes.data.data || [] : [])
+      .map((item) => ({ ...item, billing_source: item.billing_source || 'subscription' }));
+    const balanceSubscriptions = (balanceRes?.data?.success ? balanceRes.data.data || [] : [])
+      .map((item) => ({ ...item, billing_source: item.billing_source || 'balance' }));
+    setActiveSubs([...siteSubscriptions, ...balanceSubscriptions]);
   };
 
   useEffect(() => {
@@ -152,6 +171,65 @@ export default function Packages() {
     return map;
   }, [enabledPackages]);
 
+  const userBalance = ((user?.quota || 0) / Q) * rate;
+  const formatBalancePrice = (pkg) => fmtPlanPrice(pkg.price, pkg.currency);
+  const getPackageDisplayPrice = (pkg) => {
+    const packageCurrency = String(pkg.currency || '').toUpperCase();
+    const rawPrice = Number(pkg.price || 0);
+    if (!Number.isFinite(rawPrice)) return 0;
+    if (packageCurrency === 'USD') return rawPrice * rate;
+    if (code === 'CNY') return rawPrice;
+    return (rawPrice / usdRate) * rate;
+  };
+
+  const handleBalancePurchase = (pkg) => {
+    if (!user) {
+      navigate('/register');
+      return;
+    }
+
+    const price = getPackageDisplayPrice(pkg);
+    if (Number.isFinite(price) && userBalance < price) {
+      setInsufficientPkg(pkg);
+      return;
+    }
+
+    setConfirmBalancePkg(pkg);
+  };
+
+  const confirmBalancePurchase = async () => {
+    if (!confirmBalancePkg) return;
+    const pkg = confirmBalancePkg;
+    setBalanceLoading(pkg.id);
+    try {
+      const res = await subscribePackage(pkg.id, { skipErrorHandler: true });
+      if (res.data.success) {
+        toast.success(t('packages.subscribedSuccess'));
+        setConfirmBalancePkg(null);
+        await refreshUser({ skipErrorHandler: true }).catch(() => null);
+        await loadSubscriptions();
+      } else {
+        const message = res.data.message || t('common.requestFailed');
+        if (isBalanceError(message)) {
+          setConfirmBalancePkg(null);
+          setInsufficientPkg(pkg);
+        } else {
+          toast.error(message);
+        }
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || error.message || t('common.requestFailed');
+      if (isBalanceError(message)) {
+        setConfirmBalancePkg(null);
+        setInsufficientPkg(pkg);
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setBalanceLoading(null);
+    }
+  };
+
   const handleSubscribe = async (pkg) => {
     if (!user) {
       navigate('/register');
@@ -194,10 +272,10 @@ export default function Packages() {
   return (
     <CossPage>
       <CossPageHeader
-        eyebrow="Subscription billing"
+        eyebrow="Packages"
         icon={RefreshCcw}
-        title="Subscribe once. Credits renew automatically."
-        description="Pick a plan, complete checkout, and the subscription activates automatically. Renewals keep your credits flowing without manual top-ups or extra purchase steps."
+        title="Choose balance purchase or subscription."
+        description="Use your existing account balance for a one-time package purchase, or start a recurring subscription through the SaaS checkout flow."
       />
 
       {activeSubs.length > 0 && (
@@ -220,11 +298,13 @@ export default function Packages() {
                 const status = getSubscriptionStatus(sub);
 
                 return (
-                  <CossMutedCard key={sub.id} className="p-4">
+                  <CossMutedCard key={`${sub.billing_source || 'subscription'}-${sub.id}`} className="p-4">
                     <div className="mb-4 flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-slate-950">{pkg?.name || sub.package_name || t('packages.subscriptionId', { id: sub.id })}</p>
-                        <p className="mt-1 text-xs text-slate-500">Site subscription #{sub.id}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {sub.billing_source === 'balance' ? 'Balance package' : 'Site subscription'} #{sub.id}
+                        </p>
                       </div>
                       <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                         ['active', 'trialing'].includes(status)
@@ -312,12 +392,10 @@ export default function Packages() {
                         <RefreshCcw className="mt-0.5 text-slate-700" size={18} />
                         <div>
                           <p className="text-sm font-semibold text-slate-950">
-                           {isSubscription ? 'Auto-renewing subscription' : 'One-time plan'}
+                           Balance purchase or subscription
                           </p>
                           <p className="mt-1 text-sm leading-6 text-slate-600">
-                            {isSubscription
-                              ? 'Checkout, activation, and future renewals are handled automatically.'
-                              : 'This plan can be activated immediately after checkout.'}
+                            Pay from account balance now, or use SaaS checkout for recurring subscription activation.
                           </p>
                         </div>
                       </div>
@@ -334,7 +412,11 @@ export default function Packages() {
                       </li>
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-emerald-600" />
-                        <span>Automatic plan activation</span>
+                        <span>Balance purchase uses your current account balance</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <BadgeCheck size={16} className="text-emerald-600" />
+                        <span>Subscription checkout renews through the SaaS billing flow</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <BadgeCheck size={16} className="text-emerald-600" />
@@ -343,28 +425,48 @@ export default function Packages() {
                     </ul>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleSubscribe(pkg)}
-                    disabled={checkoutLoading === pkg.id}
-                    className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
-                      isFeatured
-                        ? 'bg-slate-950 text-white hover:bg-slate-800'
-                        : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
-                    }`}
-                  >
-                    {checkoutLoading === pkg.id ? (
-                      <>
-                        <Loader2 className="animate-spin" size={17} />
-                        Creating checkout
-                      </>
-                    ) : (
-                      <>
-                        {user ? 'Pay with Creem' : t('packages.signUpToSubscribe')}
-                        <ArrowRight size={17} />
-                      </>
-                    )}
-                  </button>
+                  <div className="mt-7 grid gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleBalancePurchase(pkg)}
+                      disabled={balanceLoading === pkg.id || checkoutLoading === pkg.id}
+                      className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                        isFeatured
+                          ? 'bg-slate-950 text-white hover:bg-slate-800'
+                          : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                      }`}
+                    >
+                      {balanceLoading === pkg.id ? (
+                        <>
+                          <Loader2 className="animate-spin" size={17} />
+                          Processing
+                        </>
+                      ) : (
+                        <>
+                          {user ? 'Buy with balance' : t('packages.signUpToSubscribe')}
+                          <ArrowRight size={17} />
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSubscribe(pkg)}
+                      disabled={checkoutLoading === pkg.id || balanceLoading === pkg.id}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {checkoutLoading === pkg.id ? (
+                        <>
+                          <Loader2 className="animate-spin" size={17} />
+                          Creating checkout
+                        </>
+                      ) : (
+                        <>
+                          {user ? 'Subscribe' : t('packages.signUpToSubscribe')}
+                          <RefreshCcw size={16} />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -376,26 +478,108 @@ export default function Packages() {
         <div className="grid gap-4 md:grid-cols-4">
           <BillingStep
             icon={CreditCard}
-            title="Subscribe"
-            desc="Choose a recurring plan and complete secure Creem checkout."
+            title="Balance purchase"
+            desc="Use existing balance to activate a package immediately."
           />
           <BillingStep
             icon={ShieldCheck}
-            title="Confirm"
-            desc="Payment confirmation is processed by the subscription system."
+            title="Recharge if needed"
+            desc="If balance is insufficient, top up first and return to the package."
           />
           <BillingStep
             icon={Sparkles}
-            title="Activate"
-            desc="Your credits and API access are applied automatically."
+            title="Subscription"
+            desc="Use SaaS checkout when you want recurring billing."
           />
           <BillingStep
             icon={CalendarClock}
             title="Renewal applied"
-            desc="Successful renewals extend the plan without manual action."
+            desc="Successful subscription renewals keep the plan active automatically."
           />
         </div>
       </CossSection>
+
+      {confirmBalancePkg && (
+        <PackageModal
+          title="Confirm balance purchase"
+          onClose={() => {
+            if (!balanceLoading) setConfirmBalancePkg(null);
+          }}
+          actions={(
+            <>
+              <button
+                type="button"
+                onClick={() => setConfirmBalancePkg(null)}
+                disabled={Boolean(balanceLoading)}
+                className="coss-button-secondary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmBalancePurchase}
+                disabled={balanceLoading === confirmBalancePkg.id}
+                className="coss-button-primary"
+              >
+                {balanceLoading === confirmBalancePkg.id ? 'Processing...' : 'Confirm purchase'}
+              </button>
+            </>
+          )}
+        >
+          <p className="text-sm leading-6 text-slate-600">
+            Buy <span className="font-semibold text-slate-950">{confirmBalancePkg.name}</span> with account balance for{' '}
+            <span className="font-semibold text-slate-950">{formatBalancePrice(confirmBalancePkg)}</span>.
+          </p>
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+            Current balance: <span className="font-semibold text-slate-950">{symbol}{userBalance.toFixed(2)}</span>
+          </div>
+        </PackageModal>
+      )}
+
+      {insufficientPkg && (
+        <PackageModal
+          title="Balance is not enough"
+          onClose={() => setInsufficientPkg(null)}
+          actions={(
+            <>
+              <button type="button" onClick={() => setInsufficientPkg(null)} className="coss-button-secondary">
+                Not now
+              </button>
+              <Link to="/topup" className="coss-button-primary" onClick={() => setInsufficientPkg(null)}>
+                Top up first
+              </Link>
+            </>
+          )}
+        >
+          <p className="text-sm leading-6 text-slate-600">
+            Your current balance is <span className="font-semibold text-slate-950">{symbol}{userBalance.toFixed(2)}</span>.
+            Please recharge before buying <span className="font-semibold text-slate-950">{insufficientPkg.name}</span> with balance.
+          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-600">
+            You can also choose Subscribe to use the SaaS subscription checkout flow.
+          </p>
+        </PackageModal>
+      )}
     </CossPage>
+  );
+}
+
+function PackageModal({ title, children, actions, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-5 shadow-2xl shadow-slate-950/20"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 className="text-lg font-semibold text-slate-950">{title}</h2>
+        <div className="mt-3">{children}</div>
+        <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          {actions}
+        </div>
+      </div>
+    </div>
   );
 }
