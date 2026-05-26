@@ -4,6 +4,7 @@ import {
   formatOfficialTokenPair,
   formatOfficialTokenPrice,
   formatPerCallPrice,
+  formatTieredSecondPrice,
   formatTokenPrice,
   getCacheCreationPrice,
   getCacheReadPrice,
@@ -13,14 +14,50 @@ import {
   getOutputPrice,
   hasSitePricing,
   isPerCallModel,
+  isTieredExprModel,
+  parseTieredSecondPricing,
 } from '../utils/modelMeta';
 import { useCurrency } from '../context/SiteContext';
 
 export default function ModelPrice({ model, compact = false }) {
-  const { symbol, rate } = useCurrency();
+  const { symbol, rate, code, usdRate } = useCurrency();
   const showSitePricing = hasSitePricing(model);
 
   if (showSitePricing) {
+    const tieredRows = parseTieredSecondPricing(model?.billing_expr);
+    if (isTieredExprModel(model)) {
+      if (tieredRows.length === 0) {
+        return (
+          <span className="font-mono text-sm text-page" title="Site expression pricing">
+            Expression pricing
+          </span>
+        );
+      }
+
+      const values = tieredRows.map((row) => ({
+        ...row,
+        value: formatTieredSecondPrice(row.price, model, { symbol, rate, code, usdRate }),
+      }));
+
+      if (compact) {
+        const first = values[0];
+        const suffix = values.length > 1 ? ` +${values.length - 1}` : '';
+        return (
+          <span className="font-mono text-sm text-page" title="Site video pricing per second">
+            {first.label} {first.value}{suffix}
+          </span>
+        );
+      }
+
+      return (
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          {values.map((row) => (
+            <PriceBox key={`${row.label}-${row.price}`} label={`${row.label} / sec`} value={row.value} />
+          ))}
+        </div>
+      );
+    }
+
     const perCall = isPerCallModel(model);
     const inputPrice = getInputPrice(model);
     const outputPrice = getOutputPrice(model);

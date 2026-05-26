@@ -22,6 +22,17 @@ const PRICE_FIELDS = [
   'cache_creation_price_5m',
   'cache_creation_price_1h',
 ];
+const VIDEO_PRICE_PARAM_NAMES = new Set([
+  'size',
+  'resolution',
+  'ratio',
+  'width',
+  'height',
+  'seconds',
+  'duration',
+  'duration_seconds',
+]);
+const NUMBER_PATTERN = '[+-]?(?:\\d+\\.?\\d*|\\.\\d+)(?:[eE][+-]?\\d+)?';
 const vendorNameField = ['vendor', 'name'].join('_');
 const providerNameField = ['provider', 'name'].join('_');
 const providerSlugField = ['provider', 'slug'].join('_');
@@ -168,6 +179,15 @@ export const PUBLIC_MODEL_FIELDS = [
   'input_modalities',
   'output_modalities',
   'tags',
+  'billing_expr',
+  'billing_type',
+  'billing_mode',
+  'is_per_call',
+  'is_tiered_expr',
+  'fixed_price',
+  'price_multiplier',
+  'price_currency',
+  'supported_endpoint_types',
   'context_length',
   'context_window',
   'max_context_tokens',
@@ -259,12 +279,146 @@ export const getCacheReadPrice = (item) => firstNumber(item, ['cache_read_price'
 
 export const getCacheCreationPrice = (item) => firstNumber(item, ['cache_creation_price', 'cache_write_price', 'cache_creation', 'cache_creation_price_5m']);
 
+function splitTopLevelMultiply(expr = '') {
+  const parts = [];
+  let start = 0;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < expr.length; i += 1) {
+    const char = expr[i];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === '\\') {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+    } else if (char === '(') {
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+    } else if (char === '*' && depth === 0) {
+      parts.push(expr.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+
+  parts.push(expr.slice(start).trim());
+  return parts.filter(Boolean);
+}
+
+function stripExprVersion(expr = '') {
+  const match = String(expr).match(/^v\d+:([\s\S]*)$/);
+  return match ? match[1] : String(expr || '');
+}
+
+function unwrapParens(expr = '') {
+  let current = String(expr).trim();
+  while (current.startsWith('(') && current.endsWith(')')) {
+    let depth = 0;
+    let valid = true;
+
+    for (let i = 0; i < current.length; i += 1) {
+      if (current[i] === '(') depth += 1;
+      if (current[i] === ')') depth -= 1;
+      if (depth === 0 && i < current.length - 1) {
+        valid = false;
+        break;
+      }
+    }
+
+    if (!valid) break;
+    current = current.slice(1, -1).trim();
+  }
+  return current;
+}
+
+function getTierBody(expr = '') {
+  const body = stripExprVersion(expr).trim();
+  const match = body.match(/^tier\("[^"]*",\s*([\s\S]+)\)$/);
+  return match ? match[1] : '';
+}
+
+function deriveTieredPriceLabel(context, index) {
+  const quoted = [...String(context).matchAll(/"([^"]+)"/g)]
+    .map((match) => match[1])
+    .filter((value) => value && !VIDEO_PRICE_PARAM_NAMES.has(value));
+  const preferred = quoted
+    .slice()
+    .reverse()
+    .find((value) => /^\d{2,5}[x*]\d{2,5}$/i.test(value) || /^\d{3,4}p$/i.test(value));
+  if (preferred) return preferred.replace('*', 'x');
+
+  const sizeMatch = String(context).match(/param\("width"\)\s*==\s*(\d{2,5})\s*&&\s*param\("height"\)\s*==\s*(\d{2,5})/);
+  if (sizeMatch) return `${sizeMatch[1]}x${sizeMatch[2]}`;
+
+  return `tier ${index + 1}`;
+}
+
+export const parseTieredSecondPricing = (expr = '') => {
+  const tierBody = getTierBody(expr);
+  if (!tierBody) return [];
+
+  const parts = splitTopLevelMultiply(tierBody);
+  const millionIndex = parts.findIndex((part) => /^1000000(?:\.0+)?$/.test(part));
+  if (millionIndex <= 0) return [];
+
+  const priceExpr = unwrapParens(parts[millionIndex - 1]);
+  if (!priceExpr) return [];
+
+  const rows = [];
+  const priceRe = new RegExp(`\\?\\s*(${NUMBER_PATTERN})\\s*:`, 'g');
+  let match;
+  while ((match = priceRe.exec(priceExpr)) !== null) {
+    const price = Number(match[1]);
+    if (!Number.isFinite(price) || price <= 0) continue;
+    rows.push({
+      label: deriveTieredPriceLabel(priceExpr.slice(Math.max(0, match.index - 260), match.index), rows.length),
+      price,
+    });
+  }
+
+  const fallbackMatch = priceExpr.match(new RegExp(`:\\s*(${NUMBER_PATTERN})\\s*\\)*$`));
+  const fallback = fallbackMatch ? Number(fallbackMatch[1]) : Number(priceExpr);
+  if (Number.isFinite(fallback) && fallback > 0) {
+    const hasSame = rows.some((row) => Math.abs(row.price - fallback) < 1e-12);
+    if (!hasSame || rows.length === 0) {
+      rows.push({ label: rows.length === 0 ? 'video' : 'default', price: fallback });
+    }
+  }
+
+  return rows;
+};
+
+export const isTieredExprModel = (model) =>
+  Boolean(
+    model?.is_tiered_expr ||
+    String(model?.billing_type || '').toLowerCase() === 'tiered_expr' ||
+    String(model?.billing_mode || '').toLowerCase() === 'tiered_expr' ||
+    parseTieredSecondPricing(model?.billing_expr).length > 0
+  );
+
 export const hasSitePricing = (model) =>
   getInputPrice(model) !== null ||
   getOutputPrice(model) !== null ||
-  getFixedPrice(model) !== null;
+  getFixedPrice(model) !== null ||
+  isTieredExprModel(model);
 
 export const getSitePriceValue = (model) => {
+  const tieredRows = parseTieredSecondPricing(model?.billing_expr);
+  if (isTieredExprModel(model) && tieredRows.length > 0) {
+    const rawMultiplier = firstNumber(model, ['price_multiplier']);
+    const multiplier = rawMultiplier && rawMultiplier > 0 ? rawMultiplier : 1;
+    return Math.min(...tieredRows.map((row) => row.price * multiplier));
+  }
+
   const input = getInputPrice(model);
   const output = getOutputPrice(model);
   const fixed = getFixedPrice(model);
@@ -397,8 +551,14 @@ export const getModelCategory = (model) => {
   if (/chat|text|llm|language|completion/.test(explicitText)) return 'Chat';
   if (explicit) return String(explicit);
 
+  const endpoints = (Array.isArray(model?.supported_endpoint_types) ? model.supported_endpoint_types : []).join(' ').toLowerCase();
+  if (/openai-video|video/.test(endpoints)) return 'Video';
+  if (/image-generation|image/.test(endpoints)) return 'Image';
+  if (/embeddings|embedding/.test(endpoints)) return 'Embedding';
+  if (/rerank|re-rank/.test(endpoints)) return 'Rerank';
+
   const name = `${model?.model_name || ''} ${model?.display_name || ''}`.toLowerCase();
-  if (/video|text-to-video|image-to-video|i2v|t2v|kling|runway|hailuo|luma|sora/.test(name)) return 'Video';
+  if (isTieredExprModel(model) || /video|text-to-video|image-to-video|i2v|t2v|seedance|kling|runway|hailuo|luma|sora|veo|jimeng/.test(name)) return 'Video';
   if (/audio|tts|whisper|speech|voice|transcription/.test(name)) return 'Audio';
   if (/embed|embedding|text-embedding/.test(name)) return 'Embedding';
   if (/rerank|re-rank/.test(name)) return 'Rerank';
@@ -445,7 +605,7 @@ export const getModelTags = (model) => {
   if (input !== null && input > 0 && input <= 1) tags.add('Low ratio');
   if (output !== null && output > 0 && output <= 1) tags.add('Low output');
   if (context >= 100000 || /128k|200k|1m|long/.test(name)) tags.add('Long context');
-  if (/video|text-to-video|image-to-video|sora|kling|runway|luma/.test(name)) tags.add('Video');
+  if (isTieredExprModel(model) || /video|text-to-video|image-to-video|sora|seedance|kling|runway|luma|veo|jimeng/.test(name)) tags.add('Video');
   if (/audio|tts|speech|voice|whisper/.test(name)) tags.add('Audio');
   if (/vision|image|dall-e|multimodal|omni/.test(name)) tags.add('Vision');
   if (/code|coder|codex/.test(name)) tags.add('Coding');
@@ -467,6 +627,7 @@ export const getSupportedModes = (model) => {
     model?.description,
     model?.endpoint,
     model?.api_type,
+    ...(Array.isArray(model?.supported_endpoint_types) ? model.supported_endpoint_types : []),
     ...(Array.isArray(model?.modalities) ? model.modalities : []),
     ...(Array.isArray(model?.capabilities) ? model.capabilities : []),
     ...(Array.isArray(model?.input_modalities) ? model.input_modalities : []),
@@ -482,7 +643,7 @@ export const getSupportedModes = (model) => {
   if (category === 'Image' || /image|vision|dall-e|midjourney|flux|stable|sdxl|text-to-image|image-generation/.test(haystack)) {
     modes.add('image');
   }
-  if (category === 'Video' || /video|text-to-video|image-to-video|i2v|t2v|sora|kling|runway|luma/.test(haystack)) {
+  if (category === 'Video' || isTieredExprModel(model) || /video|text-to-video|image-to-video|i2v|t2v|sora|seedance|kling|runway|luma|veo|jimeng/.test(haystack)) {
     modes.add('video');
   }
   if (category === 'Audio' || /audio|speech|voice|tts|whisper|transcription|sound/.test(haystack)) {
@@ -849,6 +1010,24 @@ export const formatPerCallPrice = (price, symbol = '$', rate = 1) => {
   const value = asNumber(price);
   if (value === null) return '-';
   return `${symbol}${(value * rate).toFixed(value >= 1 ? 2 : 4)}/call`;
+};
+
+export const formatTieredSecondPrice = (price, item = {}, { symbol = '$', rate = 1, code = 'USD', usdRate = 7 } = {}) => {
+  const value = asNumber(price);
+  if (value === null) return '-';
+
+  const rawMultiplier = asNumber(item?.price_multiplier);
+  const multiplier = rawMultiplier && rawMultiplier > 0 ? rawMultiplier : 1;
+  const sourceCurrency = String(item?.price_currency || 'USD').toUpperCase();
+  let converted = value * multiplier;
+
+  if (sourceCurrency === 'CNY') {
+    converted = code === 'CNY' ? converted : (converted / (usdRate || 1)) * rate;
+  } else {
+    converted *= rate;
+  }
+
+  return `${symbol}${converted.toFixed(4)}/s`;
 };
 
 export const formatCompactNumber = (value) => {

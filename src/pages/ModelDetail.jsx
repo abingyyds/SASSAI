@@ -37,6 +37,8 @@ import {
   getOfficialPricing,
   getPreferredMode,
   getSupportedModes,
+  isPerCallModel,
+  isTieredExprModel,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 import { usePublicApiBaseUrl } from '../context/SiteContext';
@@ -101,6 +103,13 @@ export default function ModelDetail() {
   const modelName = getModelDisplayName(model);
   const id = getModelId(model);
   const officialPricing = getOfficialPricing(model);
+  const billingType = isTieredExprModel(model)
+    ? 'Video seconds'
+    : isPerCallModel(model)
+      ? 'Per request'
+      : officialPricing?.type === 'token'
+        ? 'Token USD'
+        : 'Unavailable';
   const preferredMode = getPreferredMode(model);
   const supportedModes = getSupportedModes(model);
   const contextTokens = firstNumber(model, ['context_length', 'context_window', 'max_context_tokens', 'max_context', 'max_tokens', 'max_input_tokens']);
@@ -108,7 +117,7 @@ export default function ModelDetail() {
   const capabilities = [
     { label: 'Modes', value: supportedModes.map((mode) => mode.toUpperCase()).join(', ') },
     { label: 'Context', value: contextTokens ? `${formatCompactNumber(contextTokens)} tokens` : 'Catalog default' },
-    { label: 'Billing', value: officialPricing?.type === 'per_call' ? 'Per request' : officialPricing?.type === 'token' ? 'Token USD' : 'Unavailable' },
+    { label: 'Billing', value: billingType },
     { label: 'API base', value: baseUrl },
   ];
 
