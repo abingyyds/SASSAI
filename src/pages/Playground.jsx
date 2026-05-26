@@ -312,6 +312,12 @@ export default function Playground() {
   }, [selectedModel, modeTouched]);
 
   useEffect(() => {
+    if (!selectedModel || supportedModes.includes(activeMode)) return;
+    setActiveMode(getPreferredMode(selectedModel));
+    setModeTouched(false);
+  }, [activeMode, selectedModel, supportedModes]);
+
+  useEffect(() => {
     const next = new URLSearchParams();
     if (selectedId) next.set('model', selectedId);
     if (activeMode) next.set('mode', activeMode);
@@ -351,6 +357,18 @@ export default function Playground() {
   const selectMode = (mode) => {
     setActiveMode(mode);
     setModeTouched(true);
+  };
+
+  const selectModel = (value) => {
+    const nextModel = models.find((model) => getModelId(model) === value);
+    const nextMode = nextModel ? getPreferredMode(nextModel) : activeMode;
+    setSelectedId(value);
+    setActiveMode(nextMode);
+    setModeTouched(false);
+    setRunState((current) => {
+      revokeRunObjectUrl(current);
+      return createIdleRunState();
+    });
   };
 
   const selectSavedKey = (value) => {
@@ -627,7 +645,7 @@ export default function Playground() {
           }}
         />
 
-        <ConsoleFrame className="flex min-h-[680px] flex-col">
+        <ConsoleFrame className="flex min-h-[680px] max-h-[calc(100vh-2rem)] flex-col overflow-hidden">
           <div className="border-b border-page-divider bg-page-surface/40 px-4 py-3 sm:px-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
@@ -735,10 +753,7 @@ export default function Playground() {
           setImageSize={setImageSize}
           setMaxTokens={setMaxTokens}
           setModelSearch={setModelSearch}
-          setSelectedId={(value) => {
-            setSelectedId(value);
-            setModeTouched(false);
-          }}
+          setSelectedId={selectModel}
           setSelectedKeyId={setSelectedKeyId}
           setTemperature={setTemperature}
           setVideoAspect={setVideoAspect}
