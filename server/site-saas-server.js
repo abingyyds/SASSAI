@@ -31,6 +31,14 @@ const defaultStore = {
   events: [],
 };
 
+const playgroundApiPaths = new Set([
+  'chat/completions',
+  'images/generations',
+  'videos/generations',
+  'audio/speech',
+]);
+const playgroundProxyTimeoutMs = Number(process.env.PLAYGROUND_PROXY_TIMEOUT_MS || 600000);
+
 function now() {
   return new Date().toISOString();
 }
@@ -140,6 +148,16 @@ function sendJson(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
+function sendRaw(res, status, headers, body) {
+  res.writeHead(status, {
+    ...headers,
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Site-Admin-Token, New-Api-User, X-SubRouter-User',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+  });
+  res.end(body);
+}
+
 async function readRawBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -183,6 +201,98 @@ function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
         });
       },
     );
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
+function normalizePlaygroundPath(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  let pathname = text;
+  try {
+    if (/^https?:\/\//i.test(text)) {
+      pathname = new URL(text).pathname;
+    }
+  } catch {
+    pathname = text;
+  }
+  const clean = pathname
+    .replace(/^\/+/, '')
+    .replace(/^v1\/+/i, '')
+    .replace(/\/+$/, '');
+  return playgroundApiPaths.has(clean) ? clean : '';
+}
+
+function isExternalPlaygroundApiBase(value) {
+  const text = String(value || '').trim();
+  if (!text) return false;
+  if (/^https?:\/\//i.test(text)) return true;
+  return !text.startsWith('/') && !/^v1(?:\/|$)/i.test(text);
+}
+
+function getPlaygroundProxyBaseUrl(config) {
+  const configured = String(config.public_api_base_url || '').trim();
+  if (/^https?:\/\//i.test(configured)) return new URL(configured);
+  if (isExternalPlaygroundApiBase(configured)) {
+    return new URL(`https://${configured}`);
+  }
+  const upstream = new URL(config.subrouter_base_url || 'http://localhost:3000');
+  const siteHost = normalizeHost(config.subrouter_site_host || '');
+  if (shouldConnectViaSiteHost(upstream, siteHost)) {
+    upstream.host = siteHost;
+  }
+  if (configured) {
+    upstream.pathname = configured.startsWith('/') ? configured : `/${configured}`;
+  } else {
+    upstream.pathname = `${upstream.pathname.replace(/\/+$/, '')}/v1`;
+  }
+  return upstream;
+}
+
+function buildPlaygroundProxyUrl(config, apiPath) {
+  const baseUrl = getPlaygroundProxyBaseUrl(config);
+  const basePath = baseUrl.pathname.replace(/\/+$/, '');
+  baseUrl.pathname = `${basePath}/${apiPath}`.replace(/\/{2,}/g, '/');
+  baseUrl.search = '';
+  return baseUrl.toString();
+}
+
+function requestRaw(url, { method = 'POST', headers = {}, body = '' } = {}) {
+  return new Promise((resolve, reject) => {
+    const target = new URL(url);
+    const transport = target.protocol === 'https:' ? https : http;
+    const req = transport.request(
+      {
+        protocol: target.protocol,
+        hostname: target.hostname,
+        port: target.port || undefined,
+        path: `${target.pathname}${target.search}`,
+        method,
+        headers: {
+          ...headers,
+          'Accept-Encoding': 'identity',
+        },
+      },
+      (res) => {
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => {
+          resolve({
+            status: res.statusCode || 0,
+            contentType: res.headers['content-type'] || 'application/octet-stream',
+            contentDisposition: res.headers['content-disposition'] || '',
+            buffer: Buffer.concat(chunks),
+          });
+        });
+      },
+    );
+    req.setTimeout(playgroundProxyTimeoutMs, () => {
+      const error = new Error('Playground proxy timed out while waiting for the API response');
+      error.name = 'AbortError';
+      req.destroy(error);
+    });
     req.on('error', reject);
     if (body) req.write(body);
     req.end();
@@ -529,6 +639,43 @@ export async function handleSiteSaasRequest(req, res) {
           public_api_base_url: config.public_api_base_url,
         },
       });
+    }
+
+    if (url.pathname === '/api/site/saas/playground-proxy' && req.method === 'POST') {
+      const apiPath = normalizePlaygroundPath(body.path || body.endpoint);
+      if (!apiPath) return sendJson(res, 400, { success: false, message: 'Unsupported Playground API path' });
+      const auth = String(req.headers.authorization || '').trim();
+      if (!/^Bearer\s+\S+/i.test(auth)) {
+        return sendJson(res, 401, { success: false, message: 'Missing Playground API key' });
+      }
+      const payload = body.body && typeof body.body === 'object' ? body.body : {};
+      const config = getConfig(store);
+      const targetUrl = buildPlaygroundProxyUrl(config, apiPath);
+      const useSiteHeaders = !isExternalPlaygroundApiBase(config.public_api_base_url);
+      try {
+        const upstream = await requestRaw(targetUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: auth,
+            ...(useSiteHeaders ? siteForwardHeaders(config) : {}),
+          },
+          body: JSON.stringify(payload),
+        });
+        const responseHeaders = {
+          'Content-Type': upstream.contentType,
+          'Cache-Control': 'no-store',
+        };
+        if (upstream.contentDisposition) responseHeaders['Content-Disposition'] = upstream.contentDisposition;
+        return sendRaw(res, upstream.status, responseHeaders, upstream.buffer);
+      } catch (error) {
+        return sendJson(res, 502, {
+          success: false,
+          message: error?.name === 'AbortError'
+            ? 'Playground proxy timed out while waiting for the API response'
+            : `Playground proxy failed: ${error.message || 'network error'}`,
+        });
+      }
     }
 
     if (url.pathname === '/api/site/admin/saas/state' && req.method === 'GET') {

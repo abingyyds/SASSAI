@@ -556,6 +556,7 @@ export default function Playground() {
         request: requestForRun,
         apiKey: runApiKey,
         mode: activeMode,
+        apiPath: activeDefinition.endpoint,
       });
       const resultWithTiming = {
         ...result,
@@ -1854,14 +1855,17 @@ function maskApiKey(value) {
   return `${text.slice(0, 7)}...${text.slice(-4)}`;
 }
 
-async function executePlaygroundRequest({ request, apiKey, mode }) {
-  const response = await fetch(request.endpoint, {
+async function executePlaygroundRequest({ request, apiKey, mode, apiPath }) {
+  const response = await fetch('/api/site/saas/playground-proxy', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${normalizeApiKey(apiKey)}`,
     },
-    body: JSON.stringify(request.body),
+    body: JSON.stringify({
+      path: apiPath || '',
+      body: request.body,
+    }),
   });
 
   const contentType = response.headers.get('content-type') || '';
