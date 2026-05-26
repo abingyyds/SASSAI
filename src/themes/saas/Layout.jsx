@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 
 export default function SaasLayout() {
@@ -469,11 +470,7 @@ export default function SaasLayout() {
             <Link to="/packages" className="hover:text-slate-950">{t('nav.packages')}</Link>
             <Link to={user ? '/logs' : '/login'} className="hover:text-slate-950">Logs</Link>
             <Link to="/apps" className="hover:text-slate-950">Apps</Link>
-            {site?.contact_email && (
-              <a href={`mailto:${site.contact_email}`} className="hover:text-slate-950">
-                {t('nav.contact')}
-              </a>
-            )}
+            <ComplianceLinks site={site} linkClassName="hover:text-slate-950" />
           </div>
         </div>
       </footer>

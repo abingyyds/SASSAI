@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 
 export default function CorporateLayout() {
@@ -142,12 +143,8 @@ export default function CorporateLayout() {
               <span className="text-sm font-bold text-slate-900 tracking-tight">{siteName}</span>
               <p className="text-xs text-slate-400 mt-1">&copy; {new Date().getFullYear()} {siteName}. All rights reserved.</p>
             </div>
-            <div className="flex items-center gap-6">
-              {site?.contact_email && (
-                <a href={`mailto:${site.contact_email}`} className="text-sm text-slate-400 hover:text-slate-600 transition-colors">
-                  {t('nav.contact')}
-                </a>
-              )}
+            <div className="flex flex-wrap items-center gap-6">
+              <ComplianceLinks site={site} linkClassName="text-sm text-slate-400 hover:text-slate-600 transition-colors" />
             </div>
           </div>
         </div>

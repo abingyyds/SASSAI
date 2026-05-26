@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowRight, LogOut, Menu, UserCircle, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 import sassaiLogo from '../../assets/sassai-logo.png';
 
@@ -228,11 +229,9 @@ export default function BrandLayout({ variant }) {
       <footer className={cfg.footer}>
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm opacity-70 sm:px-6 md:flex-row md:items-center md:justify-between">
           <p>&copy; {new Date().getFullYear()} {siteName}</p>
-          {site?.contact_email && (
-            <a href={`mailto:${site.contact_email}`} className="font-semibold hover:opacity-100">
-              {t('nav.contact')}
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-4">
+            <ComplianceLinks site={site} linkClassName="font-semibold hover:opacity-100" />
+          </div>
         </div>
       </footer>
     </div>

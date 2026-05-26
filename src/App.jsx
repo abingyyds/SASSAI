@@ -20,6 +20,8 @@ const Logs = lazy(() => import('./pages/Logs'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const SubDistributor = lazy(() => import('./pages/SubDistributor'));
 const SaasAdmin = lazy(() => import('./pages/SaasAdmin'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
 const Loading = () => (
   <div className="flex items-center justify-center min-h-screen" style={{ background: 'var(--page-bg)' }}>
@@ -50,6 +52,8 @@ function ThemedRoutes() {
           <Route path="/packages" element={<Packages />} />
           <Route path="/sub-site" element={<SubDistributor />} />
           <Route path="/site-admin/saas" element={<SaasAdmin />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 

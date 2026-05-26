@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Menu, X, LogOut, UserCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 
 export default function DefaultLayout() {
@@ -169,11 +170,9 @@ export default function DefaultLayout() {
       <footer className="mt-auto border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-slate-500 sm:px-6 md:flex-row md:items-center md:justify-between">
           <p>&copy; {new Date().getFullYear()} {siteName}</p>
-          {site?.contact_email && (
-            <a href={`mailto:${site.contact_email}`} className="font-medium text-slate-500 hover:text-slate-950">
-              {t('nav.contact')}
-            </a>
-          )}
+          <div className="flex flex-wrap items-center gap-4">
+            <ComplianceLinks site={site} linkClassName="font-medium text-slate-500 hover:text-slate-950" />
+          </div>
         </div>
       </footer>
     </div>

@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 
 export default function CleanLayout() {
@@ -136,12 +137,8 @@ export default function CleanLayout() {
       <footer className="border-t border-gray-100 mt-auto bg-gray-50/50">
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} {siteName}.</p>
-          <div className="flex items-center gap-4">
-            {site?.contact_email && (
-              <a href={`mailto:${site.contact_email}`} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-                {t('nav.contact')}
-              </a>
-            )}
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <ComplianceLinks site={site} linkClassName="text-sm text-gray-400 hover:text-gray-600 transition-colors" />
           </div>
         </div>
       </footer>

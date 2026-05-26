@@ -3,6 +3,7 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useSite } from '../../context/SiteContext';
+import ComplianceLinks from '../../components/ComplianceLinks';
 import LanguageSwitch from '../../components/LanguageSwitch';
 
 export default function MinimalLayout() {
@@ -114,11 +115,9 @@ export default function MinimalLayout() {
       <footer className="border-t border-neutral-800/40 mt-auto">
         <div className="max-w-5xl mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3">
           <p className="text-xs text-neutral-600">&copy; {new Date().getFullYear()} {siteName}</p>
-          {site?.contact_email && (
-            <a href={`mailto:${site.contact_email}`} className="text-xs text-neutral-600 hover:text-white transition-colors">
-              {t('nav.contact')}
-            </a>
-          )}
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <ComplianceLinks site={site} linkClassName="text-xs text-neutral-600 hover:text-white transition-colors" />
+          </div>
         </div>
       </footer>
     </div>
