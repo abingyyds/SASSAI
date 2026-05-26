@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { getTokenSupportedModels } from '../api';
 import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../constants/api';
-import { useSite } from '../context/SiteContext';
+import { usePublicApiBaseUrl, useSite } from '../context/SiteContext';
 import {
   CCSWITCH_PRIMARY_DOWNLOAD,
   CCSWITCH_REPO_URL,
@@ -35,15 +35,6 @@ const CCSWITCH_APPS = [
   { id: 'opencode', name: 'OpenCode', endpointType: 'openai' },
   { id: 'openclaw', name: 'OpenClaw', endpointType: 'openclaw' },
   { id: 'hermes', name: 'Hermes', endpointType: 'hermes' },
-];
-
-const API_ENDPOINTS = [
-  {
-    id: 'official',
-    url: PUBLIC_API_BASE_URL,
-    nameKey: 'config.apiEndpointOfficialName',
-    descKey: 'config.apiEndpointOfficialDesc',
-  },
 ];
 
 function ThemedSelect({
@@ -190,6 +181,7 @@ function ThemedSelect({
 const ConfigExporter = ({ tokens = [] }) => {
   const { t } = useTranslation();
   const { site } = useSite();
+  const publicApiBaseUrl = usePublicApiBaseUrl() || PUBLIC_API_BASE_URL;
   const [selectedTokenId, setSelectedTokenId] = useState(null);
   const [availableModels, setAvailableModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
@@ -202,13 +194,21 @@ const ConfigExporter = ({ tokens = [] }) => {
   const [launchingCCSwitch, setLaunchingCCSwitch] = useState(false);
   const [showCCSwitchDownload, setShowCCSwitchDownload] = useState(false);
   const ccSwitchLaunchFallbackMs = 4500;
+  const apiEndpoints = useMemo(() => [
+    {
+      id: 'official',
+      url: publicApiBaseUrl,
+      nameKey: 'config.apiEndpointOfficialName',
+      descKey: 'config.apiEndpointOfficialDesc',
+    },
+  ], [publicApiBaseUrl]);
 
   const serverAddress = window.location.origin;
   const selectedEndpoint = useMemo(
     () =>
-      API_ENDPOINTS.find((endpoint) => endpoint.id === selectedEndpointId) ||
-      API_ENDPOINTS[0],
-    [selectedEndpointId],
+      apiEndpoints.find((endpoint) => endpoint.id === selectedEndpointId) ||
+      apiEndpoints[0],
+    [apiEndpoints, selectedEndpointId],
   );
   const apiBaseUrl = selectedEndpoint.url;
 
@@ -879,7 +879,7 @@ print(message.content[0].text)`;
               {t('config.selectApiEndpoint')}
             </label>
             <div className="grid gap-2 md:grid-cols-2">
-              {API_ENDPOINTS.map((endpoint) => (
+              {apiEndpoints.map((endpoint) => (
                 <button
                   key={endpoint.id}
                   type="button"

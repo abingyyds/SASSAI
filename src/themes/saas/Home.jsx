@@ -67,7 +67,6 @@ const snippetTabs = [
   { key: 'python', label: 'Python' },
 ];
 
-const HOMEPAGE_API_BASE_URL = 'https://api.subrouter.com/v1';
 const GSAP_CDN_URL = 'https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js';
 const GSAP_SCRIPT_ID = 'sassai-home-gsap';
 
@@ -173,14 +172,14 @@ export default function SaasHome() {
   const homeRef = useRef(null);
   const { user } = useAuth();
   const { site } = useSite();
-  const { fmtPlanPrice } = useCurrency();
+  const { fmtPlanPrice, apiBaseUrl } = useCurrency();
   const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
   const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [packages, setPackages] = useState([]);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeSnippet, setActiveSnippet] = useState('curl');
   const siteName = site?.name || 'SubRouter';
-  const baseUrl = HOMEPAGE_API_BASE_URL;
+  const baseUrl = apiBaseUrl;
 
   useHomeMotion(homeRef);
 

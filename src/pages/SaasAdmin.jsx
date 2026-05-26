@@ -40,6 +40,7 @@ function emptyConfig() {
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
     subrouter_base_url: 'http://localhost:3000',
+    public_api_base_url: '',
     subrouter_internal_token: '',
   };
 }
@@ -105,6 +106,7 @@ export default function SaasAdmin() {
         creem_api_base_url: data.config?.creem_api_base_url || current.creem_api_base_url,
         creem_checkout_path: data.config?.creem_checkout_path || current.creem_checkout_path,
         subrouter_base_url: data.config?.subrouter_base_url || current.subrouter_base_url,
+        public_api_base_url: data.config?.public_api_base_url ?? current.public_api_base_url,
       }));
       setMappings(data.config?.package_mappings || {});
       setPackages((current) => (current.length ? current : fallbackPackagesFromState(data)));
@@ -137,6 +139,7 @@ export default function SaasAdmin() {
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
       subrouter_base_url: config.subrouter_base_url,
+      public_api_base_url: config.public_api_base_url,
       package_mappings: mappings,
     };
     if (config.creem_api_key.trim()) payload.creem_api_key = config.creem_api_key.trim();
@@ -242,6 +245,7 @@ export default function SaasAdmin() {
               <Field label="Creem API base URL" value={config.creem_api_base_url} onChange={(value) => setConfig({ ...config, creem_api_base_url: value })} />
               <Field label="Checkout path" value={config.creem_checkout_path} onChange={(value) => setConfig({ ...config, creem_checkout_path: value })} />
               <Field label="SubRouter API base URL" value={config.subrouter_base_url} onChange={(value) => setConfig({ ...config, subrouter_base_url: value })} />
+              <Field label="Public API base URL" value={config.public_api_base_url} onChange={(value) => setConfig({ ...config, public_api_base_url: value })} placeholder="Leave blank to use frontend default /v1" />
               <Field label="SubRouter internal token" value={config.subrouter_internal_token} onChange={(value) => setConfig({ ...config, subrouter_internal_token: value })} placeholder={state?.config?.subrouter_internal_token_configured ? 'Configured. Leave blank to keep.' : 'Optional'} secret />
             </div>
 

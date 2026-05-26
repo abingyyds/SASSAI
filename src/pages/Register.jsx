@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Boxes, CheckCircle2, Code2, CreditCard, KeyRound, LockKeyhole, Play, Route, Server, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useSite } from '../context/SiteContext';
+import { usePublicApiBaseUrl, useSite } from '../context/SiteContext';
 import { PUBLIC_API_BASE_URL } from '../constants/api';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ export default function Register() {
   const { t } = useTranslation();
   const { register, user } = useAuth();
   const { site } = useSite();
+  const apiBaseUrl = usePublicApiBaseUrl() || PUBLIC_API_BASE_URL;
   const navigate = useNavigate();
   const [form, setForm] = useState({ username: '', password: '', password2: '', email: '' });
   const [loading, setLoading] = useState(false);
@@ -64,7 +65,7 @@ export default function Register() {
   const steps = [
     { icon: KeyRound, title: 'Create access', text: 'Set up an account and keep the existing auth flow unchanged.' },
     { icon: Boxes, title: 'Pick a model', text: 'Use the public catalog to find a stable model id.' },
-    { icon: Code2, title: 'Send requests', text: `Point your client at ${PUBLIC_API_BASE_URL}.` },
+    { icon: Code2, title: 'Send requests', text: `Point your client at ${apiBaseUrl}.` },
   ];
   const trustCues = [
     { icon: Route, label: 'Unified API' },
@@ -101,7 +102,7 @@ export default function Register() {
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">API base URL</p>
-                <p className="mt-1 truncate font-mono text-sm font-semibold text-slate-950">{PUBLIC_API_BASE_URL}</p>
+                <p className="mt-1 truncate font-mono text-sm font-semibold text-slate-950">{apiBaseUrl}</p>
               </div>
             </div>
           </div>

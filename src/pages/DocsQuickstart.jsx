@@ -27,6 +27,7 @@ import {
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
 import { INVALID_WEBSITE_API_BASE_URL } from '../constants/api';
+import { usePublicApiBaseUrl } from '../context/SiteContext';
 
 const navItems = [
   { id: 'api-key', label: 'Get API key' },
@@ -43,9 +44,9 @@ const navItems = [
 
 export default function DocsQuickstart() {
   const { user } = useAuth();
+  const baseUrl = usePublicApiBaseUrl() || SUBROUTER_API_BASE_URL;
   const cachedCatalog = useMemo(() => readDocsModelCatalog(), []);
   const [models, setModels] = useState(() => cachedCatalog?.models || []);
-  const baseUrl = SUBROUTER_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;

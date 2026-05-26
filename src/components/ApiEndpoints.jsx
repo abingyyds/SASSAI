@@ -2,14 +2,7 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../constants/api';
-
-const SHARED_API_ENDPOINTS = [
-  {
-    id: 'official-api',
-    labelKey: 'home.apiEndpointSite',
-    url: PUBLIC_API_BASE_URL,
-  },
-];
+import { usePublicApiBaseUrl } from '../context/SiteContext';
 
 const copyToClipboard = async (text) => {
   try {
@@ -28,16 +21,16 @@ const copyToClipboard = async (text) => {
 
 export default function ApiEndpoints() {
   const { t } = useTranslation();
+  const publicApiBaseUrl = usePublicApiBaseUrl() || PUBLIC_API_BASE_URL;
 
   const endpoints = useMemo(
-    () => [
-      ...SHARED_API_ENDPOINTS.map((endpoint) => ({
-        ...endpoint,
-        label: t(endpoint.labelKey),
+    () => [{
+        id: 'official-api',
+        label: t('home.apiEndpointSite'),
+        url: publicApiBaseUrl,
         apiOnly: true,
-      })),
-    ].filter((endpoint) => endpoint.url),
-    [t],
+      }].filter((endpoint) => endpoint.url),
+    [publicApiBaseUrl, t],
   );
 
   const handleCopy = async (url) => {

@@ -23,7 +23,6 @@ import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
-import { PUBLIC_API_BASE_URL } from '../../constants/api';
 
 const featureCards = [
   { icon: Gauge, tone: 'border-blue-200 bg-blue-50 text-blue-700', key: 'lightningFast', desc: 'lightningFastDesc' },
@@ -35,7 +34,7 @@ export default function AuroraHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { site } = useSite();
-  const { fmtCNY } = useCurrency();
+  const { fmtCNY, apiBaseUrl } = useCurrency();
   const { enabledModels, visiblePackages } = useHomeData();
   const models = enabledModels.slice(0, 8);
   const homeContent = getHomeContent(site, t);
@@ -88,7 +87,7 @@ export default function AuroraHome() {
             {homeContent.heroImage ? (
               <HomeHeroImage src={homeContent.heroImage} alt={site?.name} className="aspect-[4/3]" />
             ) : (
-              <RoutingWorkbench models={models} t={t} />
+              <RoutingWorkbench models={models} t={t} apiBaseUrl={apiBaseUrl} />
             )}
           </FadeContent>
         </div>
@@ -193,7 +192,7 @@ function SectionTitle({ title, desc, compact = false }) {
   );
 }
 
-function RoutingWorkbench({ models, t }) {
+function RoutingWorkbench({ models, t, apiBaseUrl }) {
   const preview = models.length ? models : [
     { display_name: 'gpt-4o-mini' },
     { display_name: 'claude-sonnet' },
@@ -237,7 +236,7 @@ function RoutingWorkbench({ models, t }) {
               <Layers3 className="h-4 w-4 text-blue-300" />
               model choice
             </div>
-            <span className="font-mono text-xs text-slate-500">POST {PUBLIC_API_BASE_URL}/chat/completions</span>
+            <span className="font-mono text-xs text-slate-500">POST {apiBaseUrl}/chat/completions</span>
           </div>
 
           <div className="space-y-3">

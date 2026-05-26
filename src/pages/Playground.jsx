@@ -52,6 +52,7 @@ import {
   getSupportedModes,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
+import { usePublicApiBaseUrl } from '../context/SiteContext';
 
 const modeDefinitions = [
   { key: 'chat', label: 'Chat/Text', icon: MessageSquareText, endpoint: 'chat/completions' },
@@ -136,7 +137,7 @@ export default function Playground() {
   const [loadingKeys, setLoadingKeys] = useState(false);
   const [runState, setRunState] = useState(() => createIdleRunState());
   const activeConversationRef = useRef(activeConversationId);
-  const baseUrl = SUBROUTER_API_BASE_URL;
+  const baseUrl = usePublicApiBaseUrl() || SUBROUTER_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;

@@ -14,13 +14,12 @@ import RotatingEquiv from '../../components/bits/RotatingEquiv';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
-import { PUBLIC_API_BASE_URL } from '../../constants/api';
 
 export default function TerminalHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { site } = useSite();
-  const { fmtCNY } = useCurrency();
+  const { fmtCNY, apiBaseUrl } = useCurrency();
   const { enabledModels, visiblePackages } = useHomeData();
   const previewModels = enabledModels.slice(0, 7);
   const homeContent = getHomeContent(site, t);
@@ -77,7 +76,7 @@ export default function TerminalHome() {
           {homeContent.heroImage ? (
             <HomeHeroImage src={homeContent.heroImage} alt={site?.name} variant="dark" className="aspect-[4/3]" />
           ) : (
-            <ModelConsole models={previewModels} t={t} />
+            <ModelConsole models={previewModels} t={t} apiBaseUrl={apiBaseUrl} />
           )}
         </FadeContent>
       </section>
@@ -179,7 +178,7 @@ function SectionTitle({ title, desc }) {
   );
 }
 
-function ModelConsole({ models, t }) {
+function ModelConsole({ models, t, apiBaseUrl }) {
   const rows = models.length ? models : [{ display_name: 'gpt-4o-mini' }, { display_name: 'claude-sonnet' }, { display_name: 'gemini-pro' }];
   return (
     <div className="rounded-xl border border-emerald-400/20 bg-[#030504] shadow-2xl shadow-emerald-950/60">
@@ -197,7 +196,7 @@ function ModelConsole({ models, t }) {
             {t('nav.apiKeys')}
           </div>
           <pre className="overflow-hidden rounded-lg border border-emerald-400/10 bg-emerald-400/[0.04] p-4 font-mono text-xs leading-6 text-emerald-100/72">
-{`$ curl ${PUBLIC_API_BASE_URL}/chat/completions
+{`$ curl ${apiBaseUrl}/chat/completions
 > model=${rows[0]?.display_name || rows[0]?.model_name}
 > response_format=json
 < status=ready

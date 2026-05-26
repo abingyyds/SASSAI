@@ -1,4 +1,10 @@
-const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
+export const trimTrailingSlash = (value) => String(value || '').replace(/\/+$/, '');
+
+export const normalizePublicApiBaseUrl = (value) => {
+  const text = trimTrailingSlash(value).trim();
+  if (!text) return '';
+  return text;
+};
 
 const getBrowserOrigin = () => (
   typeof window !== 'undefined' && window.location?.origin
@@ -6,7 +12,7 @@ const getBrowserOrigin = () => (
     : ''
 );
 
-const configuredApiBaseUrl = trimTrailingSlash(import.meta.env.VITE_PUBLIC_API_BASE_URL);
+const configuredApiBaseUrl = normalizePublicApiBaseUrl(import.meta.env.VITE_PUBLIC_API_BASE_URL);
 
 const getDefaultApiBaseUrl = () => {
   if (configuredApiBaseUrl) return configuredApiBaseUrl;

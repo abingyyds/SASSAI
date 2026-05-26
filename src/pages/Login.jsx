@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Boxes, CheckCircle2, Code2, KeyRound, LockKeyhole, Play, Server, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useSite } from '../context/SiteContext';
+import { usePublicApiBaseUrl, useSite } from '../context/SiteContext';
 import { PUBLIC_API_BASE_URL } from '../constants/api';
 import toast from 'react-hot-toast';
 
@@ -11,6 +11,7 @@ export default function Login() {
   const { t } = useTranslation();
   const { login, user } = useAuth();
   const { site } = useSite();
+  const apiBaseUrl = usePublicApiBaseUrl() || PUBLIC_API_BASE_URL;
   const navigate = useNavigate();
   const location = useLocation();
   const [form, setForm] = useState({ username: '', password: '' });
@@ -78,7 +79,7 @@ export default function Login() {
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">API base URL</p>
-                <p className="mt-1 truncate font-mono text-sm font-semibold text-slate-950">{PUBLIC_API_BASE_URL}</p>
+                <p className="mt-1 truncate font-mono text-sm font-semibold text-slate-950">{apiBaseUrl}</p>
               </div>
             </div>
           </div>

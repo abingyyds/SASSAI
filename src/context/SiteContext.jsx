@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getSiteInfo } from '../api';
+import { getSiteInfo, getSitePublicConfig } from '../api';
+import { PUBLIC_API_BASE_URL, normalizePublicApiBaseUrl } from '../constants/api';
 
 const SiteContext = createContext(null);
 
@@ -11,6 +12,7 @@ const DEFAULT_SITE = {
   enable_topup: true,
   top_up_link: '',
   allow_sub_dist: false,
+  public_api_base_url: PUBLIC_API_BASE_URL,
   currency: {
     code: 'USD',
     symbol: '$',
@@ -111,10 +113,13 @@ function cacheSite(site) {
 
 function normalizeSite(data) {
   const publicDomain = typeof window !== 'undefined' ? window.location.origin : data?.domain;
+  const publicApiBaseUrl = resolvePublicApiBaseUrl(data);
   return {
     ...DEFAULT_SITE,
     ...data,
     domain: publicDomain,
+    public_api_base_url: publicApiBaseUrl,
+    api_base_url: publicApiBaseUrl,
     logo: data?.logo || DEFAULT_SITE.logo,
     favicon: data?.favicon || DEFAULT_SITE.favicon,
     theme_template: data?.theme_template || DEFAULT_SITE.theme_template,
@@ -123,6 +128,37 @@ function normalizeSite(data) {
       ...(data?.currency || {}),
     },
   };
+}
+
+function parseCustomConfig(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function resolvePublicApiBaseUrl(data) {
+  const config = parseCustomConfig(data?.custom_config);
+  return normalizePublicApiBaseUrl(
+    data?.public_api_base_url ||
+    data?.api_base_url ||
+    data?.apiBaseUrl ||
+    data?.api_base ||
+    data?.base_url ||
+    config.public_api_base_url ||
+    config.api_base_url ||
+    config.apiBaseUrl ||
+    config.apiBaseURL ||
+    config.api_base ||
+    config.base_url ||
+    config.api?.base_url ||
+    config.api?.baseUrl ||
+    PUBLIC_API_BASE_URL,
+  ) || PUBLIC_API_BASE_URL;
 }
 
 export function SiteProvider({ children }) {
@@ -158,10 +194,17 @@ export function SiteProvider({ children }) {
     applyThemeClass(site.theme_template || DEFAULT_SITE.theme_template);
     applySiteDocumentMeta(site);
 
-    getSiteInfo()
-      .then((res) => {
+    Promise.all([
+      getSiteInfo(),
+      getSitePublicConfig().catch(() => null),
+    ])
+      .then(([res, publicConfigRes]) => {
         if (res.data.success) {
-          const siteData = normalizeSite({ ...res.data.data, theme_template: DEFAULT_SITE.theme_template });
+          const siteData = normalizeSite({
+            ...res.data.data,
+            ...(publicConfigRes?.data?.success ? publicConfigRes.data.data : {}),
+            theme_template: DEFAULT_SITE.theme_template,
+          });
           setSite(siteData);
           cacheSite(siteData);
           applyThemeClass(siteData.theme_template || DEFAULT_SITE.theme_template);
@@ -184,6 +227,11 @@ export function useSite() {
   return ctx;
 }
 
+export function usePublicApiBaseUrl() {
+  const { site } = useSite();
+  return normalizePublicApiBaseUrl(site?.public_api_base_url || site?.api_base_url) || PUBLIC_API_BASE_URL;
+}
+
 /**
  * useCurrency - read site currency settings.
  * Returns { symbol, rate, code, fmt(usdValue) }.
@@ -191,6 +239,7 @@ export function useSite() {
  */
 export function useCurrency() {
   const { site } = useSite();
+  const apiBaseUrl = normalizePublicApiBaseUrl(site?.public_api_base_url || site?.api_base_url) || PUBLIC_API_BASE_URL;
   const currency = site?.currency;
   const symbol = currency?.symbol || '$';
   const rate = currency?.exchange_rate || 1;
@@ -222,5 +271,5 @@ export function useCurrency() {
     return fmtCNY(v, decimals);
   };
 
-  return { symbol, rate, code, fmt, fmtCNY, fmtPlanPrice, usdRate };
+  return { symbol, rate, code, fmt, fmtCNY, fmtPlanPrice, usdRate, apiBaseUrl };
 }

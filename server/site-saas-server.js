@@ -20,6 +20,7 @@ const defaultStore = {
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
     subrouter_base_url: 'http://localhost:3000',
+    public_api_base_url: '',
     subrouter_internal_token: '',
     site_public_url: '',
     package_mappings: {},
@@ -61,6 +62,7 @@ function getConfig(store) {
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
     creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
+    public_api_base_url: process.env.PUBLIC_API_BASE_URL || process.env.VITE_PUBLIC_API_BASE_URL || store.config.public_api_base_url || '',
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
     site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
@@ -210,6 +212,7 @@ function publicState(store) {
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
       subrouter_base_url: config.subrouter_base_url,
+      public_api_base_url: config.public_api_base_url,
       package_mappings: store.config.package_mappings || {},
     },
     code_stats: [...statsByPackage.values()],
@@ -518,6 +521,16 @@ export async function handleSiteSaasRequest(req, res) {
       return sendJson(res, 200, { success: true, data: { ok: true, time: now() } });
     }
 
+    if (url.pathname === '/api/site/saas/public-config' && req.method === 'GET') {
+      const config = getConfig(store);
+      return sendJson(res, 200, {
+        success: true,
+        data: {
+          public_api_base_url: config.public_api_base_url,
+        },
+      });
+    }
+
     if (url.pathname === '/api/site/admin/saas/state' && req.method === 'GET') {
       if (!requireAdmin(req)) return sendJson(res, 401, { success: false, message: 'Invalid site admin token' });
       return sendJson(res, 200, { success: true, data: publicState(store) });
@@ -531,6 +544,7 @@ export async function handleSiteSaasRequest(req, res) {
         'creem_checkout_path',
         'creem_webhook_secret',
         'subrouter_base_url',
+        'public_api_base_url',
         'subrouter_internal_token',
         'site_public_url',
         'subrouter_site_host',

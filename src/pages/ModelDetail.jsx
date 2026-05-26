@@ -39,15 +39,16 @@ import {
   getSupportedModes,
 } from '../utils/modelMeta';
 import { useAuth } from '../context/AuthContext';
+import { usePublicApiBaseUrl } from '../context/SiteContext';
 
 export default function ModelDetail() {
   const { modelId } = useParams();
   const { user } = useAuth();
+  const baseUrl = usePublicApiBaseUrl() || SUBROUTER_API_BASE_URL;
   const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
   const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [loading, setLoading] = useState(() => !cachedCatalog);
   const decodedId = decodeURIComponent(modelId || '');
-  const baseUrl = SUBROUTER_API_BASE_URL;
 
   useEffect(() => {
     let cancelled = false;

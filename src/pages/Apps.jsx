@@ -10,6 +10,7 @@ import {
   CossSection,
 } from '../components/public/CossLayout';
 import { INVALID_WEBSITE_API_BASE_URL, PUBLIC_API_BASE_URL } from '../constants/api';
+import { usePublicApiBaseUrl } from '../context/SiteContext';
 
 const apps = [
   {
@@ -39,7 +40,7 @@ const apps = [
 ];
 
 export default function Apps() {
-  const baseUrl = PUBLIC_API_BASE_URL;
+  const baseUrl = usePublicApiBaseUrl() || PUBLIC_API_BASE_URL;
   const config = `API Key: sk-your-api-key
 Base URL: ${baseUrl}
 Model: choose from /models`;

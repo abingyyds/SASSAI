@@ -21,14 +21,13 @@ import FadeContent from '../../components/bits/FadeContent';
 import ApiEndpoints from '../../components/ApiEndpoints';
 import { getHomeContent } from '../../utils/siteContent';
 import HomeHeroImage from '../shared/HomeHeroImage';
-import { PUBLIC_API_BASE_URL } from '../../constants/api';
 import { getPublicModelCatalog, readPublicModelCatalog } from '../../utils/publicCatalog';
 
 export default function DefaultHome() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { site } = useSite();
-  const { fmtCNY } = useCurrency();
+  const { fmtCNY, apiBaseUrl } = useCurrency();
   const cachedCatalog = useMemo(() => readPublicModelCatalog(), []);
   const [models, setModels] = useState(() => cachedCatalog?.models || []);
   const [packages, setPackages] = useState([]);
@@ -124,7 +123,7 @@ export default function DefaultHome() {
             {homeContent.heroImage ? (
               <HomeHeroImage src={homeContent.heroImage} alt={site?.name} className="aspect-[4/3]" />
             ) : (
-              <HeroConsole models={modelPreview} t={t} />
+              <HeroConsole models={modelPreview} t={t} apiBaseUrl={apiBaseUrl} />
             )}
           </FadeContent>
         </div>
@@ -308,7 +307,7 @@ function Metric({ value, label, prefix = '', suffix = '' }) {
   );
 }
 
-function HeroConsole({ models, t }) {
+function HeroConsole({ models, t, apiBaseUrl }) {
   const rows = models.length > 0 ? models : [
     { display_name: 'gpt-4o-mini' },
     { display_name: 'claude-3.5-sonnet' },
@@ -324,7 +323,7 @@ function HeroConsole({ models, t }) {
             <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
           </div>
-          <span className="font-mono text-xs text-slate-400">{PUBLIC_API_BASE_URL}/chat/completions</span>
+          <span className="font-mono text-xs text-slate-400">{apiBaseUrl}/chat/completions</span>
         </div>
 
         <div className="grid gap-0 lg:grid-cols-[1fr_0.86fr]">
@@ -334,7 +333,7 @@ function HeroConsole({ models, t }) {
               {t('nav.apiKeys')}
             </div>
             <pre className="overflow-hidden rounded-lg bg-black/40 p-4 text-xs leading-6 text-slate-300">
-{`curl ${PUBLIC_API_BASE_URL}/chat/completions
+{`curl ${apiBaseUrl}/chat/completions
   -H "Authorization: Bearer sk-..."
   -d '{"model":"${rows[0]?.display_name || rows[0]?.model_name}"}'`}
             </pre>

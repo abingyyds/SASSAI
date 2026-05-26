@@ -201,6 +201,12 @@ export const getSiteInfo = () => {
     previewSite('saas'),
   ));
 };
+export const getSitePublicConfig = () => (shouldUseDevMock()
+  ? previewResponse({})
+  : api.get('/api/site/saas/public-config', {
+    timeout: PUBLIC_REQUEST_TIMEOUT_MS,
+    skipErrorHandler: true,
+  }));
 export const getSiteModels = () => {
   const theme = getPreviewTheme();
   return cachedPublicRequest(`site-models:${theme || 'default'}:${shouldUseDevMock()}`, () => (

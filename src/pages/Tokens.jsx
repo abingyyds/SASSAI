@@ -26,7 +26,7 @@ import {
 import CodeBlock from '../components/CodeBlock';
 import ConfigExporter from '../components/ConfigExporter';
 import DownloadCatalog from '../components/DownloadCatalog';
-import { useCurrency } from '../context/SiteContext';
+import { useCurrency, usePublicApiBaseUrl } from '../context/SiteContext';
 import {
   ConsoleBadge,
   ConsoleEmpty,
@@ -48,6 +48,7 @@ const providerNamesField = ['provider', 'names'].join('_');
 export default function Tokens() {
   const { t } = useTranslation();
   const { symbol, rate } = useCurrency();
+  const publicApiBaseUrl = usePublicApiBaseUrl() || SUBROUTER_API_BASE_URL;
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
@@ -268,7 +269,7 @@ export default function Tokens() {
     });
   }, [activeGroupPricing, groupPricingSearch]);
 
-  const baseUrl = SUBROUTER_API_BASE_URL;
+  const baseUrl = publicApiBaseUrl;
   const selectedQuickstartModelId = quickstartModelId || (siteModels[0] ? getModelId(siteModels[0]) : 'gpt-4o-mini');
   const quickstartCurl = buildCurlSnippet({
     baseUrl,
