@@ -564,6 +564,7 @@ export default function Playground() {
       const assistantMessage = createMessage('assistant', summarizeRunResult(activeMode, resultWithTiming), {
         modelId,
         mode: activeMode,
+        attachments: createResultAttachments(activeMode, resultWithTiming),
       });
       appendMessagesToConversation(conversationId, [assistantMessage]);
       setRunState((current) => {
@@ -991,6 +992,7 @@ function MessageBubble({ message, modelName, mode }) {
         ? 'border border-amber-500/20 bg-amber-50 text-amber-900'
         : 'border border-page-divider bg-page-surface/50 text-page';
   const metaClass = isUser ? 'text-slate-300' : isError ? 'text-rose-500' : 'text-page-muted';
+  const attachments = Array.isArray(message.attachments) ? message.attachments : [];
 
   return (
     <div className={`flex min-w-0 gap-3 ${isUser ? 'justify-end' : ''}`}>
@@ -1011,6 +1013,9 @@ function MessageBubble({ message, modelName, mode }) {
           </span>
         </div>
         <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{message.content}</p>
+        {attachments.length > 0 && (
+          <MediaAttachmentGrid attachments={attachments} mode={message.mode || mode} />
+        )}
         <div className="mt-3 flex justify-end">
           <CopyButton
             text={message.content}
@@ -1157,6 +1162,26 @@ function InspectorPanel({
           )}
         </div>
       </ConsoleFrame>
+
+      {(runState.status === 'success' || runState.status === 'error') && (
+        <ConsoleFrame className="p-4">
+          <div className="flex items-center gap-2">
+            {runState.status === 'success' ? (
+              <CheckCircle2 size={17} className="text-emerald-600" />
+            ) : (
+              <AlertCircle size={17} className="text-page-danger" />
+            )}
+            <h2 className="font-semibold text-page">Run result</h2>
+          </div>
+          {runState.status === 'success' ? (
+            <RunResult mode={activeMode} result={runState.result} />
+          ) : (
+            <div className="mt-3">
+              <RunError error={runState.error} result={runState.result} />
+            </div>
+          )}
+        </ConsoleFrame>
+      )}
 
       <ConsoleFrame className="p-4">
         <div className="flex min-w-0 items-center gap-2">
@@ -1357,6 +1382,69 @@ function InspectorPanel({
         </pre>
       </ConsoleFrame>
     </aside>
+  );
+}
+
+function MediaAttachmentGrid({ attachments, mode }) {
+  const media = attachments
+    .filter((item) => item?.src)
+    .map((item) => ({
+      ...item,
+      type: item.type || mediaTypeForMode(mode),
+    }));
+  if (media.length === 0) return null;
+
+  const mediaMode = mode || media[0]?.type;
+
+  if (mediaMode === 'image') {
+    return (
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {media.map((item, index) => (
+          <a key={`${item.src}-${index}`} href={item.src} target="_blank" rel="noreferrer" className="group block overflow-hidden rounded-xl border border-page-divider bg-white">
+            <img src={item.src} alt={`Generated result ${index + 1}`} className="aspect-square w-full object-cover transition-transform group-hover:scale-[1.01]" />
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  if (mediaMode === 'video') {
+    return (
+      <div className="mt-3 space-y-3">
+        {media.map((item, index) => (
+          <div key={`${item.src}-${index}`} className="overflow-hidden rounded-xl border border-page-divider bg-black">
+            <video src={item.src} controls className="max-h-[420px] w-full bg-black" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (mediaMode === 'audio') {
+    return (
+      <div className="mt-3 space-y-3">
+        {media.map((item, index) => (
+          <audio key={`${item.src}-${index}`} src={item.src} controls className="w-full" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {media.map((item, index) => (
+        <a
+          key={`${item.src}-${index}`}
+          href={item.src}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-page-divider bg-white px-2.5 py-1.5 text-xs font-semibold text-page-secondary hover:bg-page-surface-hover hover:text-page"
+        >
+          <ExternalLink size={13} />
+          Open result {media.length > 1 ? index + 1 : ''}
+        </a>
+      ))}
+    </div>
   );
 }
 
@@ -1608,6 +1696,9 @@ function normalizeConversation(value) {
 }
 
 function createMessage(role, content, meta = {}) {
+  const attachments = Array.isArray(meta.attachments)
+    ? meta.attachments.map((item) => normalizeAttachment(item, meta.mode, { allowBlob: true })).filter(Boolean)
+    : [];
   return {
     id: createStableId('msg'),
     role,
@@ -1615,13 +1706,18 @@ function createMessage(role, content, meta = {}) {
     createdAt: new Date().toISOString(),
     modelId: meta.modelId || '',
     mode: meta.mode || 'chat',
+    attachments,
   };
 }
 
 function normalizeMessage(value) {
   if (!value || typeof value !== 'object') return null;
   const content = typeof value.content === 'string' ? value.content : '';
-  if (!content.trim()) return null;
+  const mode = modeDefinitions.some((item) => item.key === value.mode) ? value.mode : 'chat';
+  const attachments = Array.isArray(value.attachments)
+    ? value.attachments.map((item) => normalizeAttachment(item, mode)).filter(Boolean)
+    : [];
+  if (!content.trim() && attachments.length === 0) return null;
   const role = ['user', 'assistant', 'system', 'error'].includes(value.role) ? value.role : 'assistant';
   return {
     id: String(value.id || createStableId('msg')),
@@ -1629,7 +1725,23 @@ function normalizeMessage(value) {
     content,
     createdAt: isValidIsoDate(value.createdAt) ? value.createdAt : new Date().toISOString(),
     modelId: String(value.modelId || ''),
-    mode: modeDefinitions.some((mode) => mode.key === value.mode) ? value.mode : 'chat',
+    mode,
+    attachments,
+  };
+}
+
+function normalizeAttachment(value, fallbackMode = 'file', options = {}) {
+  if (!value || typeof value !== 'object') return null;
+  const src = String(value.src || value.url || '').trim();
+  const validSrc = options.allowBlob ? looksLikeMediaUrl(src) : looksLikePersistentMediaUrl(src);
+  if (!src || !validSrc) return null;
+  const type = ['image', 'video', 'audio', 'file'].includes(value.type)
+    ? value.type
+    : mediaTypeForMode(fallbackMode);
+  return {
+    src,
+    type,
+    contentType: String(value.contentType || value.mime_type || ''),
   };
 }
 
@@ -1696,6 +1808,12 @@ function summarizeRunResult(mode, result) {
   if (errorText) return errorText;
   if (result.payload) return `${modeLabel(mode)} request completed. Result JSON is available in the API preview run state.`;
   return result.text || `${modeLabel(mode)} request completed.`;
+}
+
+function createResultAttachments(mode, result) {
+  return extractMediaItems(result?.payload, mode, result)
+    .map((item) => normalizeAttachment(item, mode, { allowBlob: true }))
+    .filter(Boolean);
 }
 
 function createIdleRunState() {
@@ -1847,19 +1965,28 @@ function extractMediaItems(payload, mode, result = {}) {
   const direct = Array.isArray(result.mediaItems) ? result.mediaItems : [];
   if (direct.length > 0) return direct;
 
-  const urls = [];
-  collectMediaUrls(payload, urls);
-  return urls.map((src) => ({ src, type: mediaTypeForMode(mode) }));
+  const items = [];
+  collectMediaUrls(payload, items, mode);
+  return dedupeMediaItems(items.map((item) => ({
+    src: typeof item === 'string' ? item : item.src,
+    type: typeof item === 'string' ? mediaTypeForMode(mode) : item.type || mediaTypeForMode(mode),
+    contentType: typeof item === 'string' ? '' : item.contentType || '',
+  })));
 }
 
-function collectMediaUrls(value, urls) {
+function collectMediaUrls(value, items, mode) {
   if (!value) return;
   if (typeof value === 'string') {
-    if (looksLikeMediaUrl(value)) urls.push(value);
+    if (looksLikeMediaUrl(value)) {
+      items.push({ src: value, type: inferMediaTypeFromUrl(value, mode) });
+      return;
+    }
+    const parsedList = parseMaybeJsonMediaList(value, mode);
+    if (parsedList.length > 0) items.push(...parsedList);
     return;
   }
   if (Array.isArray(value)) {
-    value.forEach((item) => collectMediaUrls(item, urls));
+    value.forEach((item) => collectMediaUrls(item, items, mode));
     return;
   }
   if (typeof value !== 'object') return;
@@ -1867,35 +1994,143 @@ function collectMediaUrls(value, urls) {
   const urlKeys = [
     'url',
     'image_url',
+    'image_urls',
     'video_url',
+    'video_urls',
     'audio_url',
+    'audio_urls',
     'output_url',
+    'output_urls',
     'file_url',
+    'file_urls',
+    'media_url',
+    'media_urls',
     'signed_url',
+    'signed_urls',
+    'result_url',
+    'result_urls',
+    'resultUrl',
+    'resultUrls',
+    'download_url',
+    'download_urls',
+    'downloadUrl',
+    'downloadUrls',
+    'asset_url',
+    'asset_urls',
+    'assetUrl',
+    'assetUrls',
     'uri',
+    'uris',
   ];
   urlKeys.forEach((key) => {
-    if (typeof value[key] === 'string' && looksLikeMediaUrl(value[key])) {
-      urls.push(value[key]);
+    if (typeof value[key] === 'string') {
+      if (looksLikeMediaUrl(value[key])) {
+        items.push({ src: value[key], type: inferMediaTypeFromKey(key, value[key], mode) });
+        return;
+      }
+      const parsedList = parseMaybeJsonMediaList(value[key], inferModeFromKey(key, mode));
+      if (parsedList.length > 0) items.push(...parsedList);
     }
   });
 
+  if (value.image_url && typeof value.image_url === 'object') {
+    collectMediaUrls(value.image_url, items, 'image');
+  }
+  if (value.video_url && typeof value.video_url === 'object') {
+    collectMediaUrls(value.video_url, items, 'video');
+  }
+  if (value.audio_url && typeof value.audio_url === 'object') {
+    collectMediaUrls(value.audio_url, items, 'audio');
+  }
+
   if (typeof value.b64_json === 'string') {
-    urls.push(`data:image/png;base64,${value.b64_json}`);
+    items.push({
+      src: `data:${mode === 'audio' ? 'audio/mpeg' : mode === 'video' ? 'video/mp4' : 'image/png'};base64,${value.b64_json}`,
+      type: mediaTypeForMode(mode),
+    });
   }
   if (typeof value.base64 === 'string' && value.mime_type) {
-    urls.push(`data:${value.mime_type};base64,${value.base64}`);
+    items.push({
+      src: `data:${value.mime_type};base64,${value.base64}`,
+      type: mediaTypeForContentType(value.mime_type, mode),
+      contentType: value.mime_type,
+    });
+  }
+  if (typeof value.base64 === 'string' && value.mimeType) {
+    items.push({
+      src: `data:${value.mimeType};base64,${value.base64}`,
+      type: mediaTypeForContentType(value.mimeType, mode),
+      contentType: value.mimeType,
+    });
   }
 
   Object.keys(value).forEach((key) => {
-    if (urlKeys.includes(key) || key === 'b64_json' || key === 'base64') return;
-    collectMediaUrls(value[key], urls);
+    if (urlKeys.includes(key) || key === 'b64_json' || key === 'base64' || key === 'mime_type' || key === 'mimeType') return;
+    collectMediaUrls(value[key], items, mode);
   });
 }
 
 function looksLikeMediaUrl(value) {
   const text = String(value || '').trim();
   return /^(https?:|blob:|data:image\/|data:video\/|data:audio\/)/i.test(text);
+}
+
+function looksLikePersistentMediaUrl(value) {
+  const text = String(value || '').trim();
+  return /^(https?:|data:image\/|data:video\/|data:audio\/)/i.test(text);
+}
+
+function parseMaybeJsonMediaList(value, mode) {
+  const text = String(value || '').trim();
+  if (!text || !/^[\[{]/.test(text)) return [];
+  const parsed = tryParseJson(text);
+  if (!parsed) return [];
+  const items = [];
+  collectMediaUrls(parsed, items, mode);
+  return items;
+}
+
+function dedupeMediaItems(items) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const src = String(item?.src || '').trim();
+    if (!src || seen.has(src)) return false;
+    seen.add(src);
+    return true;
+  });
+}
+
+function inferMediaTypeFromKey(key, src, fallbackMode) {
+  return mediaTypeForMode(inferModeFromKey(key, fallbackMode)) === 'file'
+    ? inferMediaTypeFromUrl(src, fallbackMode)
+    : mediaTypeForMode(inferModeFromKey(key, fallbackMode));
+}
+
+function inferModeFromKey(key, fallbackMode) {
+  const loweredKey = String(key || '').toLowerCase();
+  if (loweredKey.includes('image')) return 'image';
+  if (loweredKey.includes('video')) return 'video';
+  if (loweredKey.includes('audio')) return 'audio';
+  return fallbackMode;
+}
+
+function inferMediaTypeFromUrl(src, fallbackMode) {
+  const text = String(src || '').toLowerCase();
+  if (text.startsWith('data:image/')) return 'image';
+  if (text.startsWith('data:video/')) return 'video';
+  if (text.startsWith('data:audio/')) return 'audio';
+  if (/\.(png|jpe?g|webp|gif|avif|bmp)(\?|#|$)/.test(text)) return 'image';
+  if (/\.(mp4|webm|mov|m4v|avi|mkv)(\?|#|$)/.test(text)) return 'video';
+  if (/\.(mp3|wav|ogg|opus|m4a|aac)(\?|#|$)/.test(text)) return 'audio';
+  return mediaTypeForMode(fallbackMode);
+}
+
+function mediaTypeForContentType(contentType, fallbackMode) {
+  const text = String(contentType || '').toLowerCase();
+  if (text.startsWith('image/')) return 'image';
+  if (text.startsWith('video/')) return 'video';
+  if (text.startsWith('audio/')) return 'audio';
+  return mediaTypeForMode(fallbackMode);
 }
 
 function buildRequest({
