@@ -30,7 +30,7 @@ import {
 import CodeBlock from '../components/CodeBlock';
 import CopyButton from '../components/CopyButton';
 import ModelPrice from '../components/ModelPrice';
-import { getTokens } from '../api';
+import { createToken, getTokens } from '../api';
 import {
   ConsoleBadge,
   ConsoleField,
@@ -362,6 +362,50 @@ export default function Playground() {
     if (selectedKey) setApiKey(selectedKey.value);
   };
 
+  const ensureApiKeyForRun = async () => {
+    const currentKey = normalizeApiKey(apiKey);
+    if (currentKey) return currentKey;
+
+    if (!user) {
+      throw new Error('Paste a SubRouter API key in the inspector, or sign in and create an API key before running this request.');
+    }
+
+    setLoadingKeys(true);
+    try {
+      const res = await createToken({ name: 'Playground' });
+      if (!res.data?.success) {
+        throw new Error(res.data?.message || 'Could not create a Playground API key.');
+      }
+
+      const created = res.data?.data || {};
+      const createdKey = normalizeApiKey(created.key || created.token || created.api_key || created.value);
+      if (!createdKey) {
+        throw new Error('A Playground API key was created, but the key value was not returned. Open API Keys and copy a key into the inspector.');
+      }
+
+      const normalized = normalizeTokenKeys([{
+        ...created,
+        id: created.id || createdKey,
+        name: created.name || 'Playground',
+        key: createdKey,
+        status: 1,
+      }])[0];
+      if (normalized) {
+        setSavedKeys((current) => [
+          normalized,
+          ...current.filter((key) => normalizeApiKey(key.value) !== createdKey),
+        ]);
+        setSelectedKeyId(String(normalized.id));
+      } else {
+        setSelectedKeyId('manual');
+      }
+      setApiKey(createdKey);
+      return createdKey;
+    } finally {
+      setLoadingKeys(false);
+    }
+  };
+
   const startNewConversation = () => {
     const conversation = createConversation({
       modelId,
@@ -471,8 +515,13 @@ export default function Playground() {
     setComposerText('');
     appendMessagesToConversation(conversationId, [userMessage]);
 
-    if (!apiKey.trim()) {
-      const guidanceMessage = createMessage('error', 'Add a SubRouter API key in the inspector to run this request. The message was saved, but no model call was made.', {
+    setRunState({ status: 'running', result: null, error: null });
+
+    let runApiKey = '';
+    try {
+      runApiKey = await ensureApiKeyForRun();
+    } catch (error) {
+      const guidanceMessage = createMessage('error', error.message || 'Add a SubRouter API key in the inspector to run this request. The message was saved, but no model call was made.', {
         modelId,
         mode: activeMode,
       });
@@ -484,8 +533,6 @@ export default function Playground() {
       });
       return;
     }
-
-    setRunState({ status: 'running', result: null, error: null });
 
     const startedAt = performance.now();
     try {
@@ -506,7 +553,7 @@ export default function Playground() {
       });
       const result = await executePlaygroundRequest({
         request: requestForRun,
-        apiKey,
+        apiKey: runApiKey,
         mode: activeMode,
       });
       const resultWithTiming = {
@@ -640,16 +687,18 @@ export default function Playground() {
                 <div className="min-w-0 px-1 text-xs leading-5 text-page-muted">
                   {apiKey.trim()
                     ? 'The selected key is used only for this browser request.'
-                    : 'Without an API key, sending saves an error message instead of calling a model.'}
+                    : user
+                      ? 'Send will create a Playground API key automatically if none is selected.'
+                      : 'Paste an API key in the inspector or sign in before running a model call.'}
                 </div>
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={!sendAvailable}
+                  disabled={!sendAvailable || loadingKeys}
                   className="btn-primary inline-flex min-h-11 w-full items-center justify-center gap-2 px-4 py-2 disabled:opacity-50 sm:w-auto"
                 >
-                  {isRunning ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-                  {isRunning ? 'Running' : 'Send'}
+                  {isRunning || loadingKeys ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+                  {isRunning ? 'Running' : loadingKeys ? 'Preparing key' : 'Send'}
                 </button>
               </div>
             </div>
@@ -1174,7 +1223,7 @@ function InspectorPanel({
             />
           </ConsoleField>
           <div className="rounded-xl border border-page-divider bg-page-surface/50 p-3 text-xs leading-5 text-page-secondary">
-            Browser runs use this key for the current request only. The Playground does not store it in conversation history.
+            Browser runs use this key for the current request only. Signed-in users get a Playground key automatically if this field is empty.
           </div>
         </div>
       </ConsoleFrame>

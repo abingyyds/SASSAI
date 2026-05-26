@@ -17,6 +17,11 @@ export default defineConfig({
         changeOrigin: true,
         secure: true,
       },
+      '/v1': {
+        target: subrouterProxyTarget,
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   build: {
