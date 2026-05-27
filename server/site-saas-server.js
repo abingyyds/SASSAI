@@ -92,6 +92,27 @@ function userIdFromRequest(req) {
   return String(req.headers['new-api-user'] || req.headers['x-subrouter-user'] || '').trim();
 }
 
+function isHeaderSafeValue(value) {
+  const text = String(value ?? '').trim();
+  if (!text || /[\r\n]/.test(text)) return false;
+  for (let index = 0; index < text.length; index += 1) {
+    if (text.charCodeAt(index) > 255) return false;
+  }
+  return true;
+}
+
+function sanitizeOutgoingHeaders(headers = {}) {
+  const safe = {};
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined || value === null || value === false) continue;
+    const values = Array.isArray(value) ? value : [value];
+    if (values.every(isHeaderSafeValue)) {
+      safe[key] = value;
+    }
+  }
+  return safe;
+}
+
 function siteForwardHeaders(config) {
   const explicitHost = String(config.subrouter_site_host || '').trim();
   if (explicitHost) {
@@ -180,7 +201,7 @@ function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
         port: target.port || undefined,
         path: `${target.pathname}${target.search}`,
         method,
-        headers,
+        headers: sanitizeOutgoingHeaders(headers),
       },
       (res) => {
         const chunks = [];
@@ -270,10 +291,10 @@ function requestRaw(url, { method = 'POST', headers = {}, body = '' } = {}) {
         port: target.port || undefined,
         path: `${target.pathname}${target.search}`,
         method,
-        headers: {
+        headers: sanitizeOutgoingHeaders({
           ...headers,
           'Accept-Encoding': 'identity',
-        },
+        }),
       },
       (res) => {
         const chunks = [];
