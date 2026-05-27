@@ -1,5 +1,13 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { AUTH_RESTORE_TIMEOUT_MS, getUserSelf, login as loginApi, register as registerApi, logout as logoutApi } from '../api';
+import {
+  AUTH_RESTORE_TIMEOUT_MS,
+  clearStoredUserId,
+  getUserSelf,
+  login as loginApi,
+  register as registerApi,
+  logout as logoutApi,
+  syncStoredUserId,
+} from '../api';
 import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
@@ -13,6 +21,7 @@ export function AuthProvider({ children }) {
     try {
       const res = await getUserSelf(config);
       if (res.data.success) {
+        syncStoredUserId(res.data.data);
         setUser(res.data.data);
         return res.data.data;
       }
@@ -27,13 +36,14 @@ export function AuthProvider({ children }) {
       getUserSelf({ timeout: AUTH_RESTORE_TIMEOUT_MS, skipErrorHandler: true })
         .then((res) => {
           if (res.data.success) {
+            syncStoredUserId(res.data.data);
             setUser(res.data.data);
           } else {
-            localStorage.removeItem('dist_user_id');
+            clearStoredUserId();
           }
         })
         .catch(() => {
-          localStorage.removeItem('dist_user_id');
+          clearStoredUserId();
         })
         .finally(() => setLoading(false));
     } else {
@@ -56,12 +66,11 @@ export function AuthProvider({ children }) {
       // Server sets session cookie automatically
       // Store user ID for New-Api-User header
       const userData = res.data.data;
-      if (userData?.id) {
-        localStorage.setItem('dist_user_id', String(userData.id));
-      }
+      syncStoredUserId(userData);
       // Fetch full user info (login response may not have quota/usage)
       const userRes = await getUserSelf();
       if (userRes.data.success) {
+        syncStoredUserId(userRes.data.data);
         setUser(userRes.data.data);
       } else {
         setUser(userData); // fallback to login response data
@@ -84,7 +93,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try { await logoutApi(); } catch (e) { /* ok */ }
-    localStorage.removeItem('dist_user_id');
+    clearStoredUserId();
     setUser(null);
   }, []);
 

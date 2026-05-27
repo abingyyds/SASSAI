@@ -101,6 +101,42 @@ const PUBLIC_CACHE_TTL_MS = 5 * 60 * 1000;
 const publicRequestCache = new Map();
 const PUBLIC_REQUEST_TIMEOUT_MS = 6000;
 export const AUTH_RESTORE_TIMEOUT_MS = 8000;
+const DIST_USER_ID_KEY = 'dist_user_id';
+
+const isHeaderSafeValue = (value) => {
+  const text = String(value || '').trim();
+  if (!text || /[\r\n]/.test(text)) return false;
+  for (let i = 0; i < text.length; i += 1) {
+    if (text.charCodeAt(i) > 255) return false;
+  }
+  return true;
+};
+
+const readStoredUserId = () => {
+  const userId = localStorage.getItem(DIST_USER_ID_KEY);
+  if (!userId) return '';
+  const trimmed = userId.trim();
+  if (!isHeaderSafeValue(trimmed)) {
+    localStorage.removeItem(DIST_USER_ID_KEY);
+    return '';
+  }
+  return trimmed;
+};
+
+export const syncStoredUserId = (user) => {
+  const id = user?.id ?? user?.user_id;
+  if (id === undefined || id === null || id === '') return;
+  const normalizedId = String(id).trim();
+  if (isHeaderSafeValue(normalizedId)) {
+    localStorage.setItem(DIST_USER_ID_KEY, normalizedId);
+  } else {
+    localStorage.removeItem(DIST_USER_ID_KEY);
+  }
+};
+
+export const clearStoredUserId = () => {
+  localStorage.removeItem(DIST_USER_ID_KEY);
+};
 
 const stableCacheKey = (value) => {
   if (Array.isArray(value)) {
@@ -148,7 +184,7 @@ const api = axios.create({
 
 // Attach New-Api-User header (required by backend auth middleware)
 api.interceptors.request.use((config) => {
-  const userId = localStorage.getItem('dist_user_id');
+  const userId = readStoredUserId();
   if (userId) {
     config.headers['New-Api-User'] = userId;
   }
@@ -174,7 +210,7 @@ api.interceptors.response.use(
   (err) => {
     const msg = err.response?.data?.message || err.message || 'Request failed';
     if (err.response?.status === 401) {
-      localStorage.removeItem('dist_user_id');
+      clearStoredUserId();
       // Emit event so AuthContext can clear React state
       window.dispatchEvent(new Event('auth:logout'));
       if (!shouldSkipErrorHandler(err.config)) {
