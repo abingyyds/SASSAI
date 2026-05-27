@@ -31,6 +31,7 @@ import {
   getSitePackages,
   Q,
   subscribePackage,
+  userRequestConfig,
 } from '../api';
 import { readPublicModelCatalog } from '../utils/publicCatalog';
 
@@ -102,8 +103,8 @@ export default function Packages() {
       return;
     }
     const [siteRes, balanceRes] = await Promise.all([
-      getSiteSaasSubscriptions({ skipErrorHandler: true }).catch(() => null),
-      getActiveSubscriptions({ skipErrorHandler: true }).catch(() => null),
+      getSiteSaasSubscriptions(userRequestConfig(user, { skipErrorHandler: true })).catch(() => null),
+      getActiveSubscriptions(userRequestConfig(user, { skipErrorHandler: true })).catch(() => null),
     ]);
     const siteSubscriptions = (siteRes?.data?.success ? siteRes.data.data || [] : [])
       .map((item) => ({ ...item, billing_source: item.billing_source || 'subscription' }));
@@ -202,7 +203,7 @@ export default function Packages() {
     const pkg = confirmBalancePkg;
     setBalanceLoading(pkg.id);
     try {
-      const res = await subscribePackage(pkg.id, { skipErrorHandler: true });
+      const res = await subscribePackage(pkg.id, userRequestConfig(user, { skipErrorHandler: true }));
       if (res.data.success) {
         toast.success(t('packages.subscribedSuccess'));
         setConfirmBalancePkg(null);
@@ -246,7 +247,7 @@ export default function Packages() {
         package_name: pkg.name,
         billing_interval: normalizeInterval(pkg),
         return_url: returnUrl,
-      });
+      }, userRequestConfig(user));
 
       const checkoutUrl = res.data?.data?.checkout_url || res.data?.data?.pay_link || res.data?.checkout_url;
       if ((res.data?.success || res.data?.message === 'success') && checkoutUrl) {

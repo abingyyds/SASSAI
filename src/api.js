@@ -104,12 +104,50 @@ export const AUTH_RESTORE_TIMEOUT_MS = 8000;
 const DIST_USER_ID_KEY = 'dist_user_id';
 
 const isHeaderSafeValue = (value) => {
-  const text = String(value || '').trim();
+  const text = String(value ?? '').trim();
   if (!text || /[\r\n]/.test(text)) return false;
   for (let i = 0; i < text.length; i += 1) {
     if (text.charCodeAt(i) > 255) return false;
   }
   return true;
+};
+
+const isAllowedEmptyHeaderValue = (value) =>
+  value === undefined || value === null || value === false;
+
+const isHeaderValueSafe = (value) => {
+  if (isAllowedEmptyHeaderValue(value)) return true;
+  const values = Array.isArray(value) ? value : [value];
+  return values.every(isHeaderSafeValue);
+};
+
+const deleteHeader = (headers, key) => {
+  if (!headers) return;
+  if (typeof headers.delete === 'function') {
+    headers.delete(key);
+    return;
+  }
+  delete headers[key];
+};
+
+const setHeader = (headers, key, value) => {
+  if (!headers) return;
+  if (typeof headers.set === 'function') {
+    headers.set(key, value);
+    return;
+  }
+  headers[key] = value;
+};
+
+const sanitizeHeaders = (headers) => {
+  if (!headers) return headers;
+  const snapshot = typeof headers.toJSON === 'function' ? headers.toJSON() : headers;
+  Object.entries(snapshot).forEach(([key, value]) => {
+    if (!isHeaderValueSafe(value)) {
+      deleteHeader(headers, key);
+    }
+  });
+  return headers;
 };
 
 const readStoredUserId = () => {
@@ -136,6 +174,23 @@ export const syncStoredUserId = (user) => {
 
 export const clearStoredUserId = () => {
   localStorage.removeItem(DIST_USER_ID_KEY);
+};
+
+const normalizeUserId = (value) => {
+  const normalizedId = String(value ?? '').trim();
+  return isHeaderSafeValue(normalizedId) ? normalizedId : '';
+};
+
+export const userRequestConfig = (user, config = {}) => {
+  const userId = normalizeUserId(user?.id ?? user?.user_id) || readStoredUserId();
+  const headers = { ...(config.headers || {}) };
+  if (userId) {
+    headers['New-Api-User'] = userId;
+  }
+  return {
+    ...config,
+    headers,
+  };
 };
 
 const stableCacheKey = (value) => {
@@ -179,6 +234,9 @@ const api = axios.create({
   baseURL: '',
   timeout: 30000,
   withCredentials: true, // CRITICAL: send session cookies on every request
+  withXSRFToken: false,
+  xsrfCookieName: null,
+  xsrfHeaderName: null,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -186,8 +244,9 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const userId = readStoredUserId();
   if (userId) {
-    config.headers['New-Api-User'] = userId;
+    setHeader(config.headers, 'New-Api-User', userId);
   }
+  sanitizeHeaders(config.headers);
   return config;
 });
 
@@ -344,8 +403,8 @@ export const getTopupHistory = (params) => api.get('/api/dist/topup/history', { 
 // The site SaaS backend owns Creem checkout, webhook handling, and redemption code pools.
 export const getSiteSaasSubscriptions = (config) =>
   api.get('/api/site/saas/subscriptions', config);
-export const createSiteSaasCheckout = (data) =>
-  api.post('/api/site/saas/checkout', data);
+export const createSiteSaasCheckout = (data, config) =>
+  api.post('/api/site/saas/checkout', data, config);
 export const getSiteSaasAdminState = (token) =>
   api.get('/api/site/admin/saas/state', {
     skipErrorHandler: true,
