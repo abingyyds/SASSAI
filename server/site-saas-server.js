@@ -409,13 +409,12 @@ function normalizeCodes(input) {
     .filter(Boolean);
 }
 
-function checkoutPayload({ order, productId, returnUrl, cancelUrl }) {
+function checkoutPayload({ order, productId, returnUrl }) {
   return {
     product_id: productId,
     request_id: order.id,
     units: 1,
     success_url: returnUrl,
-    cancel_url: cancelUrl || returnUrl,
     metadata: {
       order_id: order.id,
       package_id: order.package_id,
@@ -424,7 +423,7 @@ function checkoutPayload({ order, productId, returnUrl, cancelUrl }) {
   };
 }
 
-async function createCreemCheckout(store, { order, productId, returnUrl, cancelUrl }) {
+async function createCreemCheckout(store, { order, productId, returnUrl }) {
   const config = getConfig(store);
   const creemApiKey = requireHeaderSafeSecret(
     'Creem API key',
@@ -432,7 +431,7 @@ async function createCreemCheckout(store, { order, productId, returnUrl, cancelU
     config._sources?.creem_api_key || 'configuration',
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
-  const payload = checkoutPayload({ order, productId, returnUrl, cancelUrl });
+  const payload = checkoutPayload({ order, productId, returnUrl });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -834,7 +833,6 @@ export async function handleSiteSaasRequest(req, res) {
           order,
           productId,
           returnUrl,
-          cancelUrl: body.cancel_url || returnUrl.replace('checkout_status=success', 'checkout_status=cancelled'),
         });
         order.status = 'checkout_created';
         order.checkout_id = checkout.checkout_id;
