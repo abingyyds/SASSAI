@@ -113,6 +113,17 @@ function sanitizeOutgoingHeaders(headers = {}) {
   return safe;
 }
 
+function requireHeaderSafeSecret(label, value) {
+  const text = String(value || '').trim();
+  if (!text) {
+    throw new Error(`Site SaaS backend is missing ${label}`);
+  }
+  if (!isHeaderSafeValue(text)) {
+    throw new Error(`${label} contains unsupported characters. Paste the raw ASCII token/key, not a Chinese label or placeholder.`);
+  }
+  return text;
+}
+
 function siteForwardHeaders(config) {
   const explicitHost = String(config.subrouter_site_host || '').trim();
   if (explicitHost) {
@@ -383,16 +394,14 @@ function checkoutPayload({ order, productId, returnUrl, cancelUrl }) {
 
 async function createCreemCheckout(store, { order, productId, returnUrl, cancelUrl }) {
   const config = getConfig(store);
-  if (!config.creem_api_key) {
-    throw new Error('Site SaaS backend is missing Creem API key');
-  }
+  const creemApiKey = requireHeaderSafeSecret('Creem API key', config.creem_api_key);
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': config.creem_api_key,
-      Authorization: `Bearer ${config.creem_api_key}`,
+      'x-api-key': creemApiKey,
+      Authorization: `Bearer ${creemApiKey}`,
     },
     body: JSON.stringify(checkoutPayload({ order, productId, returnUrl, cancelUrl })),
   });
