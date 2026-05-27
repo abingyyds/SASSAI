@@ -405,6 +405,8 @@ export const getSiteSaasSubscriptions = (config) =>
   api.get('/api/site/saas/subscriptions', config);
 export const createSiteSaasCheckout = (data, config) =>
   api.post('/api/site/saas/checkout', data, config);
+export const syncSiteSaasCheckout = (data, config) =>
+  api.post('/api/site/saas/checkout/sync', data, config);
 export const getSiteSaasAdminState = (token) =>
   api.get('/api/site/admin/saas/state', {
     skipErrorHandler: true,
