@@ -420,6 +420,11 @@ export const importSiteSaasCodes = (token, data) =>
     skipErrorHandler: true,
     headers: { 'X-Site-Admin-Token': token },
   });
+export const activateSiteSaasOrder = (token, orderId) =>
+  api.post('/api/site/admin/saas/orders/activate', { order_id: orderId }, {
+    skipErrorHandler: true,
+    headers: { 'X-Site-Admin-Token': token },
+  });
 
 // ===== Affiliate / Invitation =====
 export const getAffCode = () => api.get('/api/dist/aff');

@@ -497,7 +497,9 @@ function getMetadata(event) {
     event.data?.metadata ||
     event.object?.metadata ||
     event.checkout?.metadata ||
+    event.data?.checkout?.metadata ||
     event.data?.object?.metadata ||
+    event.data?.object?.checkout?.metadata ||
     {};
 }
 
@@ -506,21 +508,44 @@ function isPaidEvent(event) {
   const status = String(event.status || event.data?.status || event.object?.status || event.data?.object?.status || '').toLowerCase();
   return type.includes('paid') ||
     type.includes('completed') ||
-    type.includes('checkout') ||
+    type.includes('succeeded') ||
+    type.includes('success') ||
+    type === 'subscription.active' ||
     status === 'paid' ||
     status === 'completed' ||
     status === 'succeeded' ||
+    status === 'active' ||
     status === 'success';
 }
 
-function getWebhookOrder(store, event) {
+function webhookOrderCandidates(event) {
   const metadata = getMetadata(event);
-  const orderId = metadata.order_id ||
-    event.request_id ||
-    event.data?.request_id ||
-    event.object?.request_id ||
-    event.data?.object?.request_id;
-  return store.orders.find((order) => order.id === orderId) || null;
+  return [
+    metadata.order_id,
+    event.request_id,
+    event.data?.request_id,
+    event.object?.request_id,
+    event.checkout?.request_id,
+    event.data?.checkout?.request_id,
+    event.data?.object?.request_id,
+    event.data?.object?.checkout?.request_id,
+    event.checkout_id,
+    event.data?.checkout_id,
+    event.object?.checkout_id,
+    event.data?.object?.checkout_id,
+    event.checkout?.id,
+    event.data?.checkout?.id,
+    event.data?.object?.checkout?.id,
+    event.data?.object?.id,
+  ].filter(Boolean).map((value) => String(value));
+}
+
+function getWebhookOrder(store, event) {
+  const candidates = webhookOrderCandidates(event);
+  return store.orders.find((order) => (
+    candidates.includes(order.id) ||
+    (order.checkout_id && candidates.includes(String(order.checkout_id)))
+  )) || null;
 }
 
 function getSubscriptionId(event, order) {
@@ -688,6 +713,10 @@ function upsertSubscription(store, input) {
   return sub;
 }
 
+function orderCanBeManuallyActivated(order) {
+  return order && !['activated'].includes(String(order.status || '').toLowerCase());
+}
+
 export async function handleSiteSaasRequest(req, res) {
   if (req.method === 'OPTIONS') return sendJson(res, 204, {});
 
@@ -811,6 +840,32 @@ export async function handleSiteSaasRequest(req, res) {
       return sendJson(res, 200, { success: true, data: { imported, state: publicState(store) } });
     }
 
+    if (url.pathname === '/api/site/admin/saas/orders/activate' && req.method === 'POST') {
+      if (!requireAdmin(req)) return sendJson(res, 401, { success: false, message: 'Invalid site admin token' });
+      const orderId = String(body.order_id || '').trim();
+      if (!orderId) return sendJson(res, 400, { success: false, message: 'order_id is required' });
+      const order = store.orders.find((item) => item.id === orderId);
+      if (!order) return sendJson(res, 404, { success: false, message: 'Order not found' });
+      if (!orderCanBeManuallyActivated(order)) {
+        return sendJson(res, 400, { success: false, message: `Order ${orderId} is already activated` });
+      }
+
+      const result = await activateSubscriptionCycle(store, {
+        order,
+        event: {
+          type: 'manual_activation',
+          metadata: {
+            order_id: order.id,
+            package_id: order.package_id,
+            subrouter_user_id: order.user_id,
+          },
+        },
+      });
+      pushEvent(store, 'manual_activation_processed', { order_id: order.id, package_id: order.package_id, success: result.success, message: result.message || '' });
+      await saveStore(store);
+      return sendJson(res, result.success ? 200 : 202, { success: result.success, data: result, state: publicState(store) });
+    }
+
     if (url.pathname === '/api/site/saas/subscriptions' && req.method === 'GET') {
       const userId = userIdFromRequest(req);
       if (!userId) return sendJson(res, 401, { success: false, message: 'Missing SubRouter user id' });
@@ -871,6 +926,16 @@ export async function handleSiteSaasRequest(req, res) {
     if (url.pathname === '/api/site/saas/webhooks/creem' && req.method === 'POST') {
       const config = getConfig(store);
       if (!verifyWebhook(raw, req, config.creem_webhook_secret)) {
+        pushEvent(store, 'webhook_signature_failed', {
+          type: body.type || body.eventType || body.event_type,
+          headers: {
+            creem_signature: Boolean(req.headers['creem-signature']),
+            x_creem_signature: Boolean(req.headers['x-creem-signature']),
+            webhook_signature: Boolean(req.headers['webhook-signature']),
+            x_signature: Boolean(req.headers['x-signature']),
+          },
+        });
+        await saveStore(store);
         return sendJson(res, 401, { success: false, message: 'Invalid webhook signature' });
       }
       const eventId = body.id || body.event_id || body.data?.id || id('wh');
@@ -884,7 +949,11 @@ export async function handleSiteSaasRequest(req, res) {
       }
       const order = getWebhookOrder(store, body);
       if (!order) {
-        pushEvent(store, 'webhook_order_missing', { event_id: eventId });
+        pushEvent(store, 'webhook_order_missing', {
+          event_id: eventId,
+          type: body.type || body.eventType || body.event_type,
+          candidates: webhookOrderCandidates(body),
+        });
         await saveStore(store);
         return sendJson(res, 202, { success: false, message: 'Order not found for webhook metadata' });
       }
