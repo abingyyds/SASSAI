@@ -63,10 +63,20 @@ async function saveStore(store) {
 }
 
 function getConfig(store) {
-  const hasCreemApiKeyEnv = Boolean(process.env.CREEM_API_KEY);
+  const creemApiKeyEnv = String(process.env.CREEM_API_KEY || '').trim();
+  const creemApiKeyConfig = String(store.config.creem_api_key || '').trim();
+  const hasValidCreemApiKeyEnv = Boolean(creemApiKeyEnv) && !invalidHeaderValueDetail(creemApiKeyEnv);
+  const creemApiKey = hasValidCreemApiKeyEnv ? creemApiKeyEnv : creemApiKeyConfig;
+  const creemApiKeySource = hasValidCreemApiKeyEnv
+    ? 'environment variable CREEM_API_KEY'
+    : (
+      creemApiKeyConfig
+        ? (creemApiKeyEnv ? 'site admin config (ignored invalid CREEM_API_KEY environment variable)' : 'site admin config')
+        : (creemApiKeyEnv ? 'invalid environment variable CREEM_API_KEY' : 'unset')
+    );
   return {
     ...store.config,
-    creem_api_key: process.env.CREEM_API_KEY || store.config.creem_api_key || '',
+    creem_api_key: creemApiKey,
     creem_api_base_url: process.env.CREEM_API_BASE_URL || store.config.creem_api_base_url || 'https://api.creem.io',
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
     creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
@@ -76,9 +86,7 @@ function getConfig(store) {
     site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
     _sources: {
-      creem_api_key: hasCreemApiKeyEnv
-        ? 'environment variable CREEM_API_KEY'
-        : (store.config.creem_api_key ? 'site admin config' : 'unset'),
+      creem_api_key: creemApiKeySource,
     },
   };
 }
