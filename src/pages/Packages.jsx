@@ -240,9 +240,7 @@ export default function Packages() {
     setCheckoutLoading(pkg.id);
     try {
       const returnUrl = `${window.location.origin}/packages?checkout_status=success`;
-      const productId = pkg.creem_product_id || pkg.product_id || pkg.creemProductId || pkg.creem_product || pkg.id;
       const res = await createSiteSaasCheckout({
-        product_id: productId,
         package_id: pkg.id,
         package_name: pkg.name,
         billing_interval: normalizeInterval(pkg),

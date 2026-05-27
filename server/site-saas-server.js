@@ -409,6 +409,18 @@ function normalizeCodes(input) {
     .filter(Boolean);
 }
 
+function productIdFromPackage(body, mapping) {
+  const mappedProductId = String(mapping.creem_product_id || '').trim();
+  if (mappedProductId) return mappedProductId;
+  return String(
+    body.creem_product_id ||
+    body.product_id ||
+    body.creemProductId ||
+    body.creem_product ||
+    '',
+  ).trim();
+}
+
 function checkoutPayload({ order, productId, returnUrl }) {
   return {
     product_id: productId,
@@ -812,8 +824,13 @@ export async function handleSiteSaasRequest(req, res) {
       const packageId = String(body.package_id || '').trim();
       if (!packageId) return sendJson(res, 400, { success: false, message: 'package_id is required' });
       const mapping = store.config.package_mappings?.[packageId] || {};
-      const productId = String(body.product_id || mapping.creem_product_id || '').trim();
-      if (!productId) return sendJson(res, 400, { success: false, message: 'Creem product id is not configured for this package' });
+      const productId = productIdFromPackage(body, mapping);
+      if (!productId) {
+        return sendJson(res, 400, {
+          success: false,
+          message: `Creem product id is not configured for package ${packageId}. Add the matching prod_... value in /site-admin/saas.`,
+        });
+      }
 
       const order = {
         id: id('ord'),
