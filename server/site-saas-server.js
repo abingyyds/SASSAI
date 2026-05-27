@@ -63,6 +63,7 @@ async function saveStore(store) {
 }
 
 function getConfig(store) {
+  const hasCreemApiKeyEnv = Boolean(process.env.CREEM_API_KEY);
   return {
     ...store.config,
     creem_api_key: process.env.CREEM_API_KEY || store.config.creem_api_key || '',
@@ -74,6 +75,11 @@ function getConfig(store) {
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
     site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
+    _sources: {
+      creem_api_key: hasCreemApiKeyEnv
+        ? 'environment variable CREEM_API_KEY'
+        : (store.config.creem_api_key ? 'site admin config' : 'unset'),
+    },
   };
 }
 
@@ -101,6 +107,20 @@ function isHeaderSafeValue(value) {
   return true;
 }
 
+function invalidHeaderValueDetail(value) {
+  const text = String(value ?? '').trim();
+  if (!text) return { reason: 'empty' };
+  const newlineIndex = text.search(/[\r\n]/);
+  if (newlineIndex >= 0) {
+    return { reason: 'newline', index: newlineIndex, code: text.charCodeAt(newlineIndex) };
+  }
+  for (let index = 0; index < text.length; index += 1) {
+    const code = text.charCodeAt(index);
+    if (code > 255) return { reason: 'unsupported', index, code };
+  }
+  return null;
+}
+
 function sanitizeOutgoingHeaders(headers = {}) {
   const safe = {};
   for (const [key, value] of Object.entries(headers)) {
@@ -113,14 +133,17 @@ function sanitizeOutgoingHeaders(headers = {}) {
   return safe;
 }
 
-function requireHeaderSafeSecret(label, value) {
+function requireHeaderSafeSecret(label, value, source = 'configuration') {
   const text = String(value || '').trim();
-  if (!text) {
-    throw new Error(`Site SaaS backend is missing ${label}`);
+  const invalid = invalidHeaderValueDetail(text);
+  if (invalid?.reason === 'empty') {
+    throw new Error(`Site SaaS backend is missing ${label} in ${source}`);
   }
-  if (!isHeaderSafeValue(text)) {
-    throw new Error(`${label} contains unsupported characters. Paste the raw ASCII token/key, not a Chinese label or placeholder.`);
+  if (invalid) {
+    const code = invalid.code == null ? '' : ` (U+${invalid.code.toString(16).toUpperCase().padStart(4, '0')})`;
+    throw new Error(`${label} from ${source} contains an unsupported character at index ${invalid.index}${code}. Paste the raw ASCII token/key, not a label, placeholder, or formatted text.`);
   }
+  if (!isHeaderSafeValue(text)) throw new Error(`${label} from ${source} is not a valid HTTP header value.`);
   return text;
 }
 
@@ -351,6 +374,7 @@ function publicState(store) {
       creem_api_key_configured: Boolean(config.creem_api_key),
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
+      creem_api_key_source: config._sources?.creem_api_key || 'unset',
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
       subrouter_base_url: config.subrouter_base_url,
@@ -394,16 +418,20 @@ function checkoutPayload({ order, productId, returnUrl, cancelUrl }) {
 
 async function createCreemCheckout(store, { order, productId, returnUrl, cancelUrl }) {
   const config = getConfig(store);
-  const creemApiKey = requireHeaderSafeSecret('Creem API key', config.creem_api_key);
+  const creemApiKey = requireHeaderSafeSecret(
+    'Creem API key',
+    config.creem_api_key,
+    config._sources?.creem_api_key || 'configuration',
+  );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
+  const payload = checkoutPayload({ order, productId, returnUrl, cancelUrl });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': creemApiKey,
-      Authorization: `Bearer ${creemApiKey}`,
     },
-    body: JSON.stringify(checkoutPayload({ order, productId, returnUrl, cancelUrl })),
+    body: JSON.stringify(payload),
   });
 
   const text = await response.text();
@@ -414,7 +442,8 @@ async function createCreemCheckout(store, { order, productId, returnUrl, cancelU
     json = { raw: text };
   }
   if (!response.ok) {
-    throw new Error(json.message || json.error || `Creem checkout failed with HTTP ${response.status}`);
+    const message = json.message || json.error || json.raw || response.statusText || 'unknown error';
+    throw new Error(`Creem checkout failed with HTTP ${response.status}: ${String(message).slice(0, 300)}`);
   }
   const data = json.data || json;
   const checkoutUrl = data.checkout_url || data.url || data.pay_link;
