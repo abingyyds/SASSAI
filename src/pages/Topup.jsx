@@ -37,6 +37,44 @@ function normalizeExternalUrl(value) {
   }
 }
 
+function normalizeCreemProducts(value) {
+  if (!value) return [];
+  try {
+    const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((product) => {
+        if (!product || typeof product !== 'object') return null;
+        const productId = String(product.productId || product.product_id || product.id || '').trim();
+        const quota = Number(product.quota ?? product.quotaAmount ?? product.quota_amount ?? product.amount ?? product.price);
+        if (!productId || !Number.isFinite(quota) || quota <= 0) return null;
+        return { ...product, productId, quota };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function getCreemMinTopup(products) {
+  const quotas = products
+    .map((product) => Number(product?.quota))
+    .filter((quota) => Number.isFinite(quota) && quota > 0);
+  return quotas.length > 0 ? Math.min(...quotas) : 1;
+}
+
+function isMultipleOf(value, unit) {
+  if (!Number.isFinite(value) || !Number.isFinite(unit) || unit <= 0) return false;
+  const quotient = value / unit;
+  return Math.abs(quotient - Math.round(quotient)) < 1e-8;
+}
+
+function findCompatibleCreemProduct(products, amount) {
+  const payAmount = Number(amount);
+  if (!Number.isFinite(payAmount) || payAmount <= 0) return null;
+  return products.find((product) => isMultipleOf(payAmount, Number(product?.quota))) || null;
+}
+
 export default function Topup() {
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -120,17 +158,6 @@ export default function Topup() {
     return Math.max(minTopup, Math.round(numeric / rate));
   }, [minTopup, rate]);
 
-  // Parse Creem products
-  const creemProducts = useMemo(() => {
-    if (!topupInfo?.creem_products) return [];
-    try {
-      const parsed = typeof topupInfo.creem_products === 'string'
-        ? JSON.parse(topupInfo.creem_products)
-        : topupInfo.creem_products;
-      return Array.isArray(parsed) ? parsed : [];
-    } catch { return []; }
-  }, [topupInfo?.creem_products]);
-
   // Redeem
   const handleRedeem = async (e) => {
     e.preventDefault();
@@ -158,11 +185,59 @@ export default function Topup() {
   const isStripePayment = (method) =>
     ['stripe', 'alipay', 'wxpay'].includes(method) && !method.startsWith('epay_');
 
-  // Pay handler for EPay and Stripe methods
+  const isCreemPayment = (method) => method === 'creem';
+
+  const getMethodMinTopup = (method) => {
+    const payMethod = (payMethods || []).find((item) => item.type === method);
+    const methodMinTopup = Number(payMethod?.min_topup);
+    if (Number.isFinite(methodMinTopup) && methodMinTopup > 0) return methodMinTopup;
+    if (isCreemPayment(method)) {
+      const configuredMin = Number(topupInfo?.creem_min_topup);
+      return Number.isFinite(configuredMin) && configuredMin > 0
+        ? configuredMin
+        : getCreemMinTopup(normalizeCreemProducts(topupInfo?.creem_products));
+    }
+    if (isStripePayment(method)) {
+      const stripeMin = Number(topupInfo?.stripe_min_topup);
+      if (Number.isFinite(stripeMin) && stripeMin > 0) return stripeMin;
+    }
+    return minTopup;
+  };
+
+  const getMethodDisplayName = (method) => {
+    const payMethod = (payMethods || []).find((item) => item.type === method);
+    return payMethod?.name || (method === 'creem' ? 'Creem' : 'Stripe');
+  };
+
+  const showGatewayMinTopupError = (method, minAmount) => {
+    toast.error(t('topup.gatewayMinimumAmount', {
+      channel: getMethodDisplayName(method),
+      amount: formatCurrencyAmount(minAmount),
+    }));
+  };
+
+  // Pay handler for EPay, Stripe, and Creem methods
   const handlePay = async (method) => {
     const payAmount = parseInt(amount);
     if (!payAmount || payAmount <= 0) {
       toast.error(t('topup.enterAmount'));
+      return;
+    }
+    const isGatewayPayment = isStripePayment(method) || isCreemPayment(method);
+    const methodMinTopup = getMethodMinTopup(method);
+    if (isGatewayPayment && payAmount < methodMinTopup) {
+      showGatewayMinTopupError(method, methodMinTopup);
+      return;
+    }
+    if (!isGatewayPayment && payAmount < minTopup) {
+      toast.error(t('topup.minimumAmount', { min: formatCurrencyAmount(minTopup * rate) }));
+      return;
+    }
+    const creemProduct = isCreemPayment(method)
+      ? findCompatibleCreemProduct(creemProducts, payAmount)
+      : null;
+    if (isCreemPayment(method) && creemProducts.length > 0 && !creemProduct) {
+      toast.error(t('topup.creemUnsupportedAmount'));
       return;
     }
     setPaymentLoading(true);
@@ -171,7 +246,23 @@ export default function Topup() {
       const returnUrl = window.location.origin + '/topup';
       const data = { amount: payAmount, payment_method: method, return_url: returnUrl };
 
-      if (isStripePayment(method)) {
+      if (isCreemPayment(method)) {
+        const creemData = {
+          amount: payAmount,
+          payment_method: 'creem',
+          return_url: returnUrl,
+        };
+        if (creemProduct?.productId) {
+          creemData.product_id = creemProduct.productId;
+        }
+        const res = await createCreemOrder(creemData);
+        if (res.data.message === 'success' && res.data.data?.checkout_url) {
+          window.open(res.data.data.checkout_url, '_blank');
+        } else if (res.data.message !== 'success') {
+          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
+          toast.error(errMsg || t('common.requestFailed'));
+        }
+      } else if (isStripePayment(method)) {
         // Stripe payment
         const res = await createStripeOrder(data);
         if (res.data.message === 'success' && res.data.data?.pay_link) {
@@ -211,53 +302,6 @@ export default function Topup() {
           const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
           toast.error(errMsg || t('common.requestFailed'));
         }
-      }
-    } catch (e) { /* interceptor */ }
-    setPaymentLoading(false);
-    setPayingMethod('');
-  };
-
-  const getCreemProductForAmount = useCallback((payAmount) => {
-    const numericAmount = Number(payAmount);
-    if (!Number.isFinite(numericAmount) || numericAmount <= 0) return null;
-
-    return creemProducts.find((product) => {
-      const price = Number(product.price ?? product.amount);
-      const quota = Number(product.quota ?? product.quotaAmount ?? product.quota_amount);
-      return [price, quota].some((value) => Number.isFinite(value) && Math.abs(value - numericAmount) < 0.01);
-    }) || null;
-  }, [creemProducts]);
-
-  // Creem pay - mapped to the selected top-up amount
-  const handleCreemPay = async () => {
-    const payAmount = parseInt(amount);
-    if (!payAmount || payAmount <= 0) {
-      toast.error(t('topup.enterAmount'));
-      return;
-    }
-
-    const product = getCreemProductForAmount(payAmount);
-    const productId = product?.productId || product?.product_id || product?.id;
-    if (!productId) {
-      toast.error(t('topup.creemNoMatchingProduct', { amount: `${symbol}${displayAmount || toDisplayAmount(amount)}` }));
-      return;
-    }
-
-    setPaymentLoading(true);
-    setPayingMethod('creem');
-    try {
-      const returnUrl = window.location.origin + '/topup';
-      const res = await createCreemOrder({
-        amount: payAmount,
-        product_id: productId,
-        payment_method: 'creem',
-        return_url: returnUrl,
-      });
-      if (res.data.message === 'success' && res.data.data?.checkout_url) {
-        window.open(res.data.data.checkout_url, '_blank');
-      } else if (res.data.message !== 'success') {
-        const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
-        toast.error(errMsg || t('common.requestFailed'));
       }
     } catch (e) { /* interceptor */ }
     setPaymentLoading(false);
@@ -351,6 +395,17 @@ export default function Topup() {
     }
   }, [availableChains, selectedChain]);
 
+  const creemProducts = useMemo(() => {
+    return normalizeCreemProducts(topupInfo?.creem_products);
+  }, [topupInfo?.creem_products]);
+
+  const creemMinTopup = useMemo(() => {
+    const configuredMin = Number(topupInfo?.creem_min_topup);
+    return Number.isFinite(configuredMin) && configuredMin > 0
+      ? configuredMin
+      : getCreemMinTopup(creemProducts);
+  }, [topupInfo?.creem_min_topup, creemProducts]);
+
   // History
   const loadHistory = async () => {
     setHistoryLoading(true);
@@ -363,16 +418,26 @@ export default function Topup() {
     setHistoryLoading(false);
   };
 
-  // Crypto needs chain/token controls; the rest live in the main payment buttons.
   const checkoutPaymentMethods = useMemo(() => {
-    const methods = payMethods.filter(
-      (m) => m.type !== 'crypto' && (m.type !== 'creem' || (enableCreem && creemProducts.length > 0))
-    );
+    const methods = (payMethods || [])
+      .filter((m) => m?.type && m.type !== 'crypto')
+      .map((method) => {
+        if (isStripePayment(method.type) && (!method.min_topup || Number(method.min_topup) <= 0)) {
+          const stripeMin = Number(topupInfo?.stripe_min_topup);
+          if (Number.isFinite(stripeMin) && stripeMin > 0) {
+            return { ...method, min_topup: stripeMin };
+          }
+        }
+        if (method.type === 'creem' && (!method.min_topup || Number(method.min_topup) <= 0)) {
+          return { ...method, min_topup: creemMinTopup };
+        }
+        return method;
+      });
     if (enableCreem && creemProducts.length > 0 && !methods.some((method) => method.type === 'creem')) {
-      methods.push({ type: 'creem', name: 'Creem' });
+      methods.push({ type: 'creem', name: 'Creem', min_topup: creemMinTopup });
     }
     return methods;
-  }, [creemProducts.length, enableCreem, payMethods]);
+  }, [creemMinTopup, creemProducts.length, enableCreem, payMethods, topupInfo?.stripe_min_topup]);
 
   if (loading) {
     return (
@@ -504,11 +569,31 @@ export default function Topup() {
                 <div className="flex flex-wrap gap-2">
                   {checkoutPaymentMethods.map((method) => {
                     const isCurrentLoading = paymentLoading && payingMethod === method.type;
+                    const isMethodStripe = isStripePayment(method.type);
+                    const isMethodCreem = isCreemPayment(method.type);
+                    const minForMethod = Number(method.min_topup) || 0;
+                    const belowGatewayMin =
+                      (isMethodStripe || isMethodCreem) &&
+                      minForMethod > Number(amount || 0);
+                    const disabled =
+                      paymentLoading ||
+                      !amount ||
+                      (!enableOnline && !isMethodStripe && !isMethodCreem) ||
+                      (!enableStripe && isMethodStripe) ||
+                      (!enableCreem && isMethodCreem);
                     return (
                       <button
                         key={method.type}
-                        onClick={() => (method.type === 'creem' ? handleCreemPay() : handlePay(method.type))}
-                        disabled={paymentLoading || !amount}
+                        onClick={() => handlePay(method.type)}
+                        disabled={disabled}
+                        title={
+                          belowGatewayMin
+                            ? t('topup.gatewayMinimumAmount', {
+                              channel: method.name,
+                              amount: formatCurrencyAmount(minForMethod),
+                            })
+                            : undefined
+                        }
                         className="inline-flex items-center gap-2 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-2.5 text-sm font-medium text-page-label transition-colors hover:bg-page-surface-hover hover:text-page disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {isCurrentLoading ? t('topup.processing') : method.name}
