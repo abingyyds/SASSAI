@@ -75,6 +75,41 @@ function findCompatibleCreemProduct(products, amount) {
   return products.find((product) => isMultipleOf(payAmount, Number(product?.quota))) || null;
 }
 
+function openPendingPaymentWindow() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const paymentWindow = window.open('about:blank', '_blank');
+    if (paymentWindow) {
+      paymentWindow.document.title = 'Opening payment...';
+      paymentWindow.document.body.style.fontFamily = 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif';
+      paymentWindow.document.body.style.padding = '24px';
+      paymentWindow.document.body.textContent = 'Opening payment page...';
+    }
+    return paymentWindow;
+  } catch {
+    return null;
+  }
+}
+
+function closePendingPaymentWindow(paymentWindow) {
+  if (!paymentWindow || paymentWindow.closed) return;
+  try {
+    paymentWindow.close();
+  } catch {}
+}
+
+function openPaymentUrl(paymentWindow, url) {
+  if (!url || typeof window === 'undefined') return;
+  if (paymentWindow && !paymentWindow.closed) {
+    try {
+      paymentWindow.opener = null;
+      paymentWindow.location.href = url;
+      return;
+    } catch {}
+  }
+  window.location.href = url;
+}
+
 export default function Topup() {
   const { t } = useTranslation();
   const { user, refreshUser } = useAuth();
@@ -240,6 +275,8 @@ export default function Topup() {
       toast.error(t('topup.creemUnsupportedAmount'));
       return;
     }
+    const usesPaymentPage = isCreemPayment(method) || isStripePayment(method);
+    let paymentWindow = usesPaymentPage ? openPendingPaymentWindow() : null;
     setPaymentLoading(true);
     setPayingMethod(method);
     try {
@@ -257,18 +294,28 @@ export default function Topup() {
         }
         const res = await createCreemOrder(creemData);
         if (res.data.message === 'success' && res.data.data?.checkout_url) {
-          window.open(res.data.data.checkout_url, '_blank');
-        } else if (res.data.message !== 'success') {
-          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
+          openPaymentUrl(paymentWindow, res.data.data.checkout_url);
+          paymentWindow = null;
+        } else {
+          closePendingPaymentWindow(paymentWindow);
+          paymentWindow = null;
+          const errMsg = res.data.message === 'success'
+            ? t('common.requestFailed')
+            : (typeof res.data.data === 'string' ? res.data.data : res.data.message);
           toast.error(errMsg || t('common.requestFailed'));
         }
       } else if (isStripePayment(method)) {
         // Stripe payment
         const res = await createStripeOrder(data);
         if (res.data.message === 'success' && res.data.data?.pay_link) {
-          window.open(res.data.data.pay_link, '_blank');
-        } else if (res.data.message !== 'success') {
-          const errMsg = typeof res.data.data === 'string' ? res.data.data : res.data.message;
+          openPaymentUrl(paymentWindow, res.data.data.pay_link);
+          paymentWindow = null;
+        } else {
+          closePendingPaymentWindow(paymentWindow);
+          paymentWindow = null;
+          const errMsg = res.data.message === 'success'
+            ? t('common.requestFailed')
+            : (typeof res.data.data === 'string' ? res.data.data : res.data.message);
           toast.error(errMsg || t('common.requestFailed'));
         }
       } else {
@@ -303,7 +350,11 @@ export default function Topup() {
           toast.error(errMsg || t('common.requestFailed'));
         }
       }
-    } catch (e) { /* interceptor */ }
+    } catch (e) {
+      closePendingPaymentWindow(paymentWindow);
+      paymentWindow = null;
+      /* interceptor */
+    }
     setPaymentLoading(false);
     setPayingMethod('');
   };
