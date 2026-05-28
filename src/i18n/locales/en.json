@@ -399,6 +399,7 @@
     "topup.payNow": "Pay",
     "topup.quotaIncluded": "{{count}} quota included",
     "topup.creemPayment": "Creem Payment",
+    "topup.creemNoMatchingProduct": "No Creem product is configured for {{amount}}.",
 
     "topup.inviteTitle": "Referral Program",
     "topup.inviteSubtitle": "Invite friends and earn ongoing rewards",
