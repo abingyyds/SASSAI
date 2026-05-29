@@ -280,7 +280,7 @@ export default function Topup() {
     setPaymentLoading(true);
     setPayingMethod(method);
     try {
-      const returnUrl = window.location.origin + '/topup';
+      const returnUrl = window.location.origin + '/topup?payment=return';
       const data = { amount: payAmount, payment_method: method, return_url: returnUrl };
 
       if (isCreemPayment(method)) {

@@ -40,9 +40,12 @@ function emptyConfig() {
     creem_api_base_url: 'https://api.creem.io',
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
+    creem_topup_bridge_enabled: false,
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
+    site_public_url: 'https://subrouter.com',
+    subrouter_site_host: '',
   };
 }
 
@@ -107,8 +110,11 @@ export default function SaasAdmin() {
         ...current,
         creem_api_base_url: data.config?.creem_api_base_url || current.creem_api_base_url,
         creem_checkout_path: data.config?.creem_checkout_path || current.creem_checkout_path,
+        creem_topup_bridge_enabled: !!data.config?.creem_topup_bridge_enabled,
         subrouter_base_url: data.config?.subrouter_base_url || current.subrouter_base_url,
         public_api_base_url: data.config?.public_api_base_url ?? current.public_api_base_url,
+        site_public_url: data.config?.site_public_url || current.site_public_url,
+        subrouter_site_host: data.config?.subrouter_site_host ?? current.subrouter_site_host,
       }));
       setMappings(data.config?.package_mappings || {});
       setPackages((current) => (current.length ? current : fallbackPackagesFromState(data)));
@@ -140,8 +146,11 @@ export default function SaasAdmin() {
     const payload = {
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
+      creem_topup_bridge_enabled: !!config.creem_topup_bridge_enabled,
       subrouter_base_url: config.subrouter_base_url,
       public_api_base_url: config.public_api_base_url,
+      site_public_url: config.site_public_url,
+      subrouter_site_host: config.subrouter_site_host,
       package_mappings: mappings,
     };
     if (config.creem_api_key.trim()) payload.creem_api_key = config.creem_api_key.trim();
@@ -265,8 +274,19 @@ export default function SaasAdmin() {
               <Field label="Creem webhook secret" value={config.creem_webhook_secret} onChange={(value) => setConfig({ ...config, creem_webhook_secret: value })} placeholder={state?.config?.creem_webhook_secret_configured ? 'Configured. Leave blank to keep.' : 'Webhook signing secret'} secret />
               <Field label="Creem API base URL" value={config.creem_api_base_url} onChange={(value) => setConfig({ ...config, creem_api_base_url: value })} />
               <Field label="Checkout path" value={config.creem_checkout_path} onChange={(value) => setConfig({ ...config, creem_checkout_path: value })} />
+              <label className="flex items-center gap-3 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3 text-sm text-page-label">
+                <input
+                  type="checkbox"
+                  checked={!!config.creem_topup_bridge_enabled}
+                  onChange={(event) => setConfig({ ...config, creem_topup_bridge_enabled: event.target.checked })}
+                  className="h-4 w-4 rounded border-page-divider"
+                />
+                <span>Enable Creem top-up bridge</span>
+              </label>
               <Field label="SubRouter API base URL" value={config.subrouter_base_url} onChange={(value) => setConfig({ ...config, subrouter_base_url: value })} />
               <Field label="Public API base URL" value={config.public_api_base_url} onChange={(value) => setConfig({ ...config, public_api_base_url: value })} placeholder="Leave blank to use frontend default /v1" />
+              <Field label="Site public URL" value={config.site_public_url} onChange={(value) => setConfig({ ...config, site_public_url: value })} placeholder="https://subrouter.com" />
+              <Field label="SubRouter site host" value={config.subrouter_site_host} onChange={(value) => setConfig({ ...config, subrouter_site_host: value })} placeholder="Optional upstream Host override" />
               <Field label="SubRouter internal token" value={config.subrouter_internal_token} onChange={(value) => setConfig({ ...config, subrouter_internal_token: value })} placeholder={state?.config?.subrouter_internal_token_configured ? 'Configured. Leave blank to keep.' : 'Optional'} secret />
             </div>
 

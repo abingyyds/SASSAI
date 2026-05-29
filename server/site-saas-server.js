@@ -20,10 +20,11 @@ const defaultStore = {
     creem_api_base_url: 'https://api.creem.io',
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
+    creem_topup_bridge_enabled: false,
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
-    site_public_url: '',
+    site_public_url: 'https://subrouter.com',
     package_mappings: {},
   },
   codes: [],
@@ -81,10 +82,13 @@ function getConfig(store) {
     creem_api_base_url: process.env.CREEM_API_BASE_URL || store.config.creem_api_base_url || 'https://api.creem.io',
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
     creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
+    creem_topup_bridge_enabled: process.env.CREEM_TOPUP_BRIDGE_ENABLED !== undefined
+      ? process.env.CREEM_TOPUP_BRIDGE_ENABLED === 'true'
+      : store.config.creem_topup_bridge_enabled === true,
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
     public_api_base_url: process.env.PUBLIC_API_BASE_URL || process.env.VITE_PUBLIC_API_BASE_URL || store.config.public_api_base_url || '',
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
-    site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || '',
+    site_public_url: process.env.PUBLIC_SITE_URL || process.env.SITE_PUBLIC_URL || store.config.site_public_url || 'https://subrouter.com',
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
     _sources: {
       creem_api_key: creemApiKeySource,
@@ -384,10 +388,13 @@ function publicState(store) {
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
       creem_api_key_source: config._sources?.creem_api_key || 'unset',
+      creem_topup_bridge_enabled: Boolean(config.creem_topup_bridge_enabled),
       creem_api_base_url: config.creem_api_base_url,
       creem_checkout_path: config.creem_checkout_path,
       subrouter_base_url: config.subrouter_base_url,
       public_api_base_url: config.public_api_base_url,
+      site_public_url: config.site_public_url,
+      subrouter_site_host: config.subrouter_site_host,
       package_mappings: store.config.package_mappings || {},
     },
     code_stats: [...statsByPackage.values()],
@@ -429,11 +436,136 @@ function stringId(value) {
   return String(value || '').trim();
 }
 
-function checkoutPayload({ order, productId, returnUrl }) {
-  return {
+const creemBridgeSignatureKeys = [
+  'amount',
+  'callback_url',
+  'currency',
+  'email',
+  'expires',
+  'mode',
+  'product_id',
+  'product_name',
+  'quota',
+  'reference_id',
+  'return_url',
+  'units',
+  'user_id',
+  'username',
+];
+
+function signHmac(payload, secret) {
+  return crypto.createHmac('sha256', secret).update(payload).digest('hex');
+}
+
+function verifyFixedHmacSignature(payload, signature, secret) {
+  if (!secret || !signature) return false;
+  const expected = signHmac(payload, secret);
+  const candidates = String(signature)
+    .split(',')
+    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, ''))
+    .filter(Boolean);
+  return candidates.some((candidate) => {
+    const a = Buffer.from(candidate);
+    const b = Buffer.from(expected);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  });
+}
+
+function bridgeSignaturePayload(params) {
+  return creemBridgeSignatureKeys
+    .map((key) => `${key}=${String(params.get(key) || '')}`)
+    .join('\n');
+}
+
+function verifyBridgeStartParams(params, secret) {
+  const expires = Number(params.get('expires') || 0);
+  if (!Number.isFinite(expires) || expires < Math.floor(Date.now() / 1000)) {
+    return { ok: false, message: 'Bridge link expired' };
+  }
+  if (params.get('mode') !== 'topup') {
+    return { ok: false, message: 'Unsupported bridge mode' };
+  }
+  const signature = params.get('signature') || '';
+  if (!verifyFixedHmacSignature(bridgeSignaturePayload(params), signature, secret)) {
+    return { ok: false, message: 'Invalid bridge signature' };
+  }
+  return { ok: true };
+}
+
+function normalizeAbsoluteHttpUrl(raw) {
+  try {
+    const target = new URL(String(raw || '').trim());
+    if (target.protocol !== 'http:' && target.protocol !== 'https:') return '';
+    return target.toString();
+  } catch {
+    return '';
+  }
+}
+
+function publicSiteOrigin(req, config) {
+  if (config.site_public_url) {
+    try {
+      return new URL(config.site_public_url).origin;
+    } catch {
+      // Fall through to request host.
+    }
+  }
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() || (req.socket.encrypted ? 'https' : 'http');
+  return `${proto}://${req.headers.host || 'localhost'}`;
+}
+
+function appendBridgeReturnStatus(rawUrl, status) {
+  const normalized = normalizeAbsoluteHttpUrl(rawUrl);
+  if (!normalized) return '';
+  const target = new URL(normalized);
+  if (target.searchParams.has('checkout_status')) {
+    target.searchParams.set('checkout_status', status === 'success' ? 'success' : 'cancelled');
+  } else if (target.searchParams.has('status')) {
+    target.searchParams.set('status', status === 'success' ? 'success' : 'cancelled');
+  } else if (target.searchParams.has('payment')) {
+    target.searchParams.set('payment', status === 'success' ? 'return' : 'cancel');
+  } else {
+    target.searchParams.set('payment', status === 'success' ? 'return' : 'cancel');
+  }
+  return target.toString();
+}
+
+function htmlEscape(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function scriptJson(value) {
+  return JSON.stringify(value || '').replace(/</g, '\\u003c');
+}
+
+function sendBridgeReturnPage(res, targetUrl) {
+  const safeUrl = normalizeAbsoluteHttpUrl(targetUrl) || 'https://subrouter.com';
+  const body = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="0;url=${htmlEscape(safeUrl)}">
+  <title>Payment return</title>
+</head>
+<body>
+  <p>Returning to the original site. If you are not redirected automatically, use <a href="${htmlEscape(safeUrl)}">this link</a>.</p>
+  <script>window.location.replace(${scriptJson(safeUrl)});</script>
+</body>
+</html>`;
+  return sendRaw(res, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }, body);
+}
+
+function checkoutPayload({ order, productId, returnUrl, cancelUrl, units = 1 }) {
+  const payload = {
     product_id: productId,
     request_id: order.id,
-    units: 1,
+    units,
     success_url: returnUrl,
     metadata: {
       order_id: order.id,
@@ -441,6 +573,11 @@ function checkoutPayload({ order, productId, returnUrl }) {
       subrouter_user_id: order.user_id,
     },
   };
+  if (cancelUrl) payload.cancel_url = cancelUrl;
+  if (order.email) {
+    payload.customer = { email: order.email };
+  }
+  return payload;
 }
 
 function checkoutReturnUrl(rawReturnUrl, order, req) {
@@ -460,7 +597,7 @@ function checkoutReturnUrl(rawReturnUrl, order, req) {
   }
 }
 
-async function createCreemCheckout(store, { order, productId, returnUrl }) {
+async function createCreemCheckout(store, { order, productId, returnUrl, cancelUrl, units = 1 }) {
   const config = getConfig(store);
   const creemApiKey = requireHeaderSafeSecret(
     'Creem API key',
@@ -468,7 +605,7 @@ async function createCreemCheckout(store, { order, productId, returnUrl }) {
     config._sources?.creem_api_key || 'configuration',
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
-  const payload = checkoutPayload({ order, productId, returnUrl });
+  const payload = checkoutPayload({ order, productId, returnUrl, cancelUrl, units });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -968,6 +1105,54 @@ async function activateSubscriptionCycle(store, { order, event }) {
   }
 }
 
+function bridgeCustomerFromEvent(event) {
+  const customer = event.customer ||
+    event.data?.customer ||
+    event.object?.customer ||
+    event.data?.object?.customer ||
+    {};
+  return {
+    email: String(customer.email || event.customer_email || '').trim(),
+    name: String(customer.name || event.customer_name || '').trim(),
+  };
+}
+
+async function notifyCreemBridgeComplete(store, { order, eventId, event }) {
+  const config = getConfig(store);
+  const customer = bridgeCustomerFromEvent(event || {});
+  const payload = {
+    mode: 'topup',
+    reference_id: order.reference_id,
+    status: 'success',
+    customer_email: customer.email,
+    customer_name: customer.name,
+    event_id: String(eventId || ''),
+  };
+  const rawBody = JSON.stringify(payload);
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = signHmac(`${timestamp}.${rawBody}`, config.creem_webhook_secret);
+  const response = await requestJson(order.callback_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Creem-Bridge-Timestamp': timestamp,
+      'X-Creem-Bridge-Signature': signature,
+    },
+    body: rawBody,
+  });
+  const success = response.ok && (response.data.success === true || response.data.message === 'success' || Object.keys(response.data || {}).length === 0);
+  if (success) {
+    order.status = 'completed';
+    order.completed_at = now();
+  } else {
+    order.status = 'callback_failed';
+    order.callback_error = response.data?.message || response.data?.error || `HTTP ${response.status}`;
+  }
+  order.callback_status = response.status;
+  order.updated_at = now();
+  return { success, status: response.status, data: response.data };
+}
+
 function upsertSubscription(store, input) {
   let sub = store.subscriptions.find((item) => item.subscription_id === input.subscription_id);
   if (!sub) {
@@ -1021,6 +1206,103 @@ export async function handleSiteSaasRequest(req, res) {
       });
     }
 
+    if (url.pathname === '/api/site/creem-bridge/start' && req.method === 'GET') {
+      const config = getConfig(store);
+      if (!config.creem_topup_bridge_enabled) {
+        return sendJson(res, 403, { success: false, message: 'Creem top-up bridge is disabled' });
+      }
+      if (!config.creem_webhook_secret) {
+        return sendJson(res, 500, { success: false, message: 'Creem bridge secret is not configured' });
+      }
+      const verification = verifyBridgeStartParams(url.searchParams, config.creem_webhook_secret);
+      if (!verification.ok) {
+        return sendJson(res, 401, { success: false, message: verification.message });
+      }
+
+      const referenceId = String(url.searchParams.get('reference_id') || '').trim();
+      const productId = String(url.searchParams.get('product_id') || '').trim();
+      const callbackUrl = normalizeAbsoluteHttpUrl(url.searchParams.get('callback_url'));
+      const returnUrl = normalizeAbsoluteHttpUrl(url.searchParams.get('return_url'));
+      const units = Math.max(1, Number.parseInt(url.searchParams.get('units') || '1', 10) || 1);
+      if (!referenceId || !productId || !callbackUrl || !returnUrl) {
+        return sendJson(res, 400, { success: false, message: 'Missing bridge checkout parameters' });
+      }
+
+      let order = store.orders.find((item) => item.source === 'creem_topup_bridge' && item.reference_id === referenceId);
+      if (!order) {
+        order = {
+          id: id('brg'),
+          source: 'creem_topup_bridge',
+          bridge_mode: 'topup',
+          reference_id: referenceId,
+          user_id: String(url.searchParams.get('user_id') || '').trim(),
+          username: String(url.searchParams.get('username') || '').trim(),
+          email: String(url.searchParams.get('email') || '').trim(),
+          product_id: productId,
+          product_name: String(url.searchParams.get('product_name') || '').trim(),
+          quota: Number.parseInt(url.searchParams.get('quota') || '0', 10) || 0,
+          amount: Number.parseInt(url.searchParams.get('amount') || '0', 10) || 0,
+          currency: String(url.searchParams.get('currency') || '').trim(),
+          units,
+          callback_url: callbackUrl,
+          return_url: returnUrl,
+          status: 'pending',
+          created_at: now(),
+        };
+        store.orders.push(order);
+        await saveStore(store);
+      }
+
+      if (order.checkout_url && order.status === 'checkout_created') {
+        res.writeHead(302, { Location: order.checkout_url, 'Cache-Control': 'no-store' });
+        return res.end();
+      }
+
+      const publicOrigin = publicSiteOrigin(req, config);
+      const successUrl = `${publicOrigin}/api/site/creem-bridge/return?order_id=${encodeURIComponent(order.id)}&status=success`;
+      const cancelUrl = `${publicOrigin}/api/site/creem-bridge/return?order_id=${encodeURIComponent(order.id)}&status=cancelled`;
+      try {
+        const checkout = await createCreemCheckout(store, {
+          order,
+          productId,
+          returnUrl: successUrl,
+          cancelUrl,
+          units,
+        });
+        order.status = 'checkout_created';
+        order.checkout_id = checkout.checkout_id;
+        order.checkout_url = checkout.checkout_url;
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_created', { order_id: order.id, reference_id: referenceId, user_id: order.user_id });
+        await saveStore(store);
+        res.writeHead(302, { Location: checkout.checkout_url, 'Cache-Control': 'no-store' });
+        return res.end();
+      } catch (error) {
+        order.status = 'checkout_failed';
+        order.error = error.message;
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_failed', { order_id: order.id, reference_id: referenceId, error: error.message });
+        await saveStore(store);
+        return sendJson(res, 500, { success: false, message: error.message });
+      }
+    }
+
+    if (url.pathname === '/api/site/creem-bridge/return' && req.method === 'GET') {
+      const orderId = String(url.searchParams.get('order_id') || '').trim();
+      const status = String(url.searchParams.get('status') || '').toLowerCase() === 'success' ? 'success' : 'cancelled';
+      const order = store.orders.find((item) => item.source === 'creem_topup_bridge' && item.id === orderId);
+      if (!order) {
+        return sendBridgeReturnPage(res, 'https://subrouter.com');
+      }
+      if (status !== 'success' && order.status !== 'completed') {
+        order.status = 'cancelled';
+        order.updated_at = now();
+        pushEvent(store, 'bridge_checkout_cancelled', { order_id: order.id, reference_id: order.reference_id });
+        await saveStore(store);
+      }
+      return sendBridgeReturnPage(res, appendBridgeReturnStatus(order.return_url, status));
+    }
+
     if (url.pathname === '/api/site/saas/playground-proxy' && req.method === 'POST') {
       const apiPath = normalizePlaygroundPath(body.path || body.endpoint);
       if (!apiPath) return sendJson(res, 400, { success: false, message: 'Unsupported Playground API path' });
@@ -1070,6 +1352,7 @@ export async function handleSiteSaasRequest(req, res) {
         'creem_api_base_url',
         'creem_checkout_path',
         'creem_webhook_secret',
+        'creem_topup_bridge_enabled',
         'subrouter_base_url',
         'public_api_base_url',
         'subrouter_internal_token',
@@ -1078,7 +1361,9 @@ export async function handleSiteSaasRequest(req, res) {
       ];
       for (const key of keys) {
         if (Object.prototype.hasOwnProperty.call(body, key)) {
-          store.config[key] = String(body[key] || '').trim();
+          store.config[key] = key === 'creem_topup_bridge_enabled'
+            ? body[key] === true || body[key] === 'true'
+            : String(body[key] || '').trim();
         }
       }
       if (body.package_mappings && typeof body.package_mappings === 'object') {
@@ -1271,6 +1556,12 @@ export async function handleSiteSaasRequest(req, res) {
         });
         await saveStore(store);
         return sendJson(res, 202, { success: false, message: 'Order not found for webhook metadata' });
+      }
+      if (order.source === 'creem_topup_bridge') {
+        const result = await notifyCreemBridgeComplete(store, { order, eventId, event: body });
+        pushEvent(store, 'bridge_webhook_processed', { event_id: eventId, order_id: order.id, reference_id: order.reference_id, success: result.success });
+        await saveStore(store);
+        return sendJson(res, result.success ? 200 : 202, { success: result.success, data: result });
       }
       const result = await activateSubscriptionCycle(store, { order, event: body });
       pushEvent(store, 'webhook_processed', { event_id: eventId, order_id: order.id, success: result.success });
