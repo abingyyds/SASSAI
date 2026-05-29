@@ -41,6 +41,7 @@ function emptyConfig() {
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
     creem_topup_bridge_enabled: false,
+    creem_topup_bridge_secret: '',
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
@@ -155,6 +156,7 @@ export default function SaasAdmin() {
     };
     if (config.creem_api_key.trim()) payload.creem_api_key = config.creem_api_key.trim();
     if (config.creem_webhook_secret.trim()) payload.creem_webhook_secret = config.creem_webhook_secret.trim();
+    if (config.creem_topup_bridge_secret.trim()) payload.creem_topup_bridge_secret = config.creem_topup_bridge_secret.trim();
     if (config.subrouter_internal_token.trim()) payload.subrouter_internal_token = config.subrouter_internal_token.trim();
 
     const res = await updateSiteSaasAdminConfig(adminToken, payload).catch((error) => {
@@ -167,6 +169,7 @@ export default function SaasAdmin() {
         ...current,
         creem_api_key: '',
         creem_webhook_secret: '',
+        creem_topup_bridge_secret: '',
         subrouter_internal_token: '',
       }));
       setState(res.data.data);
@@ -272,6 +275,7 @@ export default function SaasAdmin() {
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Creem API key" value={config.creem_api_key} onChange={(value) => setConfig({ ...config, creem_api_key: value })} placeholder={state?.config?.creem_api_key_configured ? 'Configured. Leave blank to keep.' : 'Enter API key'} secret />
               <Field label="Creem webhook secret" value={config.creem_webhook_secret} onChange={(value) => setConfig({ ...config, creem_webhook_secret: value })} placeholder={state?.config?.creem_webhook_secret_configured ? 'Configured. Leave blank to keep.' : 'Webhook signing secret'} secret />
+              <Field label="Creem top-up bridge secret" value={config.creem_topup_bridge_secret} onChange={(value) => setConfig({ ...config, creem_topup_bridge_secret: value })} placeholder={state?.config?.creem_topup_bridge_secret_configured ? 'Configured. Leave blank to keep.' : 'Shared bridge signing secret'} secret />
               <Field label="Creem API base URL" value={config.creem_api_base_url} onChange={(value) => setConfig({ ...config, creem_api_base_url: value })} />
               <Field label="Checkout path" value={config.creem_checkout_path} onChange={(value) => setConfig({ ...config, creem_checkout_path: value })} />
               <label className="flex items-center gap-3 rounded-2xl border border-page-divider bg-page-surface/40 px-4 py-3 text-sm text-page-label">

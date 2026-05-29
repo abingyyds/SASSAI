@@ -21,6 +21,7 @@ const defaultStore = {
     creem_checkout_path: '/v1/checkouts',
     creem_webhook_secret: '',
     creem_topup_bridge_enabled: false,
+    creem_topup_bridge_secret: '',
     subrouter_base_url: 'http://localhost:3000',
     public_api_base_url: '',
     subrouter_internal_token: '',
@@ -85,6 +86,7 @@ function getConfig(store) {
     creem_topup_bridge_enabled: process.env.CREEM_TOPUP_BRIDGE_ENABLED !== undefined
       ? process.env.CREEM_TOPUP_BRIDGE_ENABLED === 'true'
       : store.config.creem_topup_bridge_enabled === true,
+    creem_topup_bridge_secret: process.env.CREEM_TOPUP_BRIDGE_SECRET || store.config.creem_topup_bridge_secret || '',
     subrouter_base_url: process.env.SUBROUTER_API_BASE || store.config.subrouter_base_url || 'http://localhost:3000',
     public_api_base_url: process.env.PUBLIC_API_BASE_URL || process.env.VITE_PUBLIC_API_BASE_URL || store.config.public_api_base_url || '',
     subrouter_internal_token: process.env.SUBROUTER_INTERNAL_TOKEN || store.config.subrouter_internal_token || '',
@@ -386,6 +388,7 @@ function publicState(store) {
     config: {
       creem_api_key_configured: Boolean(config.creem_api_key),
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
+      creem_topup_bridge_secret_configured: Boolean(config.creem_topup_bridge_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
       creem_api_key_source: config._sources?.creem_api_key || 'unset',
       creem_topup_bridge_enabled: Boolean(config.creem_topup_bridge_enabled),
@@ -1130,7 +1133,7 @@ async function notifyCreemBridgeComplete(store, { order, eventId, event }) {
   };
   const rawBody = JSON.stringify(payload);
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const signature = signHmac(`${timestamp}.${rawBody}`, config.creem_webhook_secret);
+  const signature = signHmac(`${timestamp}.${rawBody}`, config.creem_topup_bridge_secret);
   const response = await requestJson(order.callback_url, {
     method: 'POST',
     headers: {
@@ -1211,10 +1214,10 @@ export async function handleSiteSaasRequest(req, res) {
       if (!config.creem_topup_bridge_enabled) {
         return sendJson(res, 403, { success: false, message: 'Creem top-up bridge is disabled' });
       }
-      if (!config.creem_webhook_secret) {
+      if (!config.creem_topup_bridge_secret) {
         return sendJson(res, 500, { success: false, message: 'Creem bridge secret is not configured' });
       }
-      const verification = verifyBridgeStartParams(url.searchParams, config.creem_webhook_secret);
+      const verification = verifyBridgeStartParams(url.searchParams, config.creem_topup_bridge_secret);
       if (!verification.ok) {
         return sendJson(res, 401, { success: false, message: verification.message });
       }
@@ -1353,6 +1356,7 @@ export async function handleSiteSaasRequest(req, res) {
         'creem_checkout_path',
         'creem_webhook_secret',
         'creem_topup_bridge_enabled',
+        'creem_topup_bridge_secret',
         'subrouter_base_url',
         'public_api_base_url',
         'subrouter_internal_token',
