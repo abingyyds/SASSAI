@@ -564,7 +564,7 @@ function sendBridgeReturnPage(res, targetUrl) {
   return sendRaw(res, 200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }, body);
 }
 
-function checkoutPayload({ order, productId, returnUrl, cancelUrl, units = 1 }) {
+function checkoutPayload({ order, productId, returnUrl, units = 1 }) {
   const payload = {
     product_id: productId,
     request_id: order.id,
@@ -576,7 +576,6 @@ function checkoutPayload({ order, productId, returnUrl, cancelUrl, units = 1 }) 
       subrouter_user_id: order.user_id,
     },
   };
-  if (cancelUrl) payload.cancel_url = cancelUrl;
   if (order.email) {
     payload.customer = { email: order.email };
   }
@@ -600,7 +599,7 @@ function checkoutReturnUrl(rawReturnUrl, order, req) {
   }
 }
 
-async function createCreemCheckout(store, { order, productId, returnUrl, cancelUrl, units = 1 }) {
+async function createCreemCheckout(store, { order, productId, returnUrl, units = 1 }) {
   const config = getConfig(store);
   const creemApiKey = requireHeaderSafeSecret(
     'Creem API key',
@@ -608,7 +607,7 @@ async function createCreemCheckout(store, { order, productId, returnUrl, cancelU
     config._sources?.creem_api_key || 'configuration',
   );
   const url = new URL(config.creem_checkout_path, config.creem_api_base_url).toString();
-  const payload = checkoutPayload({ order, productId, returnUrl, cancelUrl, units });
+  const payload = checkoutPayload({ order, productId, returnUrl, units });
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -1263,13 +1262,11 @@ export async function handleSiteSaasRequest(req, res) {
 
       const publicOrigin = publicSiteOrigin(req, config);
       const successUrl = `${publicOrigin}/api/site/creem-bridge/return?order_id=${encodeURIComponent(order.id)}&status=success`;
-      const cancelUrl = `${publicOrigin}/api/site/creem-bridge/return?order_id=${encodeURIComponent(order.id)}&status=cancelled`;
       try {
         const checkout = await createCreemCheckout(store, {
           order,
           productId,
           returnUrl: successUrl,
-          cancelUrl,
           units,
         });
         order.status = 'checkout_created';
