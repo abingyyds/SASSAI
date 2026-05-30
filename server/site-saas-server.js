@@ -255,6 +255,15 @@ function parseJson(raw) {
   return JSON.parse(raw.toString('utf8'));
 }
 
+function hasSuccessfulWebhookEvent(store, eventId) {
+  if (!eventId) return false;
+  return store.events.some((event) => (
+    (event.type === 'webhook_processed' || event.type === 'bridge_webhook_processed') &&
+    event.detail?.event_id === eventId &&
+    event.detail?.success === true
+  ));
+}
+
 function requestJson(url, { method = 'GET', headers = {}, body = '' } = {}) {
   return new Promise((resolve, reject) => {
     const target = new URL(url);
@@ -1670,7 +1679,7 @@ export async function handleSiteSaasRequest(req, res) {
         return sendJson(res, 401, { success: false, message: 'Invalid webhook signature' });
       }
       const eventId = body.id || body.event_id || body.data?.id || id('wh');
-      if (store.events.some((event) => event.type === 'webhook_processed' && event.detail?.event_id === eventId)) {
+      if (hasSuccessfulWebhookEvent(store, eventId)) {
         return sendJson(res, 200, { success: true, data: { duplicate: true } });
       }
       if (!isPaidEvent(body)) {
