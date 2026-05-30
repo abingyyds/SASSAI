@@ -1629,7 +1629,7 @@ export async function handleSiteSaasRequest(req, res) {
       }
     }
 
-    if (url.pathname === '/api/site/saas/webhooks/creem' && req.method === 'POST') {
+    if ((url.pathname === '/api/site/saas/webhooks/creem' || url.pathname === '/webhook') && req.method === 'POST') {
       const config = getConfig(store);
       if (!verifyWebhook(raw, req, config.creem_webhook_secret)) {
         pushEvent(store, 'webhook_signature_failed', {
