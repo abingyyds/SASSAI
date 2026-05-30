@@ -68,6 +68,9 @@ async function saveStore(store) {
 function getConfig(store) {
   const creemApiKeyEnv = String(process.env.CREEM_API_KEY || '').trim();
   const creemApiKeyConfig = String(store.config.creem_api_key || '').trim();
+  const creemWebhookSecretEnv = String(process.env.CREEM_WEBHOOK_SECRET || '').trim();
+  const creemWebhookSecretConfig = String(store.config.creem_webhook_secret || '').trim();
+  const creemWebhookSecrets = [...new Set([creemWebhookSecretEnv, creemWebhookSecretConfig].filter(Boolean))];
   const hasValidCreemApiKeyEnv = Boolean(creemApiKeyEnv) && !invalidHeaderValueDetail(creemApiKeyEnv);
   const creemApiKey = hasValidCreemApiKeyEnv ? creemApiKeyEnv : creemApiKeyConfig;
   const creemApiKeySource = hasValidCreemApiKeyEnv
@@ -82,7 +85,8 @@ function getConfig(store) {
     creem_api_key: creemApiKey,
     creem_api_base_url: process.env.CREEM_API_BASE_URL || store.config.creem_api_base_url || 'https://api.creem.io',
     creem_checkout_path: process.env.CREEM_CHECKOUT_PATH || store.config.creem_checkout_path || '/v1/checkouts',
-    creem_webhook_secret: process.env.CREEM_WEBHOOK_SECRET || store.config.creem_webhook_secret || '',
+    creem_webhook_secret: creemWebhookSecretEnv || creemWebhookSecretConfig || '',
+    creem_webhook_secrets: creemWebhookSecrets,
     creem_topup_bridge_enabled: process.env.CREEM_TOPUP_BRIDGE_ENABLED !== undefined
       ? process.env.CREEM_TOPUP_BRIDGE_ENABLED === 'true'
       : store.config.creem_topup_bridge_enabled === true,
@@ -94,6 +98,11 @@ function getConfig(store) {
     subrouter_site_host: process.env.SUBROUTER_SITE_HOST || store.config.subrouter_site_host || '',
     _sources: {
       creem_api_key: creemApiKeySource,
+      creem_webhook_secret: creemWebhookSecretEnv
+        ? (creemWebhookSecretConfig && creemWebhookSecretConfig !== creemWebhookSecretEnv
+          ? 'environment variable CREEM_WEBHOOK_SECRET + site admin config'
+          : 'environment variable CREEM_WEBHOOK_SECRET')
+        : (creemWebhookSecretConfig ? 'site admin config' : 'unset'),
     },
   };
 }
@@ -395,6 +404,10 @@ function publicState(store) {
     config: {
       creem_api_key_configured: Boolean(config.creem_api_key),
       creem_webhook_secret_configured: Boolean(config.creem_webhook_secret),
+      creem_webhook_secret_source: config._sources?.creem_webhook_secret || 'unset',
+      creem_webhook_secret_candidates: Array.isArray(config.creem_webhook_secrets)
+        ? config.creem_webhook_secrets.length
+        : (config.creem_webhook_secret ? 1 : 0),
       creem_topup_bridge_secret_configured: Boolean(config.creem_topup_bridge_secret),
       subrouter_internal_token_configured: Boolean(config.subrouter_internal_token),
       creem_api_key_source: config._sources?.creem_api_key || 'unset',
@@ -690,8 +703,17 @@ function verifyCreemRedirectSignature(params, apiKey) {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-function verifyWebhook(rawBody, req, secret) {
-  if (!secret) return true;
+function timingSafeEqualText(left, right) {
+  const a = Buffer.from(String(left || ''));
+  const b = Buffer.from(String(right || ''));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+function verifyWebhook(rawBody, req, secrets) {
+  const secretCandidates = (Array.isArray(secrets) ? secrets : [secrets])
+    .map((secret) => String(secret || '').trim())
+    .filter(Boolean);
+  if (!secretCandidates.length) return true;
   const header = String(
     req.headers['creem-signature'] ||
     req.headers['x-creem-signature'] ||
@@ -700,15 +722,14 @@ function verifyWebhook(rawBody, req, secret) {
     '',
   );
   if (!header) return false;
-  const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   const candidates = header
     .split(',')
-    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, ''))
-    .filter(Boolean);
-  return candidates.some((candidate) => {
-    const a = Buffer.from(candidate);
-    const b = Buffer.from(expected);
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+    .map((part) => part.trim().replace(/^sha256=/i, '').replace(/^v1=/i, '').replace(/\s+/g, ''))
+    .filter((part) => /^[a-f0-9]{64}$/i.test(part));
+  if (!candidates.length) return false;
+  return secretCandidates.some((secret) => {
+    const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+    return candidates.some((candidate) => timingSafeEqualText(candidate.toLowerCase(), expected));
   });
 }
 
@@ -1631,9 +1652,13 @@ export async function handleSiteSaasRequest(req, res) {
 
     if ((url.pathname === '/api/site/saas/webhooks/creem' || url.pathname === '/webhook') && req.method === 'POST') {
       const config = getConfig(store);
-      if (!verifyWebhook(raw, req, config.creem_webhook_secret)) {
+      if (!verifyWebhook(raw, req, config.creem_webhook_secrets || config.creem_webhook_secret)) {
         pushEvent(store, 'webhook_signature_failed', {
           type: body.type || body.eventType || body.event_type,
+          secret_source: config._sources?.creem_webhook_secret || 'unset',
+          secret_candidates: Array.isArray(config.creem_webhook_secrets)
+            ? config.creem_webhook_secrets.length
+            : (config.creem_webhook_secret ? 1 : 0),
           headers: {
             creem_signature: Boolean(req.headers['creem-signature']),
             x_creem_signature: Boolean(req.headers['x-creem-signature']),
